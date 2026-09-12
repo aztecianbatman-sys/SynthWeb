@@ -1063,7 +1063,12 @@ fn move_tab_to_workspace(app: tauri::AppHandle, state: State<AppState>, tab_id:S
         let active_now=state.active_id.lock().unwrap().clone();
         if active_now==tab_id {
             if let Some(next)=tabs.iter().find(|t|t.workspace==*state.active_workspace.lock().unwrap()).map(|t|t.id.clone()){*state.active_id.lock().unwrap()=next;}
-            else {drop(tabs);drop(state);return Ok(());}
+            else {
+                drop(tabs);
+                layout(&app,&state)?;
+                emit_snapshot(&app,&state);
+                return Ok(());
+            }
         }
     }
     drop(tabs);
