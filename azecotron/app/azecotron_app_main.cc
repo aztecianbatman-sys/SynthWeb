@@ -40,7 +40,6 @@ void AttachExistingContentShellToSynth() {
 
   g_runtime_host = std::make_unique<synth_azecotron::AzecotronRuntimeHost>(
       client->GetBrowserContext());
-  content::WebContents* raw_web_contents = web_contents.release();
 
   std::string startup_url =
       command_line->GetSwitchValueASCII("synth-url");
@@ -49,7 +48,7 @@ void AttachExistingContentShellToSynth() {
   }
 
   GURL url(startup_url);
-  g_runtime_host->AdoptWebContents(raw_web_contents, url);
+  g_runtime_host->AdoptWebContents(std::move(web_contents), url);
 
 #if BUILDFLAG(IS_WIN)
   const std::string parent_value =
@@ -58,7 +57,7 @@ void AttachExistingContentShellToSynth() {
     const auto raw =
         static_cast<uintptr_t>(std::strtoull(parent_value.c_str(), nullptr, 10));
     HWND parent = reinterpret_cast<HWND>(raw);
-    HWND child = raw_web_contents->GetNativeView();
+    HWND child = g_runtime_host->GetNativeViewForEmbedding();
 
     if (parent && child) {
       SetParent(child, parent);
