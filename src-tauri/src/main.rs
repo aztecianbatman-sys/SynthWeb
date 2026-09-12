@@ -136,6 +136,16 @@ struct BoardItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct DownloadEntry {
+    id: i64,
+    url: String,
+    path: Option<String>,
+    status: String,
+    created_at: i64,
+    finished_at: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct RestoreState {
     tabs: Vec<Tab>,
     active_id: String,
@@ -314,6 +324,15 @@ impl Db {
             id:r.get(0)?, title:r.get(1)?, url:r.get(2)?, folder:r.get(3)?, created_at:r.get(4)?
         }))?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    fn list_downloads(&self)->AppResult<Vec<DownloadEntry>>{
+        let c=self.connect()?;
+        let mut s=c.prepare("SELECT id,url,path,status,created_at,finished_at FROM downloads ORDER BY created_at DESC LIMIT 250")?;
+        let rows=s.query_map([],|r|Ok(DownloadEntry{
+            id:r.get(0)?,url:r.get(1)?,path:r.get(2)?,status:r.get(3)?,created_at:r.get(4)?,finished_at:r.get(5)?
+        }))?;
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
     }
 
     fn download_started(&self, url: &str, path: &Path) -> AppResult<()> {
@@ -1213,6 +1232,9 @@ fn remove_shelf(state: State<AppState>, id: i64) -> AppResult<()> {
     state.db.remove_shelf(id)
 }
 
+
+#[tauri::command]
+fn list_downloads(state: State<AppState>)->AppResult<Vec<DownloadEntry>>{state.db.list_downloads()}
 
 #[tauri::command]
 fn list_query_history(state: State<AppState>)->AppResult<Vec<String>>{ state.db.list_query_history() }
