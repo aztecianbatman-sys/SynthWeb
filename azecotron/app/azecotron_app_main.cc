@@ -12,6 +12,7 @@
 #include "base/functional/bind.h"
 #include "ui/base/page_transition_types.h"
 #include "url/gurl.h"
+#include "azecotron/host/azecotron_runtime_host.h"
 
 #if BUILDFLAG(IS_WIN)
 #include <windows.h>
@@ -20,6 +21,8 @@
 #endif
 
 namespace {
+
+std::unique_ptr<synth_azecotron::AzecotronRuntimeHost> g_runtime_host;
 
 void AttachExistingContentShellToSynth() {
   const base::CommandLine* command_line =
@@ -40,11 +43,9 @@ void AttachExistingContentShellToSynth() {
   }
 
   GURL url(startup_url);
-  if (url.is_valid()) {
-    content::NavigationController::LoadURLParams load(url);
-    load.transition_type = ui::PAGE_TRANSITION_TYPED;
-    web_contents->GetController().LoadURLWithParams(load);
-  }
+  g_runtime_host = std::make_unique<synth_azecotron::AzecotronRuntimeHost>(
+      web_contents->GetBrowserContext());
+  g_runtime_host->AdoptWebContents(web_contents, url);
 
 #if BUILDFLAG(IS_WIN)
   const std::string parent_value =
