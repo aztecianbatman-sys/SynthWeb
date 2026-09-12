@@ -137,11 +137,17 @@ content::WebContents* AzecotronRuntimeHost::CreateCustomWebContents(
 
   child->SetDelegate(this);
   Observe(child.get());
+  AttachNativeView(child.get());
+  EmitEvent("new-window", child.get(), "opener_url", opener_url.spec());
   return child.release();
 }
 
-void AzecotronRuntimeHost::RendererUnresponsive(content::WebContents*) {}
-void AzecotronRuntimeHost::RendererResponsive(content::WebContents*) {}
+void AzecotronRuntimeHost::RendererUnresponsive(content::WebContents* source, content::RenderWidgetHost*, base::RepeatingClosure) {
+  EmitEvent("renderer-unresponsive", source);
+}
+void AzecotronRuntimeHost::RendererResponsive(content::WebContents* source, content::RenderWidgetHost*) {
+  EmitEvent("renderer-responsive", source);
+}
 void AzecotronRuntimeHost::DidNavigateMainFramePostCommit(
     content::WebContents*) {}
 
