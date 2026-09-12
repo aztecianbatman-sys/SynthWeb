@@ -176,6 +176,102 @@ function render() {
   renderRecent();
 }
 
+
+const onboardingState={step:0,profileName:"",privacy:"strict",theme:"dark",showRecent:false,searchHistory:false};
+function onboardingSteps(){
+  return [
+    {
+      kicker:"WELCOME",
+      title:"A browser that starts with you.",
+      body:"Synth Browser keeps the core browsing experience familiar while putting privacy controls close to the surface. The setup takes about a minute.",
+      html:'<div class="onboarding-cards"><div class="onboarding-card"><strong>Local first</strong><span>Browser data stays in your profile unless you deliberately use a remote service.</span></div><div class="onboarding-card"><strong>AI stays optional</strong><span>Synth Assist is off until you turn it on.</span></div><div class="onboarding-card"><strong>Real controls</strong><span>Privacy settings are backed by the runtime, not decorative switches.</span></div><div class="onboarding-card"><strong>No silent collection</strong><span>Page context is only captured after an explicit action.</span></div></div>'
+    },
+    {
+      kicker:"PRIVACY",
+      title:"Start with Shielded mode?",
+      body:"Shielded is Synth's privacy-first preset. You can change every setting later.",
+      html:'<label class="onboarding-choice selected"><input type="radio" name="privacyMode" value="strict" checked><div><strong>Shielded</strong><small>No search/history memory, HTTPS-only navigation, AI disabled, recent activity hidden, and sensitive permissions ask or block.</small></div></label><label class="onboarding-choice"><input type="radio" name="privacyMode" value="balanced"><div><strong>Balanced</strong><small>Normal browsing convenience with history and recent activity enabled. HTTPS-only stays on.</small></div></label>'
+    },
+    {
+      kicker:"PERSONALIZE",
+      title:"Make it feel like your browser.",
+      body:"These are appearance choices only. They do not weaken privacy settings.",
+      html:'<div class="onboarding-cards"><div><label class="setting-label">Theme<select id="obTheme" class="onboarding-field"><option value="dark">Dark</option><option value="light">Light</option><option value="system">System</option></select></label></div><div><label class="setting-label">Profile<input id="obProfile" class="onboarding-field" maxlength="60" placeholder="Default profile"></label></div></div>'
+    },
+    {
+      kicker:"READY",
+      title:"Your privacy baseline is set.",
+      body:"You can revisit these choices from Settings → Privacy & Security at any time.",
+      html:'<div class="onboarding-cards"><div class="onboarding-card"><strong>Search memory</strong><span id="obSearchSummary">Off</span></div><div class="onboarding-card"><strong>AI</strong><span>Disabled</span></div><div class="onboarding-card"><strong>HTTPS-only</strong><span>Enabled</span></div><div class="onboarding-card"><strong>Sensitive permissions</strong><span>Ask / Block</span></div></div>'
+    }
+  ];
+}
+function renderOnboarding(){
+  const steps=onboardingSteps();const step=steps[onboardingState.step];
+  $("onboardingContent").innerHTML='<div class="onboarding-kicker">'+step.kicker+'</div><h1 id="onboardingTitle">'+step.title+'</h1><p>'+step.body+'</p>'+step.html;
+  $("onboardingStep").textContent=(onboardingState.step+1)+" / "+steps.length;
+  $("onboardingProgress").style.width=((onboardingState.step+1)/steps.length*100)+"%";
+  $("onboardingBack").style.visibility=onboardingState.step===0?"hidden":"visible";
+  $("onboardingSkip").style.display=onboardingState.step===0?"none":"inline-block";
+  $("onboardingNext").textContent=onboardingState.step===steps.length-1?"Finish":"Continue";
+  if(onboardingState.step===1){
+    document.querySelectorAll('input[name="privacyMode"]').forEach(input=>{
+      input.onchange=()=>{onboardingState.privacy=input.value;document.querySelectorAll(".onboarding-choice").forEach(x=>x.classList.remove("selected"));input.closest(".onboarding-choice")?.classList.add("selected")}
+    });
+  }
+  if(onboardingState.step===2){
+    $("obTheme").value=onboardingState.theme;
+    $("obTheme").onchange=e=>onboardingState.theme=e.target.value;
+    $("obProfile").value=onboardingState.profileName;
+    $("obProfile").oninput=e=>onboardingState.profileName=e.target.value.trim();
+  }
+}
+async function completeOnboarding(){
+  const balanced=onboardingState.privacy==="balanced";
+  const settings={
+    theme:onboardingState.theme,
+    accent:"cyan",
+    density:"comfortable",
+    show_shortcuts:"true",
+    show_recent:String(balanced),
+    search_history:String(balanced),
+    quiet_mode:"false",
+    https_only:"true",
+    tracker_enabled:"true",
+    ai_enabled:"false",
+    ai_page_context:"false",
+    ai_selection_context:"false",
+    permission_camera:"prompt",
+    permission_microphone:"prompt",
+    permission_geolocation:"prompt",
+    permission_notifications:"prompt",
+    permission_display_capture:"prompt",
+    permission_clipboard:"deny",
+    permission_local_fonts:"deny",
+    permission_sensors:"deny",
+    default_zoom:"100"
+  };
+  try{
+    if(!balanced) await invoke("privacy_preset");
+    settings.show_recent=balanced?"true":"false";
+    settings.search_history=balanced?"true":"false";
+    await invoke("complete_onboarding",{settings});
+    $("onboarding").classList.add("hidden");
+    await refresh();
+    if(onboardingState.profileName && onboardingState.profileName!=="Default"){
+      try{await invoke("create_profile",{name:onboardingState.profileName});}catch(e){toast("Profile was not created: "+e)}
+    }
+    toast("Synth Browser is ready.");
+  }catch(e){toast(e)}
+}
+async function startOnboarding(){
+  onboardingState.privacy="strict";onboardingState.theme=state.settings.theme||"dark";
+  $("onboarding").classList.remove("hidden");renderOnboarding();
+}
+$("onboardingBack").onclick=()=>{if(onboardingState.step>0){onboardingState.step--;renderOnboarding()}};
+$("onboardingSkip").onclick=()=>{onboardingState.step=onboardingSteps().length-1;renderOnboarding()};
+$("onboardingNext").onclick=async()=>{if(onboardingState.step<onboardingSteps().length-1){onboardingState.step++;renderOnboarding()}else{await completeOnboarding()}};
+
 async function refresh() {
   const snapshot = await invoke("get_snapshot");
   state.tabs = snapshot.tabs;
@@ -1558,6 +1654,7 @@ document.addEventListener("keydown", async (event) => {
     setTimeout(() => {
       $("boot").classList.add("hidden");
       if (state.restoreAvailable) $("restore").classList.remove("hidden");
+      if (state.settings.onboarding_completed !== "true" && !state.restoreAvailable) startOnboarding();
     }, 1700);
   } catch (error) {
     $("boot").classList.add("hidden");
