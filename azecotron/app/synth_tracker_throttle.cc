@@ -3,6 +3,10 @@
 #include <atomic>
 #include <array>
 #include <string_view>
+#include <iostream>
+
+#include "base/json/json_writer.h"
+#include "base/values.h"
 
 #include "net/base/net_errors.h"
 #include "services/network/public/cpp/resource_request.h"
@@ -13,6 +17,7 @@ namespace {
 
 std::atomic<uint64_t> g_blocked{0};
 std::atomic<uint64_t> g_seen{0};
+std::atomic<uint64_t> g_cookie_stripped{0};
 
 constexpr std::array<std::string_view, 12> kTrackerPatterns = {{
     "doubleclick.net",
@@ -62,9 +67,30 @@ void SynthTrackerThrottle::WillStartRequest(
 
   if (IsTrackerHost(request->url)) {
     ++g_blocked;
+    base::Value::Dict event;
+    event.Set("type","tracker-blocked");
+    event.Set("url",request->url.spec());
+    event.Set("blocked",static_cast<int>(g_blocked.load()));
+    std::string json;
+    base::JSONWriter::Write(event,&json);
+    std::cout << "SYNTH_EVENT " << json << std::endl;
     delegate_->CancelWithError(
         net::ERR_BLOCKED_BY_CLIENT,
         "Synth Shield blocked a tracker resource.");
+  }
+
+  // Strict mode: do not send cookies from a web origin to a different origin.
+  // This intentionally favors privacy over cross-origin convenience.
+  if (request->request_initiator.has_value() &&
+      request->url.is_valid() &&
+      request->url.SchemeIsHTTPOrHTTPS()) {
+    const url::Origin target = url::Origin::Create(request->url);
+    if (!target.IsSameOriginWith(request->request_initiator.value())) {
+      if (request->headers.HasHeader("Cookie")) {
+        request->headers.RemoveHeader("Cookie");
+        ++g_cookie_stripped;
+      }
+    }
   }
 }
 
