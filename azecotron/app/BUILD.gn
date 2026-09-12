@@ -1,7 +1,16 @@
 executable("azecotron_host") {
   testonly = true
+  testonly = true
   sources = [
     "azecotron_app_main.cc",
+    "synth_browser_context.cc",
+    "synth_browser_context.h",
+    "synth_browser_main_parts.cc",
+    "synth_browser_main_parts.h",
+    "synth_content_browser_client.cc",
+    "synth_content_browser_client.h",
+    "synth_content_main_delegate.cc",
+    "synth_content_main_delegate.h",
   ]
 
   deps = [
@@ -9,6 +18,7 @@ executable("azecotron_host") {
     "//content/shell:content_shell_lib",
     "//content/shell",
     "//azecotron/host:azecotron_runtime_host",
+    "//content/public/browser",
     "//sandbox",
   ]
 
