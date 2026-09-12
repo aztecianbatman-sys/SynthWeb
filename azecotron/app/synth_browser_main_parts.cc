@@ -4,7 +4,12 @@
 #include "base/files/file_path.h"
 #include "base/path_service.h"
 #include "azecotron/app/synth_browser_context.h"
+#include "azecotron/host/azecotron_runtime_host.h"
+#include "content/public/browser/web_contents.h"
+#include "content/public/browser/navigation_controller.h"
+#include "url/gurl.h"
 #include "content/public/common/content_switches.h"
+#include <string>
 #include "content/public/common/result_codes.h"
 
 namespace synth_azecotron {
@@ -32,6 +37,27 @@ void SynthBrowserMainParts::InitializeBrowserContexts() {
 
 int SynthBrowserMainParts::PreMainMessageLoopRun() {
   InitializeBrowserContexts();
+
+  const auto& command_line = *base::CommandLine::ForCurrentProcess();
+  std::string url = command_line.GetSwitchValueASCII("synth-url");
+  if (url.empty())
+    url = "about:blank";
+
+  GURL target(url);
+  if (!target.is_valid())
+    return 1;
+
+  runtime_host_ =
+      std::make_unique<AzecotronRuntimeHost>(browser_context_.get());
+
+  content::WebContents::CreateParams params(browser_context_.get());
+  auto web_contents = content::WebContents::Create(params);
+  if (!web_contents)
+    return 1;
+
+  if (!runtime_host_->AdoptWebContents(std::move(web_contents), target))
+    return 1;
+
   return content::RESULT_CODE_NORMAL_EXIT;
 }
 
