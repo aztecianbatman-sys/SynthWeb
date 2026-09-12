@@ -16,6 +16,7 @@ class SynthContentBrowserClient final : public content::ContentBrowserClient {
   SynthContentBrowserClient& operator=(const SynthContentBrowserClient&) = delete;
   ~SynthContentBrowserClient() override;
 
+  static SynthContentBrowserClient* Get();
   content::BrowserContext* GetBrowserContext() const;
   SynthBrowserMainParts* browser_main_parts() const { return browser_main_parts_.get(); }
 
