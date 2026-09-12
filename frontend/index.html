@@ -35,6 +35,25 @@
   </header>
 
   <main id="newtab" class="newtab">
+    <aside class="home-rail" aria-label="Synth Browser tools">
+      <div class="home-rail-brand"><img src="./synth-mark.svg" alt=""><span>SYNTH</span><button id="railClose" class="icon-btn" aria-label="Collapse navigation">×</button></div>
+      <input id="railSearch" class="rail-search" placeholder="Search…" aria-label="Filter Synth tools">
+      <button class="rail-item active" data-home-action="home">⌂ <span>Home</span></button>
+      <button class="rail-item" data-home-action="assist">✦ <span>Synth Assist</span></button>
+      <button class="rail-item" data-home-action="privacy">♢ <span>Shield</span></button>
+      <button class="rail-item" data-home-action="bookmarks">▱ <span>Bookmarks</span></button>
+      <button class="rail-item" data-home-action="history">◷ <span>History</span></button>
+      <button class="rail-item" data-home-action="downloads">↓ <span>Downloads</span></button>
+      <button class="rail-item" data-home-action="profiles">◉ <span>Profiles</span></button>
+      <button class="rail-item" data-home-action="extensions">⌘ <span>Extensions</span></button>
+      <button class="rail-item" data-home-action="settings">⚙ <span>Settings</span></button>
+      <div class="home-capsule">
+        <div class="capsule-title">Site Capsule</div>
+        <div id="capsuleHost" class="capsule-host">example.com</div>
+        <div class="capsule-stats"><span><i class="capsule-dot red"></i>Trackers <b id="capsuleTrackers">—</b></span><span><i class="capsule-dot yellow"></i>Cookies <b id="capsuleCookies">—</b></span><span><i class="capsule-dot blue"></i>Permissions <b id="capsulePermissions">—</b></span></div>
+        <button id="capsuleManage" class="capsule-manage">Manage site</button>
+      </div>
+    </aside>
     <section class="hero">
       <img src="./synth-mark.svg" class="hero-mark" alt="Synth Browser">
       <div class="wordmark">SYNTH BROWSER</div>
@@ -51,13 +70,19 @@
         <button id="privacy" class="state-chip">Privacy</button>
       </div>
     </section>
+    <aside id="shieldCapsule" class="shield-capsule">
+      <div class="shield-head"><div><div class="shield-kicker">SYNTH SHIELD</div><strong id="shieldHost">example.com</strong></div><span id="shieldState" class="shield-state">Active</span><button id="shieldClose" class="icon-btn" aria-label="Close Shield capsule">×</button></div>
+      <div class="shield-score"><div class="shield-ring"><span id="shieldBlocked">0</span></div><div><strong>Trackers blocked</strong><span>this session</span></div></div>
+      <div class="shield-list"><div><span>Trackers blocked</span><b id="shieldTrackers">0</b></div><div><span>Third-party requests</span><b id="shieldThirdParty">—</b></div><div><span>HTTPS upgrades</span><b id="shieldHttps">—</b></div><div><span>Cookies</span><b id="shieldCookies">—</b></div><div><span>Site permissions</span><b id="shieldPermissions">—</b></div></div>
+      <div class="shield-controls"><label><span>HTTPS</span><b>Protected</b><input type="checkbox" checked disabled></label><label><span>Third-party cookies</span><b>Blocked</b><input type="checkbox" checked disabled></label><label><span>Fingerprinting</span><b>Blocked</b><input type="checkbox" checked disabled></label><label><span>Location access</span><b>Ask</b><input type="checkbox" disabled></label><label><span>Notifications</span><b>Ask</b><input type="checkbox" disabled></label></div>
+      <button id="shieldDetails" class="shield-details">View detailed report</button>
+    </aside>
     <section class="feature-board" aria-label="Synth Browser command center">
       <div class="feature-board-head">
         <div><div class="feature-kicker">SYNTH COMMAND CENTER</div><h2>Your browser, at a glance.</h2><p>Live controls for privacy, intelligence, profiles and browser tools.</p></div>
         <div class="feature-brand-stack"><span>Azecotron Web</span><span>Cortis</span><span>Synth Assist</span><span>Rust + Tauri</span></div>
       </div>
       <div id="featureGrid" class="feature-grid"></div>
-    </section>
     </section>
   </main>
 
