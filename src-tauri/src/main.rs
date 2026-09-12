@@ -5,6 +5,8 @@ mod search;
 
 use rusqlite::OptionalExtension;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::io::{Read, BufReader};
 use std::{
     collections::VecDeque,
     fs,
@@ -206,6 +208,25 @@ struct DownloadEntry {
     status: String,
     created_at: i64,
     finished_at: Option<i64>,
+    verification: String,
+    checksum: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CookieInfo {
+    name: String,
+    domain: String,
+    path: String,
+    secure: bool,
+    http_only: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SitePermission {
+    origin: String,
+    kind: String,
+    policy: String,
+    updated_at: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -299,6 +320,20 @@ impl Db {
              CREATE TABLE IF NOT EXISTS settings(
                key TEXT PRIMARY KEY,
                value TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS site_permissions(
+               origin TEXT NOT NULL,
+               kind TEXT NOT NULL,
+               policy TEXT NOT NULL CHECK(policy IN ('allow','deny','prompt')),
+               updated_at INTEGER NOT NULL,
+               PRIMARY KEY(origin,kind)
+             );
+             CREATE TABLE IF NOT EXISTS download_verification(
+               download_id INTEGER PRIMARY KEY,
+               checksum TEXT NOT NULL,
+               verification TEXT NOT NULL,
+               updated_at INTEGER NOT NULL,
+               FOREIGN KEY(download_id) REFERENCES downloads(id) ON DELETE CASCADE
              );
              CREATE TABLE IF NOT EXISTS query_history(
                id INTEGER PRIMARY KEY,
@@ -402,12 +437,66 @@ impl Db {
 
     fn list_downloads(&self)->AppResult<Vec<DownloadEntry>>{
         let c=self.connect()?;
-        let mut s=c.prepare("SELECT id,url,path,status,created_at,finished_at FROM downloads ORDER BY created_at DESC LIMIT 250")?;
+        let mut s=c.prepare("SELECT d.id,d.url,d.path,d.status,d.created_at,d.finished_at,COALESCE(v.verification,'unverified'),v.checksum FROM downloads d LEFT JOIN download_verification v ON v.download_id=d.id ORDER BY d.created_at DESC LIMIT 250")?;
         let rows=s.query_map([],|r|Ok(DownloadEntry{
-            id:r.get(0)?,url:r.get(1)?,path:r.get(2)?,status:r.get(3)?,created_at:r.get(4)?,finished_at:r.get(5)?
+            id:r.get(0)?,url:r.get(1)?,path:r.get(2)?,status:r.get(3)?,created_at:r.get(4)?,finished_at:r.get(5)?,
+            verification:r.get(6)?,checksum:r.get(7)?
         }))?;
         Ok(rows.collect::<Result<Vec<_>,_>>()?)
     }
+
+    fn list_site_permissions(&self,origin:Option<&str>)->AppResult<Vec<SitePermission>>{
+        let c=self.connect()?;
+        let sql=if origin.is_some(){
+            "SELECT origin,kind,policy,updated_at FROM site_permissions WHERE origin=?1 ORDER BY kind"
+        } else {
+            "SELECT origin,kind,policy,updated_at FROM site_permissions ORDER BY origin,kind"
+        };
+        let mut s=c.prepare(sql)?;
+        let rows=if let Some(o)=origin{
+            s.query_map([o],|r|Ok(SitePermission{origin:r.get(0)?,kind:r.get(1)?,policy:r.get(2)?,updated_at:r.get(3)?}))?
+        } else {
+            s.query_map([],|r|Ok(SitePermission{origin:r.get(0)?,kind:r.get(1)?,policy:r.get(2)?,updated_at:r.get(3)?}))?
+        };
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
+    }
+
+    fn set_site_permission(&self,origin:&str,kind:&str,policy:&str)->AppResult<()>{
+        if origin.len()>512 || kind.len()>100 || !matches!(policy,"allow"|"deny"|"prompt"){
+            return Err(AppError::Message("Invalid site permission.".into()));
+        }
+        self.connect()?.execute(
+            "INSERT INTO site_permissions(origin,kind,policy,updated_at) VALUES(?1,?2,?3,?4)
+             ON CONFLICT(origin,kind) DO UPDATE SET policy=excluded.policy,updated_at=excluded.updated_at",
+            rusqlite::params![origin,kind,policy,Db::now()]
+        )?;
+        Ok(())
+    }
+
+    fn reset_site_permissions(&self,origin:&str)->AppResult<()>{
+        self.connect()?.execute("DELETE FROM site_permissions WHERE origin=?1",[origin])?;
+        Ok(())
+    }
+
+    fn permission_for(&self,origin:&str,kind:&str)->AppResult<Option<String>>{
+        let c=self.connect()?;
+        Ok(c.query_row("SELECT policy FROM site_permissions WHERE origin=?1 AND kind=?2",[origin,kind],|r|r.get(0)).optional()?)
+    }
+
+    fn set_download_checksum(&self,id:i64,checksum:&str)->AppResult<()>{
+        self.connect()?.execute(
+            "INSERT INTO download_verification(download_id,checksum,verification,updated_at) VALUES(?1,?2,'pending',?3)
+             ON CONFLICT(download_id) DO UPDATE SET checksum=excluded.checksum,verification='pending',updated_at=excluded.updated_at",
+            rusqlite::params![id,checksum,Db::now()]
+        )?;
+        Ok(())
+    }
+
+    fn set_download_verification(&self,id:i64,verification:&str)->AppResult<()>{
+        self.connect()?.execute("UPDATE download_verification SET verification=?1,updated_at=?2 WHERE download_id=?3",rusqlite::params![verification,Db::now(),id])?;
+        Ok(())
+    }
+
 
     fn download_started(&self, url: &str, path: &Path) -> AppResult<()> {
         self.connect()?.execute(
@@ -1425,6 +1514,98 @@ fn remove_shelf(state: State<AppState>, id: i64) -> AppResult<()> {
     state.db.remove_shelf(id)
 }
 
+
+fn origin_key(url:&Url)->String{
+    let port=url.port().map(|p|format!(":{p}")).unwrap_or_default();
+    format!("{}://{}{}",url.scheme(),url.host_str().unwrap_or(""),port)
+}
+
+#[tauri::command]
+async fn list_current_site_cookies(app: tauri::AppHandle, state: State<AppState>)->AppResult<Vec<CookieInfo>>{
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let url=view.url().map_err(|e|AppError::Message(e.to_string()))?;
+    let cookies=view.cookies_for_url(url).map_err(|e|AppError::Message(e.to_string()))?;
+    Ok(cookies.into_iter().map(|cookie|{
+        let (name,_value)=cookie.name_value();
+        CookieInfo{
+            name:name.to_string(),
+            domain:cookie.domain().to_string(),
+            path:cookie.path().to_string(),
+            secure:cookie.secure().unwrap_or(false),
+            http_only:cookie.http_only().unwrap_or(false),
+        }
+    }).collect())
+}
+
+#[tauri::command]
+async fn delete_current_site_cookie(app: tauri::AppHandle, state: State<AppState>, name:String, domain:String, path:String)->AppResult<()>{
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let url=view.url().map_err(|e|AppError::Message(e.to_string()))?;
+    let cookies=view.cookies_for_url(url).map_err(|e|AppError::Message(e.to_string()))?;
+    for cookie in cookies {
+        let (cookie_name,_)=cookie.name_value();
+        if cookie_name==name && cookie.domain().to_string()==domain && cookie.path().to_string()==path {
+            view.delete_cookie(cookie).map_err(|e|AppError::Message(e.to_string()))?;
+            break;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn clear_current_site_data(app: tauri::AppHandle, state: State<AppState>)->AppResult<()>{
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let url=view.url().map_err(|e|AppError::Message(e.to_string()))?;
+    let script="(()=>{try{localStorage.clear()}catch{} try{sessionStorage.clear()}catch{} return indexedDB?.databases?indexedDB.databases().then(xs=>Promise.all(xs.map(x=>x.name?new Promise(r=>{const q=indexedDB.deleteDatabase(x.name);q.onsuccess=()=>r(1);q.onerror=()=>r(0);q.onblocked=()=>r(0)}):0))):Promise.resolve([])}catch{return Promise.resolve([])}})()";
+    view.eval(script).map_err(|e|AppError::Message(e.to_string()))?;
+    let cookies=view.cookies_for_url(url).map_err(|e|AppError::Message(e.to_string()))?;
+    for cookie in cookies {
+        let _=view.delete_cookie(cookie);
+    }
+    state.db.reset_site_permissions(&origin_key(&url))?;
+    Ok(())
+}
+
+#[tauri::command]
+fn list_site_permissions(state: State<AppState>, origin:Option<String>)->AppResult<Vec<SitePermission>>{
+    state.db.list_site_permissions(origin.as_deref())
+}
+
+#[tauri::command]
+fn set_site_permission(state: State<AppState>, origin:String, kind:String, policy:String)->AppResult<()>{
+    state.db.set_site_permission(&origin,&kind,&policy)
+}
+
+#[tauri::command]
+fn reset_site_permissions(state: State<AppState>, origin:String)->AppResult<()>{
+    state.db.reset_site_permissions(&origin)
+}
+
+#[tauri::command]
+fn verify_download(state: State<AppState>, id:i64, expected:String)->AppResult<String>{
+    let expected=expected.trim().to_ascii_lowercase();
+    if expected.len()!=64 || !expected.bytes().all(|b|b.is_ascii_hexdigit()){return Err(AppError::Message("Expected SHA-256 must be 64 hexadecimal characters.".into()))}
+    let c=state.db.connect()?;
+    let path:Option<String>=c.query_row("SELECT path FROM downloads WHERE id=?1",[id],|r|r.get(0)).optional()?;
+    let path=path.ok_or_else(||AppError::Message("Download not found.".into()))?.ok_or_else(||AppError::Message("Download has no local file.".into()))?;
+    let file=fs::File::open(&path).map_err(|e|AppError::Message(format!("Cannot open download: {e}")))?;
+    let mut reader=BufReader::new(file);
+    let mut hasher=Sha256::new();
+    let mut buf=[0_u8;1024*1024];
+    loop{
+        let n=reader.read(&mut buf)?;
+        if n==0{break}
+        hasher.update(&buf[..n]);
+    }
+    let actual=hasher.finalize().iter().map(|b|format!("{b:02x}")).collect::<String>();
+    let result=if actual==expected{"verified"}else{"mismatch"};
+    state.db.set_download_checksum(id,&expected)?;
+    state.db.set_download_verification(id,result)?;
+    Ok(result.into())
+}
 
 #[tauri::command]
 fn list_downloads(state: State<AppState>)->AppResult<Vec<DownloadEntry>>{state.db.list_downloads()}
