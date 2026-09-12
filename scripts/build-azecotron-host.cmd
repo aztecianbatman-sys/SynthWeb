@@ -4,6 +4,9 @@ setlocal EnableExtensions
 call "%~dp0bootstrap-azecotron.cmd"
 if errorlevel 1 exit /b 1
 
+call "%~dp0verify-azecotron-production-boundary.cmd"
+if errorlevel 1 exit /b 1
+
 call "%~dp0install-azecotron-host.cmd"
 if errorlevel 1 exit /b 1
 
