@@ -65,3 +65,25 @@ mod tests {
         }
     }
 }
+pub fn search_url(query: &str, mode: &str) -> Result<Url, String> {
+    let q=query.trim();
+    if q.is_empty() { return Err("Search query is empty.".into()); }
+    let mut encoded=String::with_capacity(q.len());
+    for b in q.as_bytes() {
+        match b {
+            b'A'..=b'Z'|b'a'..=b'z'|b'0'..=b'9'|b'-'|b'_'|b'.'|b'~' => encoded.push(*b as char),
+            b' ' => encoded.push('+'),
+            _ => encoded.push_str(&format!("%{b:02X}")),
+        }
+    }
+    let raw=match mode {
+        "web" => format!("https://www.google.com/search?q={encoded}"),
+        "images" => format!("https://www.google.com/search?tbm=isch&q={encoded}"),
+        "news" => format!("https://www.google.com/search?tbm=nws&q={encoded}"),
+        "videos" => format!("https://www.google.com/search?tbm=vid&q={encoded}"),
+        "maps" => format!("https://www.google.com/maps/search/{encoded}"),
+        _ => return Err("Unsupported search mode.".into()),
+    };
+    Url::parse(&raw).map_err(|e|e.to_string())
+}
+
