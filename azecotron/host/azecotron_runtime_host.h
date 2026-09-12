@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+#include "base/memory/raw_ptr.h"
+
 #include "content/public/browser/web_contents_delegate.h"
 #include "content/public/browser/web_contents_observer.h"
 
