@@ -2203,12 +2203,13 @@ fn azecotron_host_target(window: tauri::WebviewWindow)->AppResult<native_host::H
 fn azecotron_status()->azecotron_bridge::AzecotronStatus{azecotron_bridge::status()}
 
 #[tauri::command]
-fn launch_azecotron(state: State<AppState>, url:Option<String>)->AppResult<()>{
+async fn launch_azecotron(window: tauri::WebviewWindow, state: State<AppState>, url:Option<String>)->AppResult<()>{
     let target=url.unwrap_or_else(||{
         state.tabs.lock().unwrap().iter().find(|t|t.id==*state.active_id.lock().unwrap()).map(|t|t.url.clone()).filter(|u|u!="synth://newtab").unwrap_or_else(||"about:blank".into())
     });
+    let target_hwnd=native_host::target(window).ok().map(|x|x.hwnd);
     let profile_root=profile_dir(&state.profile.id).join("azecotron");
-    azecotron_bridge::launch(profile_root,&target).map(|_|()).map_err(AppError::Message)
+    azecotron_bridge::launch(profile_root,&target,target_hwnd).map(|_|()).map_err(AppError::Message)
 }
 
 #[tauri::command]
