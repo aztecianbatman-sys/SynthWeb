@@ -1526,6 +1526,42 @@ $("restoreNo").onclick = async () => {
   } catch (error) { toast(error); }
 };
 
+listen("azecotron://event", (event) => {
+  const payload = event.payload || {};
+  const tab = state.tabs.find((item) => item.id === payload.tab_id);
+  if (!tab) return;
+  if (payload.type === "navigation") {
+    tab.url = payload.url || tab.url;
+    tab.title = payload.title || tab.title;
+    tab.loading = false;
+    if (state.activeId === tab.id) renderAddress();
+    renderTabs();
+    return;
+  }
+  if (payload.type === "loading-start") {
+    tab.loading = true;
+    renderTabs();
+    return;
+  }
+  if (payload.type === "loading-stop") {
+    tab.loading = false;
+    renderTabs();
+    return;
+  }
+  if (payload.type === "security") {
+    tab.secure = payload.secure === "true";
+    if (state.activeId === tab.id) renderAddress();
+    return;
+  }
+  if (payload.type === "renderer-unresponsive") {
+    toast("Azecotron renderer is unresponsive.");
+    return;
+  }
+  if (payload.type === "renderer-responsive") {
+    toast("Azecotron renderer recovered.");
+  }
+});
+
 listen("browser://snapshot", (event) => {
   const snapshot = event.payload;
   state.tabs = snapshot.tabs;
