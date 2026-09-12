@@ -148,3 +148,18 @@ Implemented in this pass:
 - TrackerEngine rule/allowlist/blocklist/counter architecture; current external-request interception remains platform-limited by the Tauri host-webview path
 
 Not yet verified: Rust compilation, Windows packaging, Azecotron native Content API integration, Chromium DevTools protocol integration, and full runtime smoke/performance tests.
+
+
+## Privacy-first onboarding
+
+The first-run experience now opens a four-step wizard covering:
+- what Synth Browser stores locally;
+- Shielded vs Balanced privacy defaults;
+- theme and profile naming;
+- final privacy baseline.
+
+Shielded is the default. Its real defaults include search/history memory off, recent activity hidden, AI off, HTTPS-only on, tracker policy enabled where the runtime can enforce it, autofill off, and sensitive permission policies set to Ask or Block.
+
+For existing profiles, Shielded setup offers an explicit cleanup action. When selected, the browser clears local history, search memory, download metadata, site permissions, permission history, AI history, and runtime browsing data. Bookmarks and saved sessions are intentionally retained.
+
+The current Tauri/Wry host does not intercept external web resource requests, so full network-level tracker blocking and third-party cookie policy enforcement remain PLATFORM LIMITED until the Azecotron Chromium network/runtime integration is active. Tauri's current documentation confirms that external URLs are outside the current on_web_resource_request interception path. citeturn920487search1turn920487search5
