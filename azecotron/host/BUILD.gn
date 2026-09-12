@@ -1,7 +1,9 @@
 source_set("azecotron_runtime_host") {
   sources = [
     "azecotron_runtime_host.cc",
+    "azecotron_tab_observer.cc",
     "azecotron_runtime_host.h",
+    "azecotron_tab_observer.h",
   ]
 
   deps = [
