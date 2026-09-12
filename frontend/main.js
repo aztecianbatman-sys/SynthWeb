@@ -4,6 +4,7 @@ const listen = tauri.event.listen;
 
 const state = {
   tabs: [],
+  searchMode: "web",
   activeId: "",
   activeWorkspace: "Default",
   workspaces: [],
@@ -117,6 +118,7 @@ function render() {
   $("newtab").style.visibility = tab && tab.url === "synth://newtab" ? "visible" : "hidden";
   $("workspaceButton").textContent = state.activeWorkspace;
   applySettings();
+  document.querySelectorAll(".search-mode").forEach(b=>b.classList.toggle("active",b.dataset.mode===state.searchMode));
   renderRecent();
 }
 
@@ -125,6 +127,13 @@ async function refresh() {
   Object.assign(state, snapshot);
   state.settings = await invoke("get_settings");
   render();
+}
+
+async function cortisSearch(query, mode=state.searchMode) {
+  const q=String(query||"").trim();
+  if(!q)return;
+  try{await invoke("search_with_mode",{query:q,mode});await refresh()}
+  catch(e){toast("Cortis could not complete that search.")}
 }
 
 async function go(value) {
@@ -351,6 +360,30 @@ async function showSettings() {
   };
 }
 
+document.querySelectorAll(".search-mode").forEach(btn=>btn.onclick=()=>{
+  state.searchMode=btn.dataset.mode;
+  document.querySelectorAll(".search-mode").forEach(b=>b.classList.toggle("active",b===btn));
+  $("newtabSearch").focus();
+});
+
+$("overview").onclick=()=>openOverview();
+$("overviewClose").onclick=()=>closeOverview();
+$("overviewSearch").oninput=e=>renderOverview(e.target.value);
+
+function openOverview(){ $("overviewPanel").classList.remove("hidden"); $("overviewSearch").value=""; $("overviewSearch").focus(); renderOverview("") }
+function closeOverview(){ $("overviewPanel").classList.add("hidden") }
+function renderOverview(q=""){
+  const host=$("overviewTabs"); if(!host)return;
+  const query=q.toLowerCase(); host.replaceChildren();
+  state.tabs.filter(t=>t.workspace===state.activeWorkspace && ((t.title||"").toLowerCase().includes(query)||(t.url||"").toLowerCase().includes(query))).forEach(tab=>{
+    const card=document.createElement("button");card.className="overview-tab"+(tab.id===state.activeId?" active":"");
+    card.innerHTML='<div class="ov-title">'+esc(tab.title||"New Tab")+'</div><div class="ov-url">'+esc(tab.url)+'</div><div class="ov-meta">'+(tab.private?"Private":"Tab")+' · '+esc(tab.workspace)+'</div>';
+    card.onclick=async()=>{await activateTab(tab.id);closeOverview()};
+    host.appendChild(card);
+  });
+  if(!host.children.length)host.innerHTML='<div class="panel-row">No matching open tabs.</div>';
+}
+
 $("workspaceButton").onclick=showWorkspaceMenu;
 $("back").onclick=()=>invoke("back").catch(e=>toast(e));
 $("forward").onclick=()=>invoke("forward").catch(e=>toast(e));
@@ -374,8 +407,8 @@ $("omnibox").addEventListener("input",async e=>{
 });
 $("omnibox").addEventListener("keydown",e=>{if(e.key==="Enter"){$("omnibox").parentElement.querySelector(".suggestions")?.remove();go(e.target.value)}if(e.key==="Escape"){renderAddress();$("omnibox").parentElement.querySelector(".suggestions")?.remove()}});
 
-$("searchForm").onsubmit=e=>{e.preventDefault();go($("newtabSearch").value)};
-$("newtabSearch").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();go(e.target.value)}};
+$("searchForm").onsubmit=e=>{e.preventDefault();cortisSearch($("newtabSearch").value)};
+$("newtabSearch").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();cortisSearch(e.target.value)}};
 
 const commands=[
  ["New Tab","Ctrl+T",()=>invoke("new_tab",{private:false})],
@@ -388,6 +421,7 @@ const commands=[
  ["Saved Sessions","",()=>showSessions()],
  ["Notes","",()=>showNotes()],
  ["Research Board","",()=>showBoards()],
+ ["Tab Overview","",()=>openOverview()],
  ["Workspaces","",()=>showWorkspaceMenu()],
  ["Settings","",()=>showSettings()],
  ["Privacy Shield","",()=>showPrivacy()],
@@ -415,6 +449,7 @@ document.addEventListener("keydown",async e=>{
  const m=e.ctrlKey||e.metaKey;
  if(m&&e.key.toLowerCase()==="l"){e.preventDefault();$("omnibox").focus();$("omnibox").select()}
  if(m&&e.key.toLowerCase()==="k"){e.preventDefault();openPalette()}
+ if(m&&e.shiftKey&&e.key.toLowerCase()==="a"){e.preventDefault();openOverview()}
  if(m&&e.key.toLowerCase()==="t"){e.preventDefault();await invoke("new_tab",{private:false});await refresh()}
  if(m&&e.key.toLowerCase()==="w"){e.preventDefault();await closeTab(state.activeId)}
  if(m&&e.shiftKey&&e.key.toLowerCase()==="t"){e.preventDefault();await invoke("reopen_closed_tab");await refresh()}
@@ -425,6 +460,7 @@ document.addEventListener("keydown",async e=>{
  if(m&&e.key==="+"){e.preventDefault();setZoom(110)}
  if(m&&e.key==="-"){e.preventDefault();setZoom(90)}
  if(m&&e.key==="0"){e.preventDefault();setZoom(100)}
+ if(e.key==="Escape"){closeOverview()}
 });
 
 listen("browser://snapshot",e=>{Object.assign(state,e.payload);render()});
