@@ -815,6 +815,23 @@ async function runSelectionAction(payload) {
   }
 }
 
+async function showTrackerStatus(){
+  const body=basePanel("Tracker Protection");
+  try{
+    const info=await invoke("tracker_status");
+    body.innerHTML='<div class="panel-row">Engine <strong>'+esc(info.engine)+'</strong></div>'+
+      '<div class="panel-row">Rule set <strong>'+esc(info.rules)+' built-in rules</strong></div>'+
+      '<div class="panel-row">Interception <strong>'+esc(info.interception)+'</strong></div>'+
+      '<div class="panel-row">'+esc(info.requestInterception)+'</div>'+
+      '<div class="panel-row">Counters <strong>'+esc(info.counters)+'</strong></div>';
+    const row=document.createElement("label");row.className="setting-toggle";
+    const label=document.createElement("span");label.textContent="Enable tracker policy";
+    const input=document.createElement("input");input.type="checkbox";input.checked=info.enabled;
+    input.onchange=async()=>{try{await invoke("set_tracker_policy",{enabled:input.checked});toast("Tracker policy saved")}catch(e){toast(e)}};
+    row.append(label,input);body.appendChild(row);
+  }catch(e){toast(e)}
+}
+
 async function showPrivacy(){
   const body=basePanel("Privacy Shield");
   const httpsOnly=state.settings.https_only==="true";
@@ -966,6 +983,7 @@ async function showSettings() {
   toggle("search_history", "Store search history");
   toggle("quiet_mode", "Quiet Mode");
   toggle("https_only", "HTTPS-only");
+  toggle("tracker_enabled", "Tracker protection policy");
 
   const permissionTitle=document.createElement("div");
   permissionTitle.className="setting-label";
@@ -1285,6 +1303,7 @@ const commands = [
   ["Settings", "", () => showSettings()],
   ["Privacy Shield", "", () => showPrivacy()],
   ["Site Capsule", "", () => showSiteSecurity()],
+  ["Tracker Protection", "", () => showTrackerStatus()],
   ["Downloads", "Ctrl+J", () => showDownloads()],
   ["Print Page", "Ctrl+P", () => invoke("print_page")],
   ["Developer Tools", "F12", () => invoke("open_devtools")],
