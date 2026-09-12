@@ -1,3 +1,4 @@
+mod native_host;
 mod azecotron_bridge;
 mod tracker;
 mod services;
@@ -2191,6 +2192,11 @@ fn tracker_status(state: State<AppState>)->AppResult<serde_json::Value>{
 #[tauri::command]
 fn set_tracker_policy(state: State<AppState>, enabled:bool)->AppResult<()>{
     state.db.set_setting("tracker_enabled",if enabled{"true"}else{"false"})
+}
+
+#[tauri::command]
+fn azecotron_host_target(window: tauri::WebviewWindow)->AppResult<native_host::HostTarget>{
+    native_host::target(window).map_err(AppError::Message)
 }
 
 #[tauri::command]
