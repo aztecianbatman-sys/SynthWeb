@@ -786,7 +786,7 @@ fn create_page_webview<R: tauri::Runtime>(
                 PermissionKind::DisplayCapture => "permission_display_capture",
                 PermissionKind::ClipboardRead => "permission_clipboard",
                 PermissionKind::LocalFonts => "permission_local_fonts",
-                PermissionKind::Sensors | PermissionKind::OtherSensors => "permission_sensors",
+                PermissionKind::Sensors => "permission_sensors",
                 _ => return PermissionResponse::Default,
             };
             let policy = Db::open(&permission_db_path)
