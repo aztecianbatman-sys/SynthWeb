@@ -2113,7 +2113,7 @@ fn main() {
     let selected=profiles.iter().find(|p|p.id==profile_id).cloned().unwrap_or_else(||profiles[0].clone());
     let selected=if guest { Profile{id:"guest".into(),name:"Guest".into(),guest:true} } else { selected };
     let selected=if guest {
-        Profile{id:format!("guest-{}",uuid::Uuid::new_v4()),name:"Guest".into(),guest:true}
+        Profile{id:format!("guest-{}-{}",std::process::id(),Db::now()),name:"Guest".into(),guest:true}
     } else { selected };
     let db = Db::new(&selected.id).expect("unable to initialize Synth Browser database");
     let state = AppState::new(db, selected, profiles, guest);
