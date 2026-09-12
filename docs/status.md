@@ -1,68 +1,118 @@
-# v0.1.0 implementation status
+# Synth Browser v0.1.0 status
 
-## FUNCTIONAL / IMPLEMENTED
-- native Tauri shell
-- real URL navigation
-- real web page rendering through the platform runtime
-- tabs, activation, close, reopen
-- tab drag-reordering
-- omnibox URL/search classification
-- local tab/history suggestions in the omnibox
-- back / forward
-- real stop / reload
-- real print
-- real page zoom controls
-- bookmarks
-- history
-- real downloads with collision-safe filenames and persistent download metadata
-- private tabs using the runtime's incognito mode
+The implementation follows the master prompt incrementally. Statuses below describe source-level implementation, not unverified marketing claims.
+
+## FUNCTIONAL IN SOURCE
+- Rust + Tauri native application shell
+- sparse browser chrome and New Tab
+- real child webview navigation
+- real tabs, activation, close, reopen
+- drag-and-drop tab reorder
+- pin/unpin command and tab context menu
+- close other tabs / close tabs right
+- private tabs using runtime incognito mode
+- omnibox URL/domain/search classification
+- explicit omnibox commands: open, search, zoom, workspace, bookmarks, history
+- local tab/history suggestions
+- real Back / Forward / Stop / Reload
+- real Print
+- real page zoom and persisted default zoom
+- real browser downloads and persistent download history
+- SQLite bookmarks and history
+- Reading Shelf
+- local workspaces with create/switch/rename/delete/duplicate
+- saved sessions
+- crash-session metadata and recovery dialog
+- local Notes
+- local Research Board
+- tab overview with search
 - command palette
-- runtime/security status surface
-- custom Synth Browser mark
-- Cortis-branded real web-search delegation
-- SQLite-backed workspaces and workspace switching
-- SQLite-backed saved sessions
-- SQLite-backed Reading Shelf
-- SQLite-backed browser settings
-- dark/light/system theme setting
-- accent, density, shortcuts, recent-activity, search-history, quiet-mode settings
-- real browser-data clearing
+- Page Source viewer
+- Find in Page
+- deterministic Reader Mode extraction
+- deterministic Page Lens extraction
+- local query history with a setting and clearing path
+- local browser data export
+- sanitized diagnostics export
+- browser reset
+- theme/accent/density/quiet-mode settings
+- HTTPS-only navigation setting
+- Site Capsule with actual URL/security/cookie-count data from runtime
+- restrictive CSP
+- custom Synth Browser mark/logo
+- Cortis web/images/news/videos/maps search delegation
+- optional Synth Assist via OpenAI-compatible endpoints
+- explicit page/selection context permission gates
+- OS credential-store API-key storage
 
 ## PARTIALLY FUNCTIONAL
-- new-window requests are not yet converted into full secondary browser windows
-- workspace UI supports create/switch; rename/delete/duplicate/reorder UI remains
-- saved sessions restore URLs and tab metadata but intentionally do not claim historical webpage snapshots
-- download manager UI is compact; pause/resume/verification UI is not yet exposed
-- Cortis suggestions are currently local tab/history suggestions only
+- Cortis is a real provider/delegation layer but does not ship its own search index in v0.1.
+- Downloads persist metadata, but pause/resume/retry/reveal/open/remove history actions are not all exposed.
+- Tab duplication copies real navigation but does not yet preserve every browser-native metadata field.
+- New-window requests remain within the current application flow rather than creating a complete multi-window browser manager.
+- Reader Mode is deterministic extraction and does not promise perfect extraction on every site.
+- Page Lens reports actual DOM metadata only; advanced semantic/AI interpretation remains optional.
+- Synth Assist supports OpenAI-compatible endpoints and secure keys; provider-specific adapters for Ollama/LM Studio/hosted services remain to be validated individually.
+- Workspace UI exposes management through contextual interaction; a dedicated polished workspace management surface is still pending.
 
 ## DESIGNED / NOT STARTED
-- workspace archive/delete/duplicate/reorder UI beyond current safe primitives
-- workspace-specific bookmarks/shelf/notes
-- notes
-- research board
-- context threads
-- Page Lens / deterministic reader extraction
-- translation provider abstraction
-- full tab overview/search virtualization
-- extension manager
-- extension permission UI
-- full site permissions center
-- tracker filtering rule engine
-- HTTPS-only setting
-- diagnostics export bundle
-- data export formats
-- profile manager / guest mode
-- sync interfaces
-- Synth Assist provider adapters and secure key storage
-- AI search mode
-- signed update system
-- measured performance suite and 10/50/100/200 tab benchmarks
-- packaged-app smoke testing in this environment
+- full profile manager and Guest Mode
+- per-profile browser data isolation
+- extension manager and extension permission UI
+- full site permission center for camera/microphone/location/notifications/etc.
+- tracker-blocking rule engine and measured interception counters
+- complete cookie/site-storage UI
+- full screenshot/page-save/archive flows
+- multi-window workspace transfer
+- session lazy-loading strategy for very large sessions
+- workspace-specific bookmarks/shelf data model
+- citation-helper export UI
+- Context Threads
+- Tab Memory beyond explicit tab metadata
+- local command-chain builder/preview UI
+- full diagnostics screen
+- signed updater with verification/rollback
+- localization beyond architecture readiness
+- full accessibility audit
+- measured 10/50/100/200-tab and multi-hour performance suite
+- hardware acceleration troubleshooting UI
+- measured runtime crash-count/performance dashboard
+- Chromium extension compatibility certification
 
-## BLOCKED
-- bundled Azecotron Web Chromium fork. v0.1 uses the host platform webview runtime and documents the fork as a separate integration milestone. A real fork requires a reproducible Chromium revision, patch series, security update path, sandbox validation, licensing notices, and a verified build pipeline.
+## BLOCKED / EXPLICITLY NOT CLAIMED
+### Azecotron Web
+The actual bundled browsing runtime is the host platform webview. On Windows, the target is WebView2. A true Chromium-derived Azecotron Web fork is not bundled in v0.1.0.
+
+Required next milestone:
+1. pin an exact Chromium revision;
+2. maintain a reproducible patch series;
+3. build and test the fork;
+4. preserve Chromium sandbox/security updates;
+5. add required LICENSE/NOTICE material;
+6. integrate it behind BrowserRuntime;
+7. verify real sites, media, permissions, DevTools, downloads and crash isolation.
+
+### Cortis
+Cortis is the branded search layer. v0.1 sends web/image/news/video/maps searches to real Google search endpoints. It does not claim to contain Google's source code or a private Google-scale index.
 
 ## TESTING TRUTH
-Repository unit tests cover URL/domain/search classification and the runtime-boundary type.
-GitHub Actions is configured for Windows rustfmt, clippy, test, and Tauri build.
-No claim is made that a packaged installer has been successfully launched in this environment until a completed CI/package smoke test is available.
+- Frontend JavaScript has been parsed with a real JavaScript parser in the development environment and currently passes syntax parsing.
+- Repository-wide source consistency checks confirmed required commands/modules are present.
+- Rust/Cargo is unavailable in the current container, so cargo fmt/clippy/test/build have not been executed locally.
+- GitHub Actions workflow is configured for Windows rustfmt, clippy, unit tests and Tauri packaging, but no completed CI run has been observed from the connector yet.
+- Therefore no installer/executable is marked VERIFIED or TESTED until an actual Windows CI/package run completes.
+
+## Acceptance status against the master prompt
+Core browser architecture: IN DEVELOPMENT
+Tabs/navigation/omnibox: FUNCTIONAL IN SOURCE
+Synt Search delegation: FUNCTIONAL IN SOURCE
+Bookmarks/history/downloads: FUNCTIONAL IN SOURCE
+Workspaces/sessions/shelf: FUNCTIONAL IN SOURCE
+Privacy/security: PARTIALLY FUNCTIONAL
+Synth Assist: PARTIALLY FUNCTIONAL
+Reader/Page Lens/Research: FUNCTIONAL IN SOURCE
+Profiles/extensions/advanced permissions: NOT STARTED
+Azecotron Web Chromium fork: BLOCKED / DESIGNED
+Performance certification: NOT TESTED
+Packaging: CONFIGURED, NOT VERIFIED
+Release acceptance: NOT YET MET
