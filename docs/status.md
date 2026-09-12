@@ -119,7 +119,7 @@ Synth Assist: FUNCTIONAL IN SOURCE for provider presets, secure keys, model disc
 Reader/Page Lens/Research: FUNCTIONAL IN SOURCE
 Developer Tools / power-user commands: FUNCTIONAL IN SOURCE where host runtime supports them
 Profiles: FUNCTIONAL IN SOURCE; Guest Mode: FUNCTIONAL IN SOURCE; native permission prompts: FUNCTIONAL IN SOURCE; extension manager/extension permission UI: NOT STARTED
-Azecotron Web Chromium fork source/build workflow: IMPLEMENTED IN SOURCE; Cortis provider transformation: IMPLEMENTED IN SOURCE; binary build: NOT VERIFIED
+Azecotron Web Chromium fork/build workflow: IMPLEMENTED IN SOURCE; Cortis provider transformation: IMPLEMENTED IN SOURCE; Synth-owned ContentMain/BrowserContext stack: IMPLEMENTED IN SOURCE; binary build: NOT VERIFIED
 Performance certification: NOT TESTED
 Packaging: CONFIGURED, NOT VERIFIED
 Release acceptance: NOT YET MET
@@ -178,7 +178,7 @@ Implemented in source:
 - Tauri Runtime Status detection and launch action
 - explicit GN dependency from azecotron_host to the Content API host target
 
-The runtime still uses Chromium Content Shell services as the initial integration harness. Because Chromium marks Content Shell libraries test-only, this phase is not yet the production browser application. The next native step is replacing the Content Shell delegate/client stack with Synth's own ContentMain/BrowserContext implementation while retaining the same BrowserRuntime seam.
+The former Content Shell BrowserContext/BrowserMainParts integration has been removed from the Synth runtime source. Synth now owns the ContentMainDelegate, BrowserMainParts, and BrowserContext seams. Windows compilation and full native runtime smoke testing remain unverified.
 
 
 ## Native ContentMain / network Shield milestone
