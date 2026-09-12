@@ -9,7 +9,11 @@ const state = {
   restoreAvailable: false,
   searchMode: "web",
   settings: {},
-  runtime: null
+  runtime: null,
+  profile: null,
+  profiles: [],
+  guest: false,
+  trackerBlocked: 0,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -321,6 +325,53 @@ $("onboardingBack").onclick=()=>{if(onboardingState.step>0){onboardingState.step
 $("onboardingSkip").onclick=()=>{onboardingState.step=onboardingSteps().length-1;renderOnboarding()};
 $("onboardingNext").onclick=async()=>{if(onboardingState.step<onboardingSteps().length-1){onboardingState.step++;renderOnboarding()}else{await completeOnboarding()}};
 
+async function updateReferenceCapsule(){
+  try{
+    const info=await invoke("site_info");
+    const host=info.host||"New Tab";
+    $("capsuleHost").textContent=host;
+    $("shieldHost").textContent=host;
+    $("capsuleCookies").textContent=String(info.cookieCount ?? "—");
+    $("shieldCookies").textContent=String(info.cookieCount ?? "—");
+    const origin=new URL(info.url).origin;
+    const permissions=await invoke("list_site_permissions",{origin});
+    $("capsulePermissions").textContent=String(permissions.length);
+    $("shieldPermissions").textContent=String(permissions.length);
+    $("capsuleTrackers").textContent=String(state.trackerBlocked||0);
+    $("shieldBlocked").textContent=String(state.trackerBlocked||0);
+    $("shieldTrackers").textContent=String(state.trackerBlocked||0);
+  }catch{
+    $("capsuleHost").textContent="New Tab";
+    $("shieldHost").textContent="New Tab";
+  }
+}
+
+function wireHomeRail(){
+  document.querySelectorAll("[data-home-action]").forEach((button)=>{
+    button.onclick=async()=>{
+      document.querySelectorAll(".rail-item").forEach(x=>x.classList.toggle("active",x===button));
+      const action=button.dataset.homeAction;
+      if(action==="home")return;
+      if(action==="assist")return showAssist();
+      if(action==="privacy")return showPrivacy();
+      if(action==="bookmarks")return showBookmarks();
+      if(action==="history")return showHistory();
+      if(action==="downloads")return showDownloads();
+      if(action==="profiles")return showProfiles();
+      if(action==="extensions")return toast("Extensions are waiting for the native Azecotron extension runtime.");
+      if(action==="settings")return showSettings();
+    };
+  });
+  $("railClose").onclick=()=>document.body.classList.toggle("rail-collapsed");
+  $("railSearch").oninput=(e)=>{
+    const q=e.target.value.toLowerCase();
+    document.querySelectorAll(".rail-item").forEach(x=>x.hidden=!x.textContent.toLowerCase().includes(q));
+  };
+  $("capsuleManage").onclick=showSiteSecurity;
+  $("shieldDetails").onclick=showPrivacy;
+  $("shieldClose").onclick=()=> $("shieldCapsule").classList.add("hidden");
+}
+
 async function refresh() {
   const snapshot = await invoke("get_snapshot");
   state.tabs = snapshot.tabs;
@@ -333,7 +384,9 @@ async function refresh() {
   state.guest = snapshot.guest;
   state.runtime = await invoke("runtime_info");
   state.settings = await invoke("get_settings");
+  applySettings();
   render();
+  await updateReferenceCapsule();
 }
 
 async function go(value) {
@@ -1532,6 +1585,7 @@ listen("azecotron://event", (event) => {
   if(payload.type==="tracker-blocked"){
     state.trackerBlocked=Number(payload.blocked||0);
     renderFeatureDashboard();
+    updateReferenceCapsule();
     return;
   }
 });
@@ -1754,6 +1808,7 @@ document.addEventListener("keydown", async (event) => {
 
 (async () => {
   try {
+    wireHomeRail();
     await refresh();
     $("runtimeText").textContent = state.runtime.runtime;
     $("runtimeDot").className = "dot " + (state.runtime.runtime.includes("WebView2") ? "" : "cyan");
