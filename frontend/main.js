@@ -764,6 +764,57 @@ function renderPageSource(payload){
   $("sourcePanel").classList.remove("hidden");
   $("sourceContent").textContent=payload.html||"";
 }
+let pendingSelectionAction = null;
+
+async function requestSelectionAction(action) {
+  pendingSelectionAction = action;
+  try {
+    await invoke("get_selection");
+  } catch (error) {
+    pendingSelectionAction = null;
+    toast(error);
+  }
+}
+
+async function runSelectionAction(payload) {
+  const action = pendingSelectionAction;
+  pendingSelectionAction = null;
+  const text = String(payload?.text || "").trim();
+  if (!text) {
+    toast("No text is currently selected.");
+    return;
+  }
+
+  if (action === "search") {
+    return cortisSearch(text);
+  }
+
+  if (action === "translate") {
+    return go("https://translate.google.com/?sl=auto&tl=en&text=" + encodeURIComponent(text));
+  }
+
+  if (action === "note") {
+    const title = prompt("Note title", "Selection");
+    if (!title) return;
+    try {
+      await invoke("create_note", { title, body: text });
+      toast("Selection added to Notes");
+    } catch (error) {
+      toast(error);
+    }
+    return;
+  }
+
+  if (action === "ask") {
+    try {
+      await invoke("request_selection_context");
+      toast("Selection context requested…");
+    } catch (error) {
+      toast(error);
+    }
+  }
+}
+
 async function showPrivacy(){
   const body=basePanel("Privacy Shield");
   const httpsOnly=state.settings.https_only==="true";
@@ -1225,6 +1276,11 @@ const commands = [
   ["Reader Mode", "", () => openReaderMode()],
   ["Page Lens", "", () => openPageLens()],
   ["Page Source", "Ctrl+U", () => openPageSource()],
+  ["Search Selection", "", () => requestSelectionAction("search")],
+  ["Ask Synth about Selection", "", () => requestSelectionAction("ask")],
+  ["Translate Selection", "", () => requestSelectionAction("translate")],
+  ["Add Selection to Notes", "", () => requestSelectionAction("note")],
+  ["Inspect", "F12", () => invoke("open_devtools")],
   ["Find in Page", "Ctrl+F", () => openFind()],
   ["Settings", "", () => showSettings()],
   ["Privacy Shield", "", () => showPrivacy()],
@@ -1320,6 +1376,7 @@ listen("browser://favicon", (event) => {
 listen("browser://reader", (event) => renderReader(event.payload));
 listen("browser://page-lens", (event) => renderLens(event.payload));
 listen("browser://page-source", (event) => renderPageSource(event.payload));
+listen("browser://selection", (event) => runSelectionAction(event.payload));
 listen("browser://find-result", (event) => { const count=Number(event.payload?.count||0); $("findCount").textContent=count===0?"No matches":count+" match"+(count===1?"":"es"); if(!event.payload.found&&count>0) toast("No further matches."); });
 listen("browser://new-window", async (event) => {
   try {
