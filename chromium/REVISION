@@ -1,0 +1,9 @@
+Chromium source pin for Azecotron Web
+
+Version: 152.0.7977.119
+Revision: e6333471674f4d3af9f386bfc2e5e4388333b734
+Source: https://chromium.googlesource.com/chromium/src/+/refs/tags/152.0.7977.119
+Pinned: 2026-09-08
+
+Do not silently move this revision. Update this file only when the fork
+undergoes a deliberate Chromium security/rebase cycle.

@@ -1,0 +1,22 @@
+From 2b1b5c4d9c0f8a4b0f2e9c5f7b8a1d6e0f3c2b19 Mon Sep 17 00:00:00 2001
+Subject: [PATCH] azecotron: use Synth Browser open-source product branding
+
+---
+ chrome/app/chromium_strings.grd | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/app/chromium_strings.grd b/chrome/app/chromium_strings.grd
+--- a/chrome/app/chromium_strings.grd
++++ b/chrome/app/chromium_strings.grd
+@@ -298,11 +298,11 @@
+   </then>
+   <else>
+   <message name="IDS_PRODUCT_NAME" desc="The Chrome application name" translateable="false">
+-  Chromium
++  Synth Browser
+   </message>
+   <message name="IDS_SHORT_PRODUCT_NAME" desc="The Chrome application short name." translateable="false">
+-  Chromium
++  Synth Browser
+   </message>
+   </else>

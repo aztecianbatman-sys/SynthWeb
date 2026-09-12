@@ -1,0 +1,67 @@
+name: Azecotron Chromium
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-azecotron:
+    name: Build pinned Azecotron Chromium
+    runs-on: [self-hosted, windows]
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout SynthWeb
+        uses: actions/checkout@v4
+        with:
+          ref: azecotron/chromium-152-fork
+          fetch-depth: 1
+
+      - name: Verify depot_tools
+        shell: cmd
+        run: |
+          where fetch
+          where gclient
+          where gn
+          where autoninja
+          git config --global core.longpaths true
+
+      - name: Prepare pinned Chromium fork
+        shell: cmd
+        run: call scripts\bootstrap-azecotron.cmd
+
+      - name: Build Azecotron
+        shell: cmd
+        run: call scripts\build-azecotron.cmd
+
+      - name: Smoke test Chromium runtime
+        shell: cmd
+        run: |
+          set "CHROME=third_party\azecotron-chromium\src\out\Azecotron\chrome.exe"
+          if not exist "%CHROME%" exit /b 1
+          "%CHROME%" --version
+          "%CHROME%" --headless --disable-gpu --dump-dom about:blank > smoke.html
+          if errorlevel 1 exit /b 1
+          findstr /c:"<html" smoke.html
+          if errorlevel 1 exit /b 1
+
+      - name: Write build manifest
+        shell: pwsh
+        run: |
+          $rev = (Select-String -Path chromium/REVISION -Pattern '^Revision:\s*(.+)$').Matches.Groups[1].Value
+          $ver = (Select-String -Path chromium/REVISION -Pattern '^Version:\s*(.+)$').Matches.Groups[1].Value
+          @(
+            "product=Azecotron Web"
+            "chromium_version=$ver"
+            "chromium_revision=$rev"
+            "base=chromium/src"
+            "branding=Synth Browser"
+            "sandbox=preserved"
+            "build_target=chrome"
+            "smoke_test=headless about:blank"
+          ) | Set-Content azecotron-build-manifest.txt
+
+      - name: Upload build manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: azecotron-build-manifest
+          path: azecotron-build-manifest.txt

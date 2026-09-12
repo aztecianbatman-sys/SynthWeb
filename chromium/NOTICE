@@ -1,0 +1,11 @@
+Azecotron Web attribution
+
+Azecotron Web is a downstream Chromium-derived project for Synth Browser.
+
+The Chromium source checkout used to build Azecotron is fetched from the
+official Chromium source repository at build time and retains Chromium's
+LICENSE plus every upstream third-party license/notice distributed with that
+checkout.
+
+Synth Browser's own code and fork patches are maintained in this repository.
+We do not ship Google Chrome proprietary branding or Google-internal assets.
