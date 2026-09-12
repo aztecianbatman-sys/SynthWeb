@@ -1,4 +1,8 @@
 #include "content/public/app/content_main.h"
+#if BUILDFLAG(IS_WIN)
+#include "content/public/app/sandbox_helper_win.h"
+#include "sandbox/win/src/sandbox_types.h"  // nogncheck
+#endif
 #include "content/shell/app/shell_main_delegate.h"
 #include "content/shell/browser/shell.h"
 #include "content/public/browser/web_contents.h"
@@ -76,7 +80,10 @@ int main(int argc, const char** argv) {
   content::ContentMainParams params(&delegate);
 
 #if BUILDFLAG(IS_WIN)
+  sandbox::SandboxInterfaceInfo sandbox_info = {};
+  content::InitializeSandboxInfo(&sandbox_info);
   params.instance = GetModuleHandle(nullptr);
+  params.sandbox_info = &sandbox_info;
 #else
   #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
     params.argc = argc;
