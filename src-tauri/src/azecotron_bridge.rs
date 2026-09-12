@@ -1,8 +1,11 @@
 use std::path::PathBuf;
 use std::io::{BufRead, BufReader};
 use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use tauri::Emitter;
+
+static RUNNING: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct AzecotronStatus {
@@ -20,6 +23,8 @@ pub fn executable_path() -> PathBuf {
     source_root.join("third_party").join("azecotron-chromium").join("src").join("out").join("Azecotron").join(if cfg!(windows) {"azecotron_host.exe"} else {"azecotron_host"})
 }
 
+pub fn running() -> bool { RUNNING.load(Ordering::Acquire) }
+
 pub fn status() -> AzecotronStatus {
     let path=executable_path();
     let version=if path.exists() {
@@ -33,7 +38,8 @@ pub fn launch(app: tauri::AppHandle, profile_dir:PathBuf,url:&str,parent_hwnd:Op
     if !path.exists(){return Err(format!("Azecotron executable was not found at {}",path.display()))}
     if !(url.starts_with("https://")||url.starts_with("http://")||url=="about:blank"){return Err("Azecotron launch accepts only HTTP(S) URLs or about:blank.".into())}
     std::fs::create_dir_all(&profile_dir).map_err(|e|e.to_string())?;
-    Command::new(path)
+    if running(){return Err("An Azecotron runtime instance is already running for this Synth session.".into())}
+    let mut child=Command::new(path)
         .arg(format!("--user-data-dir={}",profile_dir.display()))
         .arg("--no-first-run")
         .arg("--disable-default-apps")
@@ -43,17 +49,31 @@ pub fn launch(app: tauri::AppHandle, profile_dir:PathBuf,url:&str,parent_hwnd:Op
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .spawn()
-        .map_err(|e|format!("Could not start Azecotron: {e}"))
-        .map(|mut child|{
-            if let Some(stdout)=child.stdout.take(){
-                thread::spawn(move||{
-                    let reader=BufReader::new(stdout);
-                    for line in reader.lines().flatten(){
-                        if let Some(json)=line.strip_prefix("SYNTH_EVENT "){
-                            if let Ok(value)=serde_json::from_str::<serde_json::Value>(json){let _=app.emit("azecotron://event",value);}
-                        }
+        .map_err(|e|format!("Could not start Azecotron: {e}"))?;
+
+    RUNNING.store(true, Ordering::Release);
+
+    if let Some(stdout)=child.stdout.take(){
+        let app_events=app.clone();
+        thread::spawn(move||{
+            let reader=BufReader::new(stdout);
+            for line in reader.lines().flatten(){
+                if let Some(json)=line.strip_prefix("SYNTH_EVENT "){
+                    if let Ok(value)=serde_json::from_str::<serde_json::Value>(json){
+                        let _=app_events.emit("azecotron://event",value);
                     }
-                });
+                }
             }
-        })
+        });
+    }
+
+    let app_exit=app.clone();
+    thread::spawn(move||{
+        let status=child.wait();
+        RUNNING.store(false,Ordering::Release);
+        let exit_code=status.ok().and_then(|s|s.code());
+        let _=app_exit.emit("azecotron://process-exited",serde_json::json!({"code":exit_code}));
+    });
+
+    Ok(())
 }
