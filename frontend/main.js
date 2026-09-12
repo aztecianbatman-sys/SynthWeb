@@ -1364,6 +1364,16 @@ listen("browser://reader", (event) => renderReader(event.payload));
 listen("browser://page-lens", (event) => renderLens(event.payload));
 listen("browser://page-source", (event) => renderPageSource(event.payload));
 listen("browser://find-result", (event) => { if(!event.payload.found) toast("No matches found."); });
+listen("browser://new-window", async (event) => {
+  try {
+    await invoke("new_tab", { private: false });
+    await invoke("navigate", { input: event.payload.url });
+    await refresh();
+  } catch (error) {
+    toast(error);
+  }
+});
+
 listen("browser://download", (event) => {
   toast(event.payload.status === "completed" ? "Download complete" : "Download " + event.payload.status);
 });
