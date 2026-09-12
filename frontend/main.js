@@ -1054,20 +1054,26 @@ async function showSiteSecurity() {
   }
 }
 
-async function showRuntime() {
-  const body = basePanel("Runtime Status");
-  try {
-    const info = await invoke("runtime_info");
-    body.innerHTML =
-      '<div class="panel-row">Browser runtime <strong>' + esc(info.runtime) + '</strong></div>' +
-      '<div class="panel-row">Revision <strong>' + esc(info.revision) + '</strong></div>' +
-      '<div class="panel-row">Azecotron Web <strong>' + esc(info.azecotronWeb.status) + '</strong></div>' +
-      '<div class="panel-row">Cortis <strong>' + esc(info.search.status) + '</strong></div>' +
-      '<div class="panel-row">' + esc(info.search.mode) + '</div>';
-  } catch (error) {
-    toast(error);
-  }
+async function showRuntime(){
+  const body=basePanel("Runtime Status");
+  try{
+    const info=await invoke("runtime_info");
+    const az=await invoke("azecotron_status");
+    body.innerHTML=
+      '<div class="panel-row">Current shell <strong>'+esc(info.runtime)+'</strong></div>'+
+      '<div class="panel-row">Revision <strong>'+esc(info.revision)+'</strong></div>'+
+      '<div class="panel-row">Azecotron Web <strong>'+esc(az.available?"AVAILABLE":"NOT BUILT")+'</strong></div>'+
+      '<div class="panel-row">Azecotron version <strong>'+esc(az.version||"—")+'</strong></div>'+
+      '<div class="panel-row">Executable <strong style="word-break:break-all">'+esc(az.executable)+'</strong></div>'+
+      '<div class="panel-row">Cortis <strong>'+esc(info.search.status)+'</strong></div>'+
+      '<div class="panel-row">'+esc(info.search.mode)+'</div>';
+    const launch=document.createElement("button");launch.className="panel-action";launch.textContent=az.available?"Open this page in Azecotron":"Azecotron build required";
+    launch.disabled=!az.available;
+    launch.onclick=async()=>{try{await invoke("launch_azecotron",{url:activeTab()?.url||null});toast("Opened in Azecotron Web")}catch(e){toast(e)}};
+    body.appendChild(launch);
+  }catch(e){toast(e)}
 }
+
 
 async function showSettings() {
   const body = basePanel("Settings");
