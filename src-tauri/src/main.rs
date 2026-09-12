@@ -1267,11 +1267,30 @@ fn set_zoom(app: tauri::AppHandle, state: State<AppState>, percent: f64) -> AppR
 #[tauri::command]
 fn open_devtools(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
     let id = state.active_id.lock().unwrap().clone();
-    if let Some(view) = app.get_webview(&format!("page-{id}")) {
-        view.open_devtools();
-        return Ok(());
-    }
-    Err(AppError::Message("No active web page.".into()))
+    let view = app.get_webview(&format!("page-{id}")).ok_or_else(|| AppError::Message("No active web page.".into()))?;
+    view.open_devtools();
+    Ok(())
+}
+
+#[tauri::command]
+fn close_devtools(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
+    let id = state.active_id.lock().unwrap().clone();
+    let view = app.get_webview(&format!("page-{id}")).ok_or_else(|| AppError::Message("No active web page.".into()))?;
+    view.close_devtools();
+    Ok(())
+}
+
+#[tauri::command]
+fn devtools_status(app: tauri::AppHandle, state: State<AppState>) -> AppResult<serde_json::Value> {
+    let id = state.active_id.lock().unwrap().clone();
+    let view = app.get_webview(&format!("page-{id}")).ok_or_else(|| AppError::Message("No active web page.".into()))?;
+    Ok(serde_json::json!({
+        "open": view.is_devtools_open(),
+        "runtime": "host-webview",
+        "dockDetach": "PLATFORM_LIMITED",
+        "inspect": "PLATFORM_LIMITED",
+        "elementsConsoleNetworkSources": "Provided by host DevTools when supported"
+    }))
 }
 
 #[tauri::command]
