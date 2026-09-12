@@ -729,6 +729,13 @@ fn create_page_webview<R: tauri::Runtime>(
 
     let (pos, size) = webview_bounds(&window)?;
     let view = window.add_child(builder, pos, size).map_err(|e| AppError::Message(e.to_string()))?;
+    if let Some(value) = state.db.get_setting("default_zoom")? {
+        if let Ok(percent) = value.parse::<f64>() {
+            if (50.0..=200.0).contains(&percent) {
+                let _ = view.set_zoom(percent / 100.0);
+            }
+        }
+    }
     view.hide().map_err(|e| AppError::Message(e.to_string()))?;
     Ok(())
 }
