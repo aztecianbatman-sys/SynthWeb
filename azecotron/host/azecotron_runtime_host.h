@@ -3,6 +3,9 @@
 
 #include <memory>
 #include <string>
+#include <cstdint>
+
+#include "content/public/browser/navigation_handle.h"
 
 #include "base/memory/raw_ptr.h"
 
@@ -56,9 +59,17 @@ class AzecotronRuntimeHost final : public content::WebContentsDelegate,
   void RendererUnresponsive(content::WebContents* source) override;
   void RendererResponsive(content::WebContents* source) override;
   void DidNavigateMainFramePostCommit(content::WebContents* source) override;
+  void DidFinishNavigation(content::NavigationHandle* navigation_handle) override;
+  void DidStartLoading() override;
+  void DidStopLoading() override;
+  void DidChangeVisibleSecurityState() override;
 
  private:
+  void AttachNativeView(content::WebContents* web_contents);
+  void EmitEvent(const char* type, content::WebContents* source, const std::string& extra_key = {}, const std::string& extra_value = {}) const;
+
   raw_ptr<content::BrowserContext> browser_context_;
+  uintptr_t parent_hwnd_ = 0;
 };
 
 }  // namespace synth_azecotron
