@@ -1345,13 +1345,12 @@ fn ai_status(state: State<AppState>) -> AppResult<serde_json::Value> {
 }
 
 #[tauri::command]
-fn set_ai_key(state: State<AppState>, provider:String, key:String)->AppResult<()> {
+fn set_ai_key(provider:String, key:String)->AppResult<()> {
     set_key(&provider,&key).map_err(AppError::Message)
 }
 
 #[tauri::command]
-fn clear_ai_key(state: State<AppState>, provider:String)->AppResult<()> {
-    let _=state;
+fn clear_ai_key(provider:String)->AppResult<()> {
     delete_key(&provider).map_err(AppError::Message)
 }
 
