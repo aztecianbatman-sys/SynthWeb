@@ -41,6 +41,7 @@ function applySettings() {
     ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
     : theme;
   document.body.classList.toggle("quiet", state.settings.quiet_mode === "true");
+  document.body.classList.toggle("compact", state.settings.density === "compact");
   const accent = state.settings.accent || "cyan";
   document.documentElement.style.setProperty("--cyan", accent === "violet" ? "#9b7cff" : accent === "blue" ? "#5da9ff" : accent === "green" ? "#4ade80" : "#2ee6ff");
 }
@@ -93,6 +94,22 @@ function renderAddress() {
   $("siteState").style.color = secure ? "var(--good)" : (url ? "var(--warn)" : "var(--muted)");
 }
 
+async function renderRecent() {
+  const host=$("recent"); if(!host)return;
+  host.replaceChildren();
+  if(state.settings.show_recent==="false" || state.settings.quiet_mode==="true") return;
+  try {
+    const rows=state.settings.search_history==="false"?[]:await invoke("list_history");
+    const seen=new Set();
+    rows.filter(r=>r.url&&!r.url.startsWith("https://www.google.com/search")).forEach(r=>{
+      const key=r.domain||r.url;
+      if(seen.has(key)||seen.size>=6)return;
+      seen.add(key);
+      const b=document.createElement("button");b.className="shortcut recent-link";b.innerHTML=esc(r.title||r.domain||r.url)+" <span>recent</span>";b.onclick=()=>go(r.url);host.appendChild(b);
+    });
+  } catch {}
+}
+
 function render() {
   renderTabs();
   renderAddress();
@@ -100,6 +117,7 @@ function render() {
   $("newtab").style.visibility = tab && tab.url === "synth://newtab" ? "visible" : "hidden";
   $("workspaceButton").textContent = state.activeWorkspace;
   applySettings();
+  renderRecent();
 }
 
 async function refresh() {
