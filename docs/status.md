@@ -118,7 +118,7 @@ Privacy/security: FUNCTIONAL IN SOURCE for per-site permissions/cookies/site-dat
 Synth Assist: FUNCTIONAL IN SOURCE for provider presets, secure keys, model discovery, streaming-compatible providers, AI history, explicit page/selection context, and AI Search via OpenRouter
 Reader/Page Lens/Research: FUNCTIONAL IN SOURCE
 Developer Tools / power-user commands: FUNCTIONAL IN SOURCE where host runtime supports them
-Profiles: FUNCTIONAL IN SOURCE; Guest Mode: FUNCTIONAL IN SOURCE; native permission prompts: FUNCTIONAL IN SOURCE; full per-site permission center/extensions: NOT STARTED
+Profiles: FUNCTIONAL IN SOURCE; Guest Mode: FUNCTIONAL IN SOURCE; native permission prompts: FUNCTIONAL IN SOURCE; extension manager/extension permission UI: NOT STARTED
 Azecotron Web Chromium fork source/build workflow: IMPLEMENTED IN SOURCE; Cortis provider transformation: IMPLEMENTED IN SOURCE; binary build: NOT VERIFIED
 Performance certification: NOT TESTED
 Packaging: CONFIGURED, NOT VERIFIED
