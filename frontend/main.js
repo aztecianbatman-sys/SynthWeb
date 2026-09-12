@@ -57,10 +57,15 @@ function renderTabs() {
     el.draggable = true;
     el.dataset.index = String(state.tabs.indexOf(tab));
     el.dataset.id = tab.id;
-    const favicon = document.createElement("span");
+    const favicon = tab.favicon ? document.createElement("img") : document.createElement("span");
     favicon.className = "tab-favicon";
-    favicon.textContent = tab.loading ? "…" : (tab.private ? "◉" : "•");
-    favicon.style.color = tab.private ? "#8b63ff" : (tab.url.startsWith("https://") ? "#34d399" : "#2ee6ff");
+    if(tab.favicon){
+      favicon.src=tab.favicon; favicon.alt=""; favicon.width=16; favicon.height=16; favicon.referrerPolicy="no-referrer";
+      favicon.onerror=()=>{favicon.replaceWith(Object.assign(document.createElement("span"),{className:"tab-favicon",textContent:tab.private?"◉":"•"}))}
+    } else {
+      favicon.textContent = tab.loading ? "…" : (tab.private ? "◉" : "•");
+      favicon.style.color = tab.private ? "#8b63ff" : (tab.url.startsWith("https://") ? "#34d399" : "#2ee6ff");
+    }
     const title = document.createElement("span");
     title.className = "tab-title";
     title.textContent = tab.title || "New Tab";
