@@ -1,4 +1,6 @@
+mod tracker;
 mod services;
+
 mod ai;
 mod browser_runtime;
 mod search;
