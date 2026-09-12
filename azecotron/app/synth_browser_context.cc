@@ -1,20 +1,93 @@
 #include "azecotron/app/synth_browser_context.h"
-#include "components/keyed_service/content/browser_context_dependency_manager.h"
 
 namespace synth_azecotron {
 
 SynthBrowserContext::SynthBrowserContext(
     bool off_the_record,
     const base::FilePath& path)
-    : content::ShellBrowserContext(off_the_record, true),
-      path_(path) {
-  content::BrowserContextDependencyManager::GetInstance()->CreateBrowserContextServices(this);
+    : off_the_record_(off_the_record), path_(path) {}
+
+SynthBrowserContext::~SynthBrowserContext() {
+  ShutdownStoragePartitions();
 }
 
-SynthBrowserContext::~SynthBrowserContext() = default;
+std::unique_ptr<content::ZoomLevelDelegate>
+SynthBrowserContext::CreateZoomLevelDelegate(
+    const base::FilePath&) {
+  return nullptr;
+}
 
-base::FilePath SynthBrowserContext::GetPath() {
+base::FilePath SynthBrowserContext::GetPath() const {
   return path_;
+}
+
+bool SynthBrowserContext::IsOffTheRecord() {
+  return off_the_record_;
+}
+
+content::DownloadManagerDelegate*
+SynthBrowserContext::GetDownloadManagerDelegate() {
+  return nullptr;
+}
+
+content::BrowserPluginGuestManager*
+SynthBrowserContext::GetGuestManager() {
+  return nullptr;
+}
+
+storage::SpecialStoragePolicy*
+SynthBrowserContext::GetSpecialStoragePolicy() {
+  return nullptr;
+}
+
+content::PlatformNotificationService*
+SynthBrowserContext::GetPlatformNotificationService() {
+  return nullptr;
+}
+
+content::PushMessagingService*
+SynthBrowserContext::GetPushMessagingService() {
+  return nullptr;
+}
+
+content::StorageNotificationService*
+SynthBrowserContext::GetStorageNotificationService() {
+  return nullptr;
+}
+
+content::SSLHostStateDelegate*
+SynthBrowserContext::GetSSLHostStateDelegate() {
+  return nullptr;
+}
+
+content::PermissionControllerDelegate*
+SynthBrowserContext::GetPermissionControllerDelegate() {
+  return nullptr;
+}
+
+content::ReduceAcceptLanguageControllerDelegate*
+SynthBrowserContext::GetReduceAcceptLanguageControllerDelegate() {
+  return nullptr;
+}
+
+content::ClientHintsControllerDelegate*
+SynthBrowserContext::GetClientHintsControllerDelegate() {
+  return nullptr;
+}
+
+content::BackgroundFetchDelegate*
+SynthBrowserContext::GetBackgroundFetchDelegate() {
+  return nullptr;
+}
+
+content::BackgroundSyncController*
+SynthBrowserContext::GetBackgroundSyncController() {
+  return nullptr;
+}
+
+content::BrowsingDataRemoverDelegate*
+SynthBrowserContext::GetBrowsingDataRemoverDelegate() {
+  return nullptr;
 }
 
 }  // namespace synth_azecotron
