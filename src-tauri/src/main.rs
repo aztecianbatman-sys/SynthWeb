@@ -341,7 +341,6 @@ fn create_page_webview<R: tauri::Runtime>(
     let builder = WebviewBuilder::new(label.clone(), WebviewUrl::External(url.clone()))
         .focused(false)
         .incognito(private)
-        .auto_resize()
         .devtools(cfg!(debug_assertions))
         .zoom_hotkeys_enabled(true)
         .on_navigation(move |next| {
