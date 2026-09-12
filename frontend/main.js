@@ -437,6 +437,8 @@ function showMenuPanel() {
     ["Reopen Closed Tab", async () => invoke("reopen_closed_tab")],
     ["Tab Overview", async () => openOverview()],
     ["Reader Mode", async () => openReaderMode()],
+    ["Page Source", async () => openPageSource()],
+    ["Find in Page", async () => openFind()],
     ["Page Lens", async () => openPageLens()],
     ["Reading Shelf", async () => showShelf()],
     ["Saved Sessions", async () => showSessions()],
@@ -724,6 +726,20 @@ function renderLens(payload){
   const th=document.createElement("h2");th.textContent="Visible text";content.appendChild(th);
   const text=document.createElement("div");text.className="reader-text";text.textContent=payload.text||"No readable text was found.";content.appendChild(text);
   const note=document.createElement("div");note.className="reader-note";note.textContent="Page Lens reports data actually extracted from the current page. It does not invent security or semantic claims.";content.appendChild(note);
+}
+function openFind(){
+  const panel=$("findPanel");panel.classList.remove("hidden");$("findInput").focus();$("findInput").select();
+}
+function closeFind(){$("findPanel").classList.add("hidden")}
+async function performFind(backwards=false){
+  const q=$("findInput").value;
+  if(!q)return;
+  try{await invoke("find_in_page",{query:q,backwards})}catch(e){toast(e)}
+}
+async function openPageSource(){try{await invoke("page_source")}catch(e){toast(e)}}
+function renderPageSource(payload){
+  $("sourcePanel").classList.remove("hidden");
+  $("sourceContent").textContent=payload.html||"";
 }
 async function showPrivacy() {
   const body = basePanel("Privacy Shield");
@@ -1108,6 +1124,12 @@ $("lensClose").onclick = () => $("lensPanel").classList.add("hidden");
 $("overview").onclick = openOverview;
 $("overviewClose").onclick = closeOverview;
 $("overviewSearch").oninput = (event) => renderOverview(event.target.value);
+$("sourceClose").onclick = () => $("sourcePanel").classList.add("hidden");
+$("findClose").onclick = closeFind;
+$("findInput").oninput = () => performFind(false);
+$("findInput").onkeydown = (event) => { if(event.key==="Enter"){event.preventDefault();performFind(event.shiftKey)} if(event.key==="Escape")closeFind() };
+$("findNext").onclick=()=>performFind(false);
+$("findPrev").onclick=()=>performFind(true);
 
 document.querySelectorAll(".search-mode").forEach((button) => {
   button.onclick = () => {
@@ -1203,6 +1225,8 @@ const commands = [
   ["Synth Assist", "", () => showAssist()],
   ["Reader Mode", "", () => openReaderMode()],
   ["Page Lens", "", () => openPageLens()],
+  ["Page Source", "Ctrl+U", () => openPageSource()],
+  ["Find in Page", "Ctrl+F", () => openFind()],
   ["Settings", "", () => showSettings()],
   ["Privacy Shield", "", () => showPrivacy()],
   ["Site Capsule", "", () => showSiteSecurity()],
@@ -1296,6 +1320,8 @@ listen("browser://favicon", (event) => {
 
 listen("browser://reader", (event) => renderReader(event.payload));
 listen("browser://page-lens", (event) => renderLens(event.payload));
+listen("browser://page-source", (event) => renderPageSource(event.payload));
+listen("browser://find-result", (event) => { if(!event.payload.found) toast("No matches found."); });
 listen("browser://download", (event) => {
   toast(event.payload.status === "completed" ? "Download complete" : "Download " + event.payload.status);
 });
@@ -1382,6 +1408,8 @@ document.addEventListener("keydown", async (event) => {
     event.preventDefault();
     $("bookmark").click();
   }
+  if (mod && event.key.toLowerCase() === "f") { event.preventDefault(); openFind(); }
+  if (mod && event.key.toLowerCase() === "u") { event.preventDefault(); openPageSource(); }
   if (mod && event.key.toLowerCase() === "r") {
     event.preventDefault();
     await invoke("stop_or_reload");
