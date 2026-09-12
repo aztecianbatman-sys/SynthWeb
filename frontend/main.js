@@ -160,7 +160,7 @@ function showPanel() {
     '<button class="panel-action" data-cmd="private">New Private Tab</button>' +
     '<button class="panel-action" data-cmd="reopen">Reopen Closed Tab</button>' +
     '<button class="panel-action" data-cmd="shelf">Reading Shelf</button>' +
-    '<button class="panel-action" data-cmd="sessions">Saved Sessions</button>' +
+    '<button class="panel-action" data-cmd="sessions">Saved Sessions</button><button class="panel-action" data-cmd="notes">Notes</button><button class="panel-action" data-cmd="boards">Research Board</button>' +
     '<button class="panel-action" data-cmd="bookmarks">Bookmarks</button>' +
     '<button class="panel-action" data-cmd="history">History</button>' +
     '<button class="panel-action" data-cmd="settings">Settings</button>' +
@@ -178,6 +178,8 @@ async function runCommand(cmd) {
     if (cmd === "reopen") await invoke("reopen_closed_tab");
     if (cmd === "shelf") return showShelf();
     if (cmd === "sessions") return showSessions();
+    if (cmd === "notes") return showNotes();
+    if (cmd === "boards") return showBoards();
     if (cmd === "bookmarks") return showBookmarks();
     if (cmd === "history") return showHistory();
     if (cmd === "settings") return showSettings();
@@ -245,6 +247,32 @@ async function showDownloads() {
   const body=basePanel("Downloads");
   body.innerHTML='<div class="panel-row">Download folder <strong>Downloads/Synth Browser</strong></div><div class="panel-row">Auto-run <strong>Disabled</strong></div><div class="panel-row">Checksum verification <strong>NOT STARTED</strong></div><div class="panel-row">Actual download history <strong>Stored locally</strong></div>';
 }
+async function showNotes() {
+  const body=basePanel("Notes");
+  const add=document.createElement("button");add.className="panel-action";add.textContent="+ New note from current page";
+  add.onclick=async()=>{const title=prompt("Note title");if(!title)return;const bodyText=prompt("Note text");if(bodyText===null)return;try{await invoke("create_note",{title,body:bodyText});toast("Note saved");showNotes()}catch(e){toast(e)}};
+  body.appendChild(add);
+  const rows=await invoke("list_notes");
+  if(!rows.length){body.innerHTML+='<div class="panel-row">No notes yet.</div>';return}
+  rows.slice(0,30).forEach(n=>{const wrap=document.createElement("div");wrap.className="reading-row";wrap.innerHTML='<div class="reading-info"><div class="reading-title">'+esc(n.title)+'</div><div class="reading-url">'+esc(n.url||"Local note")+'</div><div class="reading-url">'+esc(n.body.slice(0,120))+'</div></div>';const open=document.createElement("button");open.className="mini-action";open.textContent=n.url?"Open":"View";open.onclick=()=>n.url?go(n.url):toast(n.body);const del=document.createElement("button");del.className="mini-action";del.textContent="×";del.onclick=async()=>{await invoke("delete_note",{id:n.id});showNotes()};wrap.append(open,del);body.appendChild(wrap)});
+}
+
+async function showBoards() {
+  const body=basePanel("Research Board");
+  const add=document.createElement("button");add.className="panel-action";add.textContent="+ New board";
+  add.onclick=async()=>{const name=prompt("Board name");if(!name)return;try{await invoke("create_research_board",{name});toast("Board created");showBoards()}catch(e){toast(e)}};
+  body.appendChild(add);
+  const rows=await invoke("list_research_boards");
+  if(!rows.length){body.innerHTML+='<div class="panel-row">No research boards yet.</div>';return}
+  rows.forEach(b=>{const wrap=document.createElement("div");wrap.className="reading-row";const info=document.createElement("div");info.className="reading-info";info.innerHTML='<div class="reading-title">'+esc(b.name)+'</div><div class="reading-url">'+esc(b.workspace||"Independent board")+'</div>';const addCurrent=document.createElement("button");addCurrent.className="mini-action";addCurrent.textContent="Add tab";addCurrent.onclick=async()=>{try{await invoke("add_current_to_board",{boardId:b.id});toast("Added to board")}catch(e){toast(e)}};const view=document.createElement("button");view.className="mini-action";view.textContent="View";view.onclick=async()=>{const items=await invoke("list_board_items",{boardId:b.id});showBoardItems(b.name,items)};const del=document.createElement("button");del.className="mini-action";del.textContent="×";del.onclick=async()=>{if(confirm("Delete this research board?")){await invoke("delete_research_board",{id:b.id});showBoards()}};wrap.append(info,addCurrent,view,del);body.appendChild(wrap)});
+}
+
+function showBoardItems(name,items){
+  const body=basePanel(name);
+  if(!items.length){body.innerHTML='<div class="panel-row">This board is empty.</div>';return}
+  items.forEach(i=>{const b=document.createElement("button");b.className="panel-action";b.innerHTML="<strong>"+esc(i.title)+"</strong><br><span style='color:#718396'>"+esc(i.url||i.quote||"")+"</span>";b.onclick=()=>i.url&&go(i.url);body.appendChild(b)});
+}
+
 async function showPrivacy() {
   const body=basePanel("Privacy Shield");
   body.innerHTML =
@@ -338,6 +366,8 @@ const commands=[
  ["Add Bookmark","Ctrl+D",()=>invoke("add_bookmark")],
  ["Reading Shelf","",()=>showShelf()],
  ["Saved Sessions","",()=>showSessions()],
+ ["Notes","",()=>showNotes()],
+ ["Research Board","",()=>showBoards()],
  ["Workspaces","",()=>showWorkspaceMenu()],
  ["Settings","",()=>showSettings()],
  ["Privacy Shield","",()=>showPrivacy()],
