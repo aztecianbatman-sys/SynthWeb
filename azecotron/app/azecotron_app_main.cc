@@ -4,9 +4,9 @@
 #include "content/public/app/sandbox_helper_win.h"
 #include "sandbox/win/src/sandbox_types.h"  // nogncheck
 #endif
-#include "content/shell/app/shell_main_delegate.h"
-#include "content/shell/browser/shell.h"
 #include "content/public/browser/web_contents.h"
+#include "azecotron/app/synth_content_main_delegate.h"
+#include "azecotron/app/synth_content_browser_client.h"
 #include "content/public/browser/navigation_controller.h"
 #include "base/command_line.h"
 #include "base/functional/bind.h"
@@ -28,13 +28,19 @@ void AttachExistingContentShellToSynth() {
   const base::CommandLine* command_line =
       base::CommandLine::ForCurrentProcess();
 
-  if (content::Shell::windows().empty())
+  auto* client = synth_azecotron::SynthContentBrowserClient::Get();
+  if (!client || !client->GetBrowserContext())
     return;
 
-  content::Shell* shell = content::Shell::windows().back();
-  content::WebContents* web_contents = shell->web_contents();
+  content::WebContents::CreateParams params(client->GetBrowserContext());
+  std::unique_ptr<content::WebContents> web_contents =
+      content::WebContents::Create(params);
   if (!web_contents)
     return;
+
+  g_runtime_host = std::make_unique<synth_azecotron::AzecotronRuntimeHost>(
+      client->GetBrowserContext());
+  content::WebContents* raw_web_contents = web_contents.release();
 
   std::string startup_url =
       command_line->GetSwitchValueASCII("synth-url");
@@ -43,9 +49,7 @@ void AttachExistingContentShellToSynth() {
   }
 
   GURL url(startup_url);
-  g_runtime_host = std::make_unique<synth_azecotron::AzecotronRuntimeHost>(
-      web_contents->GetBrowserContext());
-  g_runtime_host->AdoptWebContents(web_contents, url);
+  g_runtime_host->AdoptWebContents(raw_web_contents, url);
 
 #if BUILDFLAG(IS_WIN)
   const std::string parent_value =
@@ -54,7 +58,7 @@ void AttachExistingContentShellToSynth() {
     const auto raw =
         static_cast<uintptr_t>(std::strtoull(parent_value.c_str(), nullptr, 10));
     HWND parent = reinterpret_cast<HWND>(raw);
-    HWND child = web_contents->GetNativeView();
+    HWND child = raw_web_contents->GetNativeView();
 
     if (parent && child) {
       SetParent(child, parent);
@@ -67,9 +71,7 @@ void AttachExistingContentShellToSynth() {
       SetWindowPos(child, HWND_TOP, 0, 0, width, height,
                    SWP_NOACTIVATE | SWP_SHOWWINDOW);
 
-      if (shell->window()) {
-        ShowWindow(shell->window(), SW_HIDE);
-      }
+
     }
   }
 #endif
@@ -78,7 +80,7 @@ void AttachExistingContentShellToSynth() {
 }  // namespace
 
 int main(int argc, const char** argv) {
-  content::ShellMainDelegate delegate;
+  synth_azecotron::SynthContentMainDelegate delegate;
   content::ContentMainParams params(&delegate);
 
 #if BUILDFLAG(IS_WIN)
