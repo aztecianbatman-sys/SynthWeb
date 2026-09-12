@@ -1,3 +1,4 @@
+#include "build/build_config.h"
 #include "content/public/app/content_main.h"
 #if BUILDFLAG(IS_WIN)
 #include "content/public/app/sandbox_helper_win.h"
