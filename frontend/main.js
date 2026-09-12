@@ -899,6 +899,21 @@ async function showSettings() {
   toggle("search_history", "Store search history");
   toggle("quiet_mode", "Quiet Mode");
   toggle("https_only", "HTTPS-only");
+
+  const permissionTitle=document.createElement("div");
+  permissionTitle.className="setting-label";
+  permissionTitle.textContent="Permissions";
+  grid.appendChild(permissionTitle);
+  [
+    ["permission_camera","Camera"],
+    ["permission_microphone","Microphone"],
+    ["permission_geolocation","Location"],
+    ["permission_notifications","Notifications"],
+    ["permission_display_capture","Screen sharing"],
+    ["permission_clipboard","Clipboard read"],
+    ["permission_local_fonts","Local fonts"],
+    ["permission_sensors","Sensors"]
+  ].forEach(([key,label])=>select(key,label,[["prompt","Ask"],["deny","Block"],["allow","Allow"]]));
   toggle("ai_enabled", "Enable Synth Assist");
   toggle("ai_page_context", "Allow page context when requested");
   toggle("ai_selection_context", "Allow selection context when requested");
