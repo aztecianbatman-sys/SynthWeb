@@ -452,6 +452,7 @@ function showMenuPanel() {
     ["Settings", async () => showSettings()],
     ["Runtime Status", async () => showRuntime()],
     ["Downloads", async () => showDownloads()],
+    ["Profile", async () => showProfiles()],
     ["Developer Tools", async () => invoke("open_devtools")],
     ["Clear Browsing Data", async () => {
       if (confirm("Clear local history and active browser data?")) await invoke("clear_browsing_data");
@@ -476,6 +477,28 @@ function showMenuPanel() {
   });
 }
 
+async function showProfiles(){
+  const body=basePanel("Profiles");
+  let current=state.profile||{id:"default",name:"Default",guest:false};
+  const rows=state.profiles||[];
+  body.innerHTML='<div class="panel-row">Current <strong>'+esc(current.name)+'</strong></div>';
+  if(current.guest){
+    body.innerHTML+='<div class="panel-row">Guest Mode uses a temporary profile directory and is removed on exit.</div>';
+  }
+  const list=document.createElement("div");
+  rows.forEach(profile=>{
+    const row=document.createElement("div");row.className="reading-row";
+    const info=document.createElement("div");info.className="reading-info";info.innerHTML='<div class="reading-title">'+esc(profile.name)+'</div><div class="reading-url">'+(profile.id===current.id?"Active":"Separate data profile")+'</div>';
+    const switchBtn=document.createElement("button");switchBtn.className="mini-action";switchBtn.textContent=profile.id===current.id?"Active":"Switch";
+    switchBtn.disabled=profile.id===current.id||current.guest;
+    switchBtn.onclick=async()=>{try{await invoke("switch_profile",{profileId:profile.id});toast("Launching "+profile.name+"…")}catch(e){toast(e)}};
+    row.append(info,switchBtn);list.appendChild(row);
+  });
+  body.appendChild(list);
+  if(!current.guest){
+    const create=document.createElement("button");create.className="panel-action";create.textContent="+ Create profile";create.onclick=async()=>{const name=prompt("Profile name");if(!name)return;try{await invoke("create_profile",{name});toast("Launching new profile…")}catch(e){toast(e)}};body.appendChild(create);
+  }
+}
 async function showDownloads() {
   const body = basePanel("Downloads");
   try {
@@ -1117,6 +1140,7 @@ $("shelf").onclick = async () => {
   } catch (error) { toast(error); }
 };
 $("downloads").onclick = showDownloads;
+$("profile").onclick = showProfiles;
 $("menu").onclick = showMenuPanel;
 $("privacy").onclick = showPrivacy;
 $("readerClose").onclick = () => $("readerPanel").classList.add("hidden");
@@ -1367,7 +1391,7 @@ listen("ai://selection-context", async (event) => {
 });
 
 document.addEventListener("click", (event) => {
-  if (!event.target.closest("#panel") && !event.target.closest("#menu") && !event.target.closest("#downloads") && !event.target.closest("#shelf") && !event.target.closest("#privacy")) {
+  if (!event.target.closest("#panel") && !event.target.closest("#menu") && !event.target.closest("#downloads") && !event.target.closest("#shelf") && !event.target.closest("#privacy") && !event.target.closest("#profile")) {
     closePanel();
   }
   if (!event.target.closest("#workspaceMenu") && !event.target.closest("#workspaceButton")) {
