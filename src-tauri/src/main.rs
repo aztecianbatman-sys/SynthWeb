@@ -207,6 +207,12 @@ impl Db {
                key TEXT PRIMARY KEY,
                value TEXT NOT NULL
              );
+             CREATE TABLE IF NOT EXISTS query_history(
+               id INTEGER PRIMARY KEY,
+               query TEXT NOT NULL,
+               searched_at INTEGER NOT NULL
+             );
+             CREATE INDEX IF NOT EXISTS idx_query_history_time ON query_history(searched_at DESC);
              CREATE TABLE IF NOT EXISTS notes(
                id INTEGER PRIMARY KEY,
                title TEXT NOT NULL,
@@ -374,6 +380,19 @@ impl Db {
             rusqlite::params![key,value]
         )?;
         Ok(())
+    }
+
+    fn record_query(&self,query:&str)->AppResult<()> {
+        if query.trim().is_empty() || query.len()>2000 { return Ok(()); }
+        self.connect()?.execute("INSERT INTO query_history(query,searched_at) VALUES(?1,?2)",rusqlite::params![query.trim(),Self::now()])?;
+        Ok(())
+    }
+
+    fn list_query_history(&self)->AppResult<Vec<String>> {
+        let c=self.connect()?;
+        let mut s=c.prepare("SELECT query FROM query_history ORDER BY searched_at DESC LIMIT 20")?;
+        let rows=s.query_map([],|r|r.get::<_,String>(0))?;
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
     }
 
     fn all_settings(&self)->AppResult<std::collections::HashMap<String,String>>{
@@ -662,7 +681,19 @@ async fn navigate(app: tauri::AppHandle, state: State<AppState>, input: String) 
                 tab.has_webview = false;
             }
         }
-        SearchDecision::Url(url) | SearchDecision::Search(url) => {
+        SearchDecision::Url(url) => {
+            create_page_webview(&app, &state, &active_id, &url, private)?;
+            if let Some(view) = app.get_webview(&format!("page-{active_id}")) {
+                view.navigate(url).map_err(|e| AppError::Message(e.to_string()))?;
+            }
+            if let Some(tab) = state.tabs.lock().unwrap().iter_mut().find(|t| t.id == active_id) {
+                tab.has_webview = true; tab.loading = true;
+            }
+        }
+        SearchDecision::Search(url) => {
+            if state.db.get_setting("search_history")?.as_deref() != Some("false") {
+                let _ = state.db.record_query(&input);
+            }
             create_page_webview(&app, &state, &active_id, &url, private)?;
             if let Some(view) = app.get_webview(&format!("page-{active_id}")) {
                 view.navigate(url).map_err(|e| AppError::Message(e.to_string()))?;
@@ -835,6 +866,7 @@ fn list_history(state: State<AppState>) -> AppResult<Vec<HistoryEntry>> {
 #[tauri::command]
 fn clear_browsing_data(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
     state.db.clear_history()?;
+    state.db.connect()?.execute("DELETE FROM query_history", [])?;
     for tab in state.tabs.lock().unwrap().iter() {
         if let Some(view) = app.get_webview(&format!("page-{}", tab.id)) { let _ = view.clear_all_browsing_data(); }
     }
@@ -985,6 +1017,9 @@ fn remove_shelf(state: State<AppState>, id: i64) -> AppResult<()> {
 
 
 #[tauri::command]
+fn list_query_history(state: State<AppState>)->AppResult<Vec<String>>{ state.db.list_query_history() }
+
+#[tauri::command]
 fn create_note(state: State<AppState>, title:String, body:String)->AppResult<Note>{
     let id=state.active_id.lock().unwrap().clone();
     let tab=state.tabs.lock().unwrap().iter().find(|t|t.id==id).cloned();
@@ -1089,7 +1124,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_snapshot, navigate, new_tab, activate_tab, close_tab, reopen_closed_tab,
             reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools, add_bookmark, list_bookmarks, list_history,
-            clear_browsing_data, runtime_info, list_workspaces, create_workspace,
+            clear_browsing_data, runtime_info, list_query_history, list_workspaces, create_workspace,
             switch_workspace, rename_workspace, delete_workspace, reorder_tab,
             save_session, list_sessions, open_session, add_to_shelf, list_shelf,
             toggle_shelf_read, remove_shelf, create_note, list_notes, delete_note, create_research_board, list_research_boards, delete_research_board, add_current_to_board, list_board_items, get_settings, set_setting, reset_settings
@@ -1190,6 +1225,11 @@ mod tests {
         let mut s=c.prepare("SELECT id,board_id,item_type,title,url,quote,position,created_at FROM board_items WHERE board_id=?1 ORDER BY position,id")?;
         let rows=s.query_map([board_id],|r|Ok(BoardItem{id:r.get(0)?,board_id:r.get(1)?,item_type:r.get(2)?,title:r.get(3)?,url:r.get(4)?,quote:r.get(5)?,position:r.get(6)?,created_at:r.get(7)?}))?;
         Ok(rows.collect::<Result<Vec<_>,_>>()?)
+    }
+
+    fn get_setting(&self,key:&str)->AppResult<Option<String>> {
+        let c=self.connect()?;
+        Ok(c.query_row("SELECT value FROM settings WHERE key=?1",[key],|r|r.get(0)).optional()?)
     }
 
 
