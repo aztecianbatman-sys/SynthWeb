@@ -207,8 +207,8 @@ async function showAssist(){
     '<div class="setting-label">Model</div>';
   const model=document.createElement("input");model.className="setting-control";model.value=info.model;model.placeholder="e.g. llama3.2";model.onchange=async()=>{try{await invoke("set_setting",{key:"ai_model",value:model.value});toast("AI model saved")}catch(e){toast(e)}};
   body.appendChild(model);
+  const endpointLabel=document.createElement("div");endpointLabel.className="setting-label";endpointLabel.textContent="Endpoint";body.appendChild(endpointLabel);
   const endpoint=document.createElement("input");endpoint.className="setting-control";endpoint.value=info.endpoint;endpoint.placeholder="http://127.0.0.1:11434/v1";endpoint.onchange=async()=>{try{await invoke("set_setting",{key:"ai_endpoint",value:endpoint.value});toast("AI endpoint saved")}catch(e){toast(e)}};
-  body.appendChild(document.createElement("div")).textContent="Endpoint";
   body.appendChild(endpoint);
   const enabled=document.createElement("label");enabled.className="setting-toggle";enabled.innerHTML="<span>Enable Synth Assist</span>";
   const check=document.createElement("input");check.type="checkbox";check.checked=info.enabled;check.onchange=async()=>{try{await invoke("set_setting",{key:"ai_enabled",value:String(check.checked)});showAssist()}catch(e){toast(e)}};
