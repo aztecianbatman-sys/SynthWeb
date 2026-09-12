@@ -43,6 +43,7 @@ struct Tab {
     url: String,
     pinned: bool,
     muted: bool,
+    favicon: Option<String>,
     private: bool,
     loading: bool,
     workspace: String,
@@ -782,7 +783,7 @@ impl AppState {
                 id: "tab-1".into(),
                 title: "New Tab".into(),
                 url: "synth://newtab".into(),
-                pinned:false, muted:false, private:false, loading:false,
+                pinned:false, muted:false, favicon:None, private:false, loading:false,
                 workspace:"Default".into(), has_webview:false,
             }])),
             active_id: Arc::new(Mutex::new("tab-1".into())),
@@ -974,6 +975,7 @@ fn create_page_webview<R: tauri::Runtime>(
             if let Ok(mut tabs) = tabs_nav.lock() {
                 if let Some(tab) = tabs.iter_mut().find(|t| t.id == tab_id) {
                     tab.url = next.as_str().to_owned();
+                    tab.favicon = None;
                     tab.loading = true;
                     tab.has_webview = true;
                 }
@@ -1142,7 +1144,7 @@ fn new_tab(app: tauri::AppHandle, state: State<AppState>, private: bool) -> AppR
     state.tabs.lock().unwrap().push(Tab {
         id: id.clone(),
         title: if private {"Private Tab".into()} else {"New Tab".into()},
-        url:"synth://newtab".into(), pinned:false, muted:false, private, loading:false,
+        url:"synth://newtab".into(), pinned:false, muted:false, favicon:None, private, loading:false,
         workspace, has_webview:false,
     });
     *state.active_id.lock().unwrap() = id;
@@ -1386,7 +1388,7 @@ fn switch_workspace(app: tauri::AppHandle, state: State<AppState>, name: String)
             id: id.clone(),
             title: "New Tab".into(),
             url: "synth://newtab".into(),
-            pinned: false, muted: false, private: false, loading: false,
+            pinned: false, muted: false, favicon:None, private: false, loading: false,
             workspace: name, has_webview: false
         });
         *state.active_id.lock().unwrap() = id;
@@ -1488,7 +1490,7 @@ fn duplicate_workspace(state: State<AppState>, source:String, name:String)->AppR
     if !state.workspaces.lock().unwrap().iter().any(|w|w.name==source){return Err(AppError::Message("Source workspace not found.".into()))}
     let ws=state.db.create_workspace(&name,"square","#2ee6ff")?;
     let copies:Vec<Tab>=state.tabs.lock().unwrap().iter().filter(|t|t.workspace==source).map(|t|Tab{
-        id:state.next_tab_id(), title:t.title.clone(), url:t.url.clone(), pinned:t.pinned, muted:t.muted,
+        id:state.next_tab_id(), title:t.title.clone(), url:t.url.clone(), pinned:t.pinned, muted:t.muted, favicon:t.favicon.clone(),
         private:t.private, loading:false, workspace:ws.name.clone(), has_webview:false
     }).collect();
     state.tabs.lock().unwrap().extend(copies);
@@ -1642,6 +1644,44 @@ fn set_site_permission(state: State<AppState>, origin:String, kind:String, polic
 #[tauri::command]
 fn reset_site_permissions(state: State<AppState>, origin:String)->AppResult<()>{
     state.db.reset_site_permissions(&origin)
+}
+
+#[tauri::command]
+fn remove_download_history(state: State<AppState>, id:i64)->AppResult<()> {
+    let c=state.db.connect()?;
+    c.execute("DELETE FROM download_verification WHERE download_id=?1",[id])?;
+    c.execute("DELETE FROM downloads WHERE id=?1",[id])?;
+    Ok(())
+}
+
+#[tauri::command]
+fn open_download(state: State<AppState>, id:i64)->AppResult<()> {
+    let c=state.db.connect()?;
+    let path:Option<String>=c.query_row("SELECT path FROM downloads WHERE id=?1",[id],|r|r.get(0)).optional()?;
+    let path=path.ok_or_else(||AppError::Message("Download not found.".into()))?.ok_or_else(||AppError::Message("Download has no local file.".into()))?;
+    if !Path::new(&path).exists(){return Err(AppError::Message("The downloaded file no longer exists.".into()))}
+    #[cfg(target_os="windows")]
+    { std::process::Command::new("cmd").args(["/C","start","","/B",&path]).spawn().map_err(|e|AppError::Message(e.to_string()))?; }
+    #[cfg(target_os="macos")]
+    { std::process::Command::new("open").arg(&path).spawn().map_err(|e|AppError::Message(e.to_string()))?; }
+    #[cfg(all(unix,not(target_os="macos")))]
+    { std::process::Command::new("xdg-open").arg(&path).spawn().map_err(|e|AppError::Message(e.to_string()))?; }
+    Ok(())
+}
+
+#[tauri::command]
+fn reveal_download(state: State<AppState>, id:i64)->AppResult<()> {
+    let c=state.db.connect()?;
+    let path:Option<String>=c.query_row("SELECT path FROM downloads WHERE id=?1",[id],|r|r.get(0)).optional()?;
+    let path=path.ok_or_else(||AppError::Message("Download not found.".into()))?.ok_or_else(||AppError::Message("Download has no local file.".into()))?;
+    if !Path::new(&path).exists(){return Err(AppError::Message("The downloaded file no longer exists.".into()))}
+    #[cfg(target_os="windows")]
+    { std::process::Command::new("explorer").args(["/select,",&path]).spawn().map_err(|e|AppError::Message(e.to_string()))?; }
+    #[cfg(target_os="macos")]
+    { std::process::Command::new("open").args(["-R",&path]).spawn().map_err(|e|AppError::Message(e.to_string()))?; }
+    #[cfg(all(unix,not(target_os="macos")))]
+    { if let Some(parent)=Path::new(&path).parent(){std::process::Command::new("xdg-open").arg(parent).spawn().map_err(|e|AppError::Message(e.to_string()))?;} }
+    Ok(())
 }
 
 #[tauri::command]
@@ -1936,20 +1976,49 @@ fn page_source(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
 }
 
 #[tauri::command]
-fn find_in_page(app: tauri::AppHandle, state: State<AppState>, query:String, backwards:bool) -> AppResult<()> {
+fn find_in_page(app: tauri::AppHandle, state: State<AppState>, query:String, backwards:bool, case_sensitive:bool, whole_word:bool) -> AppResult<()> {
     let q=query.trim();
     if q.is_empty() { return Err(AppError::Message("Find text is empty.".into())); }
     if q.len()>500 { return Err(AppError::Message("Find text is too long.".into())); }
     let json=serde_json::to_string(q).map_err(|e|AppError::Message(e.to_string()))?;
-    let script=format!("(()=>{{const q={json};return {{found:window.find(q,false,{backwards},true,false,false),query:q}}}})()");
+    let script=format!(r#"(()=>{{
+      const q={json};
+      const cs={case_sensitive};
+      const ww={whole_word};
+      const text=(document.body?.innerText||"").replace(/\s+/g," ");
+      let count=0;
+      if(q){{
+        const escaped=q.replace(/[.*+?^$()|[\]\\]/g,"\\$&");
+        const pattern=ww ? "\\\\b"+escaped+"\\\\b" : escaped;
+        const re=new RegExp(pattern,cs?"g":"gi");
+        count=(text.match(re)||[]).length;
+      }}
+      const found=window.find(q,cs,{backwards},true,ww,false,false);
+      return JSON.stringify({{found,query:q,count}});
+    }})()"#);
     let id=state.active_id.lock().unwrap().clone();
     let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
     let app2=app.clone();
     view.eval_with_callback(&script,move|raw|{
-        let payload=serde_json::from_str::<serde_json::Value>(&raw).unwrap_or_else(|_|serde_json::json!({"found":false,"query":q}));
+        let payload=serde_json::from_str::<serde_json::Value>(&raw).unwrap_or_else(|_|serde_json::json!({"found":false,"query":q,"count":0}));
         let _=app2.emit("browser://find-result",payload);
     }).map_err(|e|AppError::Message(e.to_string()))
 }
+
+#[tauri::command]
+fn get_selection(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let app2=app.clone();
+    view.eval_with_callback(
+        r#"JSON.stringify({text:String(window.getSelection()||''),title:document.title||'',url:location.href})"#,
+        move |raw|{
+            let payload=serde_json::from_str::<serde_json::Value>(&raw).unwrap_or_else(|_|serde_json::json!({"text":"","title":"","url":""}));
+            let _=app2.emit("browser://selection",payload);
+        }
+    ).map_err(|e|AppError::Message(e.to_string()))
+}
+
 
 #[tauri::command]
 fn page_lens(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
@@ -2075,7 +2144,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            get_snapshot, navigate, search_with_mode, site_info, page_source, find_in_page, list_profiles, switch_profile, create_profile, delete_profile, new_tab, activate_tab, close_tab, reopen_closed_tab,
+            get_snapshot, navigate, search_with_mode, site_info, page_source, find_in_page, get_selection, list_profiles, switch_profile, create_profile, delete_profile, new_tab, activate_tab, close_tab, reopen_closed_tab,
             reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools,
             add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
             list_query_history, list_workspaces, create_workspace, switch_workspace,
