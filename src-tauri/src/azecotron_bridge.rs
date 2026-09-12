@@ -1,5 +1,8 @@
 use std::path::PathBuf;
-use std::process::{Child, Command};
+use std::io::{BufRead, BufReader};
+use std::process::{Child, Command, Stdio};
+use std::thread;
+use tauri::Emitter;
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct AzecotronStatus {
@@ -25,7 +28,7 @@ pub fn status() -> AzecotronStatus {
     AzecotronStatus{executable:path.display().to_string(),available:path.exists(),version,runtime:"Azecotron Web / Chromium Content API".into()}
 }
 
-pub fn launch(profile_dir:PathBuf,url:&str,parent_hwnd:Option<u64>)->Result<Child,String>{
+pub fn launch(app: tauri::AppHandle, profile_dir:PathBuf,url:&str,parent_hwnd:Option<u64>,tab_id:&str)->Result<(),String>{
     let path=executable_path();
     if !path.exists(){return Err(format!("Azecotron executable was not found at {}",path.display()))}
     if !(url.starts_with("https://")||url.starts_with("http://")||url=="about:blank"){return Err("Azecotron launch accepts only HTTP(S) URLs or about:blank.".into())}
@@ -35,7 +38,22 @@ pub fn launch(profile_dir:PathBuf,url:&str,parent_hwnd:Option<u64>)->Result<Chil
         .arg("--no-first-run")
         .arg("--disable-default-apps")
         .args(parent_hwnd.map(|h| vec![format!("--synth-parent-hwnd={h}")]).unwrap_or_default())
-        .arg(url)
+        .arg(format!("--synth-tab-id={tab_id}"))
+        .arg(format!("--synth-url={url}"))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
         .spawn()
         .map_err(|e|format!("Could not start Azecotron: {e}"))
+        .map(|mut child|{
+            if let Some(stdout)=child.stdout.take(){
+                thread::spawn(move||{
+                    let reader=BufReader::new(stdout);
+                    for line in reader.lines().flatten(){
+                        if let Some(json)=line.strip_prefix("SYNTH_EVENT "){
+                            if let Ok(value)=serde_json::from_str::<serde_json::Value>(json){let _=app.emit("azecotron://event",value);}
+                        }
+                    }
+                });
+            }
+        })
 }
