@@ -558,7 +558,7 @@ impl AppState {
     }
 }
 
-use search::{classify, SearchDecision};
+use search::{classify, search_url, SearchDecision};
 
 fn use_runtime_boundary() {
     fn accepts_runtime<T: crate::browser_runtime::BrowserRuntime>() {}
@@ -785,6 +785,20 @@ async fn navigate(app: tauri::AppHandle, state: State<AppState>, input: String) 
     }
     layout(&app, &state)?;
     emit_snapshot(&app, &state);
+    Ok(())
+}
+
+#[tauri::command]
+async fn search_with_mode(app: tauri::AppHandle, state: State<AppState>, query: String, mode: String) -> AppResult<()> {
+    let url=search_url(&query,&mode).map_err(AppError::Message)?;
+    let active_id=state.active_id.lock().unwrap().clone();
+    let private=state.tabs.lock().unwrap().iter().find(|t|t.id==active_id).map(|t|t.private).ok_or_else(||AppError::Message("active tab missing".into()))?;
+    if state.db.get_setting("search_history")?.as_deref()!=Some("false") && !private { let _=state.db.record_query(&query); }
+    create_page_webview(&app,&state,&active_id,&url,private)?;
+    if let Some(view)=app.get_webview(&format!("page-{active_id}")){view.navigate(url).map_err(|e|AppError::Message(e.to_string()))?;}
+    if let Some(tab)=state.tabs.lock().unwrap().iter_mut().find(|t|t.id==active_id){tab.has_webview=true;tab.loading=true;}
+    layout(&app,&state)?;
+    emit_snapshot(&app,&state);
     Ok(())
 }
 
@@ -1280,7 +1294,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            get_snapshot, navigate, new_tab, activate_tab, close_tab, reopen_closed_tab,
+            get_snapshot, navigate, search_with_mode, new_tab, activate_tab, close_tab, reopen_closed_tab,
             reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools,
             add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
             list_query_history, list_workspaces, create_workspace, switch_workspace,
