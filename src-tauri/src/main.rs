@@ -2261,15 +2261,20 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             get_snapshot, navigate, search_with_mode, site_info, page_source, find_in_page, get_selection, list_profiles, switch_profile, create_profile, delete_profile, new_tab, activate_tab, close_tab, reopen_closed_tab,
-            reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools,
+            reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools, close_devtools, devtools_status,
             add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
+            list_downloads, remove_download_history, open_download, reveal_download, verify_download,
+            list_permission_history, list_current_site_cookies, delete_current_site_cookie, clear_current_site_data,
+            list_site_permissions, set_site_permission, reset_site_permissions,
+            tracker_status, set_tracker_policy,
             list_query_history, list_workspaces, create_workspace, switch_workspace,
             rename_workspace, delete_workspace, reorder_tab, move_tab_to_workspace, toggle_pin, close_other_tabs, close_tabs_right, duplicate_workspace, save_session, list_sessions,
             open_session, add_to_shelf, list_shelf, toggle_shelf_read, remove_shelf,
             restore_previous_session, dismiss_restore, export_data, export_diagnostics,
-            reset_browser, ai_status, set_ai_key, clear_ai_key, list_ai_models, synth_assist, request_page_context, request_selection_context, create_note, list_notes, delete_note, create_research_board,
+            reset_browser, ai_status, set_ai_key, clear_ai_key, list_ai_models, ai_presets, list_ai_history, clear_ai_history, synth_assist, synth_assist_stream, synth_ai_search, request_page_context, request_selection_context, page_lens, reader_mode, create_note, list_notes, delete_note, create_research_board,
             list_research_boards, delete_research_board, add_current_to_board, list_board_items,
-            complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings
+            complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings,
+            azecotron_host_target, azecotron_status, launch_azecotron
         ])
         .build(tauri::generate_context!())
         .expect("error while building Synth Browser");
