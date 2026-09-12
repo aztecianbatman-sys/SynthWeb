@@ -1,3 +1,4 @@
+use rusqlite::OptionalExtension;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::VecDeque,
@@ -168,6 +169,10 @@ impl Db {
                is_read INTEGER NOT NULL DEFAULT 0,
                saved_at INTEGER NOT NULL
              );
+             CREATE TABLE IF NOT EXISTS settings(
+               key TEXT PRIMARY KEY,
+               value TEXT NOT NULL
+             );
              INSERT INTO schema_meta(version)
              SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM schema_meta);
              INSERT INTO workspaces(name,icon,accent,position)
@@ -297,6 +302,34 @@ impl Db {
         let c=self.connect()?;
         let data:String=c.query_row("SELECT data FROM sessions WHERE id=?1",[id],|r|r.get(0))?;
         serde_json::from_str(&data).map_err(|e|AppError::Message(e.to_string()))
+    }
+
+    fn get_setting(&self,key:&str)->AppResult<Option<String>>{
+        let c=self.connect()?;
+        let value=c.query_row("SELECT value FROM settings WHERE key=?1",[key],|r|r.get(0)).optional()?;
+        Ok(value)
+    }
+
+    fn set_setting(&self,key:&str,value:&str)->AppResult<()>{
+        if key.len()>100 || value.len()>20000 { return Err(AppError::Message("Invalid setting value.".into())); }
+        self.connect()?.execute(
+            "INSERT INTO settings(key,value) VALUES(?1,?2)
+             ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            rusqlite::params![key,value]
+        )?;
+        Ok(())
+    }
+
+    fn all_settings(&self)->AppResult<std::collections::HashMap<String,String>>{
+        let c=self.connect()?;
+        let mut s=c.prepare("SELECT key,value FROM settings")?;
+        let rows=s.query_map([],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?)))?;
+        Ok(rows.collect::<Result<std::collections::HashMap<_,_>,_>>()?)
+    }
+
+    fn clear_settings(&self)->AppResult<()>{
+        self.connect()?.execute("DELETE FROM settings",[])?;
+        Ok(())
     }
 
     fn add_shelf(&self,title:&str,url:&str)->AppResult<ShelfItem>{
@@ -890,6 +923,35 @@ fn remove_shelf(state: State<AppState>, id: i64) -> AppResult<()> {
     state.db.remove_shelf(id)
 }
 
+
+#[tauri::command]
+fn get_settings(state: State<AppState>) -> AppResult<std::collections::HashMap<String,String>> {
+    state.db.all_settings()
+}
+
+#[tauri::command]
+fn set_setting(state: State<AppState>, key: String, value: String) -> AppResult<()> {
+    match key.as_str() {
+        "theme" if matches!(value.as_str(),"dark"|"light"|"system") => {}
+        "accent" if matches!(value.as_str(),"cyan"|"violet"|"blue"|"green") => {}
+        "density" if matches!(value.as_str(),"compact"|"comfortable") => {}
+        "show_clock"|"show_greeting"|"show_shortcuts"|"show_recent"|"search_history"|"quiet_mode" =>
+            if !matches!(value.as_str(),"true"|"false") { return Err(AppError::Message("Invalid boolean setting.".into())); },
+        "default_zoom" => {
+            let n=value.parse::<f64>().map_err(|_|AppError::Message("Invalid zoom.".into()))?;
+            if !(50.0..=200.0).contains(&n) { return Err(AppError::Message("Zoom must be 50–200%.".into())); }
+        }
+        "homepage" if value.len()>2000 => return Err(AppError::Message("Homepage is too long.".into())),
+        _ => return Err(AppError::Message("Unknown setting.".into())),
+    }
+    state.db.set_setting(&key,&value)
+}
+
+#[tauri::command]
+fn reset_settings(state: State<AppState>) -> AppResult<()> {
+    state.db.clear_settings()
+}
+
 #[tauri::command]
 fn runtime_info() -> serde_json::Value {
     let (runtime_name, runtime_revision, azecotron_status) = runtime_status();
@@ -932,7 +994,7 @@ fn main() {
             clear_browsing_data, runtime_info, list_workspaces, create_workspace,
             switch_workspace, rename_workspace, delete_workspace, reorder_tab,
             save_session, list_sessions, open_session, add_to_shelf, list_shelf,
-            toggle_shelf_read, remove_shelf
+            toggle_shelf_read, remove_shelf, get_settings, set_setting, reset_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running Synth Browser");
