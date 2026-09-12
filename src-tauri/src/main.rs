@@ -643,6 +643,7 @@ fn create_page_webview<R: tauri::Runtime>(
     let app_nav = app.clone();
     let app_title = app.clone();
     let app_load = app.clone();
+    let app_favicon = app.clone();
     let app_download = app.clone();
     let db_path = state.db.path().to_path_buf();
     let download_dir = dirs_next::download_dir().unwrap_or_else(|| PathBuf::from(".")).join("Synth Browser");
@@ -698,7 +699,7 @@ fn create_page_webview<R: tauri::Runtime>(
                 "tabId": tab_id, "title": title
             }));
         })
-        .on_page_load(move |_view, payload| {
+        .on_page_load(move |view, payload| {
             if payload.event() == PageLoadEvent::Finished {
                 if let Ok(mut tabs) = tabs_load.lock() {
                     if let Some(tab) = tabs.iter_mut().find(|t| t.id == tab_id) { tab.loading = false; }
@@ -706,6 +707,21 @@ fn create_page_webview<R: tauri::Runtime>(
                 let _ = app_load.emit("browser://load", serde_json::json!({
                     "tabId": tab_id, "url": payload.url().as_str()
                 }));
+                let tabs_icon=tabs_title.clone();
+                let app_icon=app_favicon.clone();
+                let _ = view.eval_with_callback(
+                    "(()=>{const l=document.querySelector('link[rel~="icon"],link[rel="shortcut icon"]');return l?l.href:''})()",
+                    move |raw| {
+                        if let Ok(icon)=serde_json::from_str::<String>(&raw) {
+                            if !icon.trim().is_empty() {
+                                if let Ok(mut tabs)=tabs_icon.lock() {
+                                    if let Some(tab)=tabs.iter_mut().find(|t|t.id==tab_id){tab.favicon=Some(icon.clone());}
+                                }
+                                let _=app_icon.emit("browser://favicon",serde_json::json!({"tabId":tab_id,"favicon":icon}));
+                            }
+                        }
+                    }
+                );
             }
         })
         .on_download(move |_view, event| {
