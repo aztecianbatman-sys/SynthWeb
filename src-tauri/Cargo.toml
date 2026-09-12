@@ -32,3 +32,5 @@ lto = "thin"
 opt-level = "s"
 panic = "abort"
 strip = true
+
+urlencoding = "2.1.3"
