@@ -424,7 +424,8 @@ impl Db {
                ('permission_clipboard','deny'),
                ('permission_local_fonts','deny'),
                ('permission_sensors','deny'),
-               ('default_zoom','100');"
+               ('default_zoom','100'),
+               ('autofill','false');"
         )?;
         Ok(())
     }
@@ -942,8 +943,10 @@ fn create_page_webview<R: tauri::Runtime>(
 
     let data_dir = profile_dir(&state.profile.id).join("webview");
     fs::create_dir_all(&data_dir)?;
+    let autofill = state.db.get_setting("autofill")?.as_deref() == Some("true");
     let builder = WebviewBuilder::new(label.clone(), WebviewUrl::External(url.clone()))
         .data_directory(data_dir)
+        .general_autofill_enabled(autofill)
         .focused(false)
         .incognito(private)
         .devtools(cfg!(debug_assertions))
