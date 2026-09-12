@@ -5,6 +5,13 @@
 #include "content/public/browser/web_contents.h"
 #include "base/strings/utf_string_conversions.h"
 #include "url/gurl.h"
+#include "base/command_line.h"
+
+#if BUILDFLAG(IS_WIN)
+#include <windows.h>
+#include <cstdlib>
+#include "ui/gfx/native_widget_types.h"
+#endif
 
 namespace synth_azecotron {
 
@@ -29,6 +36,20 @@ std::unique_ptr<content::WebContents> AzecotronRuntimeHost::CreateTab(
     load.transition_type = ui::PAGE_TRANSITION_TYPED;
     contents->GetController().LoadURLWithParams(load);
   }
+#if BUILDFLAG(IS_WIN)
+  const std::string parent =
+      base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("synth-parent-hwnd");
+  if (!parent.empty()) {
+    HWND parent_hwnd = reinterpret_cast<HWND>(
+        static_cast<uintptr_t>(std::strtoull(parent.c_str(), nullptr, 10)));
+    if (parent_hwnd && contents->GetNativeView()) {
+      HWND child = contents->GetNativeView();
+      SetParent(child, parent_hwnd);
+      SetWindowPos(child, HWND_TOP, 0, 0, 1, 1,
+                   SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    }
+  }
+#endif
   return contents;
 }
 
