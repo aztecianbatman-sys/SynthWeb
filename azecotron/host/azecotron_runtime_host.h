@@ -71,6 +71,7 @@ class AzecotronRuntimeHost final : public content::WebContentsDelegate,
 
   raw_ptr<content::BrowserContext> browser_context_;
   uintptr_t parent_hwnd_ = 0;
+  std::string tab_id_;
 };
 
 }  // namespace synth_azecotron
