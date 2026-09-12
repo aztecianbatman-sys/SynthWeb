@@ -152,6 +152,17 @@ struct RestoreState {
     active_workspace: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct PageLens {
+    title: String,
+    url: String,
+    headings: Vec<String>,
+    text: String,
+    description: Option<String>,
+    author: Option<String>,
+    published: Option<String>,
+}
+
 #[derive(Clone)]
 struct Db {
     path: PathBuf,
@@ -1423,6 +1434,38 @@ fn request_selection_context(app: tauri::AppHandle, state: State<AppState>)->App
         move |raw| {
             let payload=serde_json::from_str::<serde_json::Value>(&raw).unwrap_or_else(|_|serde_json::json!({"text":""}));
             let _=app2.emit("ai://selection-context",payload);
+        }
+    ).map_err(|e|AppError::Message(e.to_string()))
+}
+
+
+#[tauri::command]
+fn page_lens(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let app2=app.clone();
+    view.eval_with_callback(
+        r#"(()=>{const root=document.querySelector('article,main')||document.body;const hs=[...document.querySelectorAll('h1,h2,h3')].map(x=>(x.innerText||'').trim()).filter(Boolean).slice(0,40);const meta=n=>document.querySelector('meta[name="'+n+'"]')?.content||'';const pub=document.querySelector('meta[property="article:published_time"]')?.content||meta('date');return JSON.stringify({title:document.title||'',url:location.href,headings:hs,text:(root?.innerText||'').trim().slice(0,60000),description:meta('description')||null,author:meta('author')||null,published:pub||null})})()"#,
+        move |raw|{
+            let payload=serde_json::from_str::<PageLens>(&raw).unwrap_or(PageLens{
+                title:String::new(),url:String::new(),headings:vec![],text:String::new(),
+                description:None,author:None,published:None
+            });
+            let _=app2.emit("browser://page-lens",payload);
+        }
+    ).map_err(|e|AppError::Message(e.to_string()))
+}
+
+#[tauri::command]
+fn reader_mode(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let app2=app.clone();
+    view.eval_with_callback(
+        r#"(()=>{const root=document.querySelector('article,main')||document.body;return JSON.stringify({title:document.title||'',url:location.href,text:(root?.innerText||'').trim().slice(0,120000)})})()"#,
+        move |raw|{
+            let payload=serde_json::from_str::<serde_json::Value>(&raw).unwrap_or_else(|_|serde_json::json!({"title":"","url":"","text":""}));
+            let _=app2.emit("browser://reader",payload);
         }
     ).map_err(|e|AppError::Message(e.to_string()))
 }
