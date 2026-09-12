@@ -7,6 +7,7 @@
 #include "content/public/browser/web_contents.h"
 #include "azecotron/app/synth_content_main_delegate.h"
 #include "azecotron/app/synth_content_browser_client.h"
+#include "base/command_line.h"
 #include "content/public/browser/navigation_controller.h"
 #include "base/command_line.h"
 #include "base/functional/bind.h"
