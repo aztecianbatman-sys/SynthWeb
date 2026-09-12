@@ -3,6 +3,7 @@
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/session_storage_namespace.h"
 #include "content/public/browser/web_contents.h"
+#include "base/strings/utf_string_conversions.h"
 #include "url/gurl.h"
 
 namespace synth_azecotron {
@@ -79,7 +80,7 @@ std::string AzecotronRuntimeHost::GetTitle(
     content::WebContents* web_contents) const {
   if (!web_contents)
     return {};
-  return web_contents->GetTitle();
+  return base::UTF16ToUTF8(web_contents->GetTitle());
 }
 
 bool AzecotronRuntimeHost::IsWebContentsCreationOverridden(
