@@ -128,6 +128,12 @@ std::string AzecotronRuntimeHost::GetTitle(
   return base::UTF16ToUTF8(web_contents->GetTitle());
 }
 
+void* AzecotronRuntimeHost::GetNativeViewForEmbedding() const {
+  if (!primary_web_contents_)
+    return nullptr;
+  return static_cast<void*>(primary_web_contents_->GetNativeView());
+}
+
 bool AzecotronRuntimeHost::IsWebContentsCreationOverridden(
     content::RenderFrameHost*,
     content::SiteInstance*,
