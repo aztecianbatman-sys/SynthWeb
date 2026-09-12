@@ -6,8 +6,15 @@
 #include <optional>
 #include <vector>
 
+#include "base/callback_forward.h"
+#include "base/memory/raw_ptr.h"
+
 #include "content/public/browser/content_browser_client.h"
 #include "third_party/blink/public/common/loader/url_loader_throttle.h"
+
+namespace network { struct ResourceRequest; }
+
+namespace content { class MainFunctionParams; }
 
 namespace synth_azecotron {
 
