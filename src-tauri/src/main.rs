@@ -1037,6 +1037,47 @@ fn delete_workspace(app: tauri::AppHandle, state: State<AppState>, id: i64) -> A
 }
 
 #[tauri::command]
+fn toggle_pin(app: tauri::AppHandle, state: State<AppState>, tab_id:String)->AppResult<()>{
+    let mut tabs=state.tabs.lock().unwrap();
+    let tab=tabs.iter_mut().find(|t|t.id==tab_id).ok_or_else(||AppError::Message("tab not found".into()))?;
+    tab.pinned=!tab.pinned;
+    emit_snapshot(&app,&state);
+    Ok(())
+}
+
+#[tauri::command]
+fn close_other_tabs(app: tauri::AppHandle, state: State<AppState>, tab_id:String)->AppResult<()>{
+    let mut tabs=state.tabs.lock().unwrap();
+    let keep=tabs.iter().find(|t|t.id==tab_id).cloned().ok_or_else(||AppError::Message("tab not found".into()))?;
+    let active_was=state.active_id.lock().unwrap().clone();
+    let removed:Vec<Tab>=tabs.drain(..).filter(|t|t.id!=tab_id).collect();
+    for t in removed.iter(){state.closed.lock().unwrap().push_front(t.clone());if let Some(v)=app.get_webview(&format!("page-{}",t.id)){let _=v.close();}}
+    tabs.push(keep);
+    if active_was!=tab_id{*state.active_id.lock().unwrap()=tab_id;}
+    drop(tabs);layout(&app,&state)?;emit_snapshot(&app,&state);Ok(())
+}
+
+#[tauri::command]
+fn close_tabs_right(app: tauri::AppHandle, state: State<AppState>, tab_id:String)->AppResult<()>{
+    let mut tabs=state.tabs.lock().unwrap();
+    let idx=tabs.iter().position(|t|t.id==tab_id).ok_or_else(||AppError::Message("tab not found".into()))?;
+    let removed:Vec<Tab>=tabs.drain(idx+1..).collect();
+    for t in removed.iter(){state.closed.lock().unwrap().push_front(t.clone());if let Some(v)=app.get_webview(&format!("page-{}",t.id)){let _=v.close();}}
+    let valid_active=tabs.iter().any(|t|t.id==*state.active_id.lock().unwrap());
+    if !valid_active && !tabs.is_empty(){*state.active_id.lock().unwrap()=tabs.last().unwrap().id.clone();}
+    drop(tabs);layout(&app,&state)?;emit_snapshot(&app,&state);Ok(())
+}
+
+#[tauri::command]
+fn duplicate_workspace(state: State<AppState>, source:String, name:String)->AppResult<Workspace>{
+    let source_tabs:Vec<Tab>=state.tabs.lock().unwrap().iter().filter(|t|t.workspace==source).cloned().collect();
+    let ws=state.db.create_workspace(&name,"square","#2ee6ff")?;
+    drop(source_tabs);
+    *state.workspaces.lock().unwrap()=state.db.list_workspaces()?;
+    Ok(ws)
+}
+
+#[tauri::command]
 fn reorder_tab(app: tauri::AppHandle, state: State<AppState>, from: usize, to: usize) -> AppResult<()> {
     let mut tabs=state.tabs.lock().unwrap();
     if from>=tabs.len() || to>=tabs.len() { return Err(AppError::Message("Invalid tab position.".into())); }
@@ -1298,7 +1339,7 @@ fn main() {
             reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools,
             add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
             list_query_history, list_workspaces, create_workspace, switch_workspace,
-            rename_workspace, delete_workspace, reorder_tab, save_session, list_sessions,
+            rename_workspace, delete_workspace, reorder_tab, toggle_pin, close_other_tabs, close_tabs_right, duplicate_workspace, save_session, list_sessions,
             open_session, add_to_shelf, list_shelf, toggle_shelf_read, remove_shelf,
             restore_previous_session, dismiss_restore, export_data, export_diagnostics,
             reset_browser, create_note, list_notes, delete_note, create_research_board,
