@@ -815,6 +815,18 @@ async function runSelectionAction(payload) {
   }
 }
 
+
+async function copyCurrentUrl(){
+  const tab=activeTab(); if(!tab||!tab.url||tab.url==="synth://newtab"){toast("No page URL to copy.");return}
+  try{await navigator.clipboard.writeText(tab.url);toast("URL copied")}catch(e){toast("Clipboard unavailable")}
+}
+
+async function copyTitleAndUrl(){
+  const tab=activeTab(); if(!tab||tab.url==="synth://newtab"){toast("No page to copy.");return}
+  const value=(tab.title||"")+"\n"+tab.url;
+  try{await navigator.clipboard.writeText(value);toast("Title + URL copied")}catch(e){toast("Clipboard unavailable")}
+}
+
 async function showTrackerStatus(){
   const body=basePanel("Tracker Protection");
   try{
@@ -1299,6 +1311,9 @@ const commands = [
   ["Translate Selection", "", () => requestSelectionAction("translate")],
   ["Add Selection to Notes", "", () => requestSelectionAction("note")],
   ["Inspect", "F12", () => invoke("open_devtools")],
+  ["Copy URL", "", () => copyCurrentUrl()],
+  ["Copy Title + URL", "", () => copyTitleAndUrl()],
+  ["Screenshot", "", () => toast("Screenshot is platform-limited in the current host runtime.")]
   ["Find in Page", "Ctrl+F", () => openFind()],
   ["Settings", "", () => showSettings()],
   ["Privacy Shield", "", () => showPrivacy()],
