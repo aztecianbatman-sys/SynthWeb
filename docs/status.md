@@ -204,3 +204,23 @@ Still requires a real Windows build before verification:
 - run performance and crash/recovery tests.
 
 The current host WebView2 path remains the fallback browser runtime until those tests pass.
+
+
+## Production BrowserContext hardening
+
+Implemented in source:
+- SynthBrowserContext directly subclasses content::BrowserContext.
+- Content Shell BrowserContext dependency removed from the Synth runtime.
+- SynthBrowserMainParts directly subclasses content::BrowserMainParts.
+- Content Shell BrowserMainParts dependency removed.
+- SynthContentMainDelegate owns the Content client stack.
+- Azecotron entrypoint bootstraps ContentMain directly.
+- First WebContents is created from SynthBrowserContext.
+- Native WebContents view is attached to the Synth host HWND.
+- Per-tab native observers stream navigation, loading, security, renderer health, and destruction events.
+- Synth Shield is attached to Chromium's browser-side URLLoaderThrottle seam.
+
+The production-boundary guard fails the build if content/shell is reintroduced under azecotron/app.
+
+Source status: IMPLEMENTED IN SOURCE.
+Verification status: NOT VERIFIED until the pinned Chromium 152 checkout compiles on Windows and the native integration test suite passes.
