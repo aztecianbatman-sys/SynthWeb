@@ -6,6 +6,7 @@
 #include <cstdint>
 
 #include "content/public/browser/navigation_handle.h"
+#include "base/functional/callback.h"
 
 #include "base/memory/raw_ptr.h"
 
@@ -56,7 +57,7 @@ class AzecotronRuntimeHost final : public content::WebContentsDelegate,
       const content::StoragePartitionConfig& partition_config,
       content::SessionStorageNamespace* session_storage_namespace) override;
 
-  void RendererUnresponsive(content::WebContents* source) override;
+  void RendererUnresponsive(content::WebContents* source, content::RenderWidgetHost* render_widget_host, base::RepeatingClosure hang_monitor_restarter) override;
   void RendererResponsive(content::WebContents* source) override;
   void DidNavigateMainFramePostCommit(content::WebContents* source) override;
   void DidFinishNavigation(content::NavigationHandle* navigation_handle) override;
