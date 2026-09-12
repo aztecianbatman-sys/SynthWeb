@@ -1,5 +1,4 @@
 executable("azecotron_host") {
-  testonly = true
   sources = [
     "azecotron_app_main.cc",
     "synth_browser_context.cc",
