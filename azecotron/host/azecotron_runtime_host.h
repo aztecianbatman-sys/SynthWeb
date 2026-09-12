@@ -39,6 +39,7 @@ class AzecotronRuntimeHost final : public content::WebContentsDelegate,
   void Stop(content::WebContents* web_contents);
   std::string GetUrl(content::WebContents* web_contents) const;
   std::string GetTitle(content::WebContents* web_contents) const;
+  void* GetNativeViewForEmbedding() const;
 
   bool IsWebContentsCreationOverridden(
       content::RenderFrameHost* opener,
