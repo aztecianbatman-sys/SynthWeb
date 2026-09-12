@@ -93,6 +93,21 @@ for %%P in ("%ROOT%\chromium\patches\*.patch") do (
   )
 )
 
+echo Applying Cortis provider transformation...
+py -3 "%ROOT%\scripts\apply-cortis-provider.py"
+if errorlevel 1 (
+  echo ERROR: Cortis provider transformation failed.
+  popd
+  exit /b 1
+)
+echo Verifying Cortis provider...
+findstr /c:"\"name\": \"Cortis\"" components\search_engines\prepopulated_engines.json >nul
+if errorlevel 1 (
+  echo ERROR: Cortis provider was not created.
+  popd
+  exit /b 1
+)
+
 echo Azecotron Chromium source is prepared.
 echo Version: %AZECOTRON_VERSION%
 echo Revision: %AZECOTRON_REVISION%
