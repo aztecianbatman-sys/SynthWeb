@@ -401,7 +401,30 @@ impl Db {
              SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM schema_meta);
              INSERT INTO workspaces(name,icon,accent,position)
              SELECT 'Default','square','#2ee6ff',0
-             WHERE NOT EXISTS (SELECT 1 FROM workspaces WHERE name='Default');"
+             WHERE NOT EXISTS (SELECT 1 FROM workspaces WHERE name='Default');
+             INSERT OR IGNORE INTO settings(key,value) VALUES
+               ('onboarding_completed','false'),
+               ('theme','dark'),
+               ('accent','cyan'),
+               ('density','comfortable'),
+               ('show_shortcuts','true'),
+               ('show_recent','false'),
+               ('search_history','false'),
+               ('quiet_mode','false'),
+               ('https_only','true'),
+               ('tracker_enabled','true'),
+               ('ai_enabled','false'),
+               ('ai_page_context','false'),
+               ('ai_selection_context','false'),
+               ('permission_camera','prompt'),
+               ('permission_microphone','prompt'),
+               ('permission_geolocation','prompt'),
+               ('permission_notifications','prompt'),
+               ('permission_display_capture','prompt'),
+               ('permission_clipboard','deny'),
+               ('permission_local_fonts','deny'),
+               ('permission_sensors','deny'),
+               ('default_zoom','100');"
         )?;
         Ok(())
     }
@@ -2071,6 +2094,29 @@ fn reader_mode(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
 }
 
 #[tauri::command]
+fn complete_onboarding(state: State<AppState>, settings:std::collections::HashMap<String,String>)->AppResult<()>{
+    for (key,value) in settings {
+        if key!="onboarding_completed" { state.db.set_setting(&key,&value)?; }
+    }
+    state.db.set_setting("onboarding_completed","true")?;
+    Ok(())
+}
+
+#[tauri::command]
+fn privacy_preset(state: State<AppState>)->AppResult<()>{
+    let values=[
+      ("search_history","false"),("show_recent","false"),("ai_enabled","false"),
+      ("ai_page_context","false"),("ai_selection_context","false"),("https_only","true"),
+      ("tracker_enabled","true"),("permission_camera","prompt"),("permission_microphone","prompt"),
+      ("permission_geolocation","prompt"),("permission_notifications","prompt"),
+      ("permission_display_capture","prompt"),("permission_clipboard","deny"),
+      ("permission_local_fonts","deny"),("permission_sensors","deny"),("quiet_mode","true")
+    ];
+    for (k,v) in values { state.db.set_setting(k,v)?; }
+    Ok(())
+}
+
+#[tauri::command]
 fn get_settings(state: State<AppState>) -> AppResult<std::collections::HashMap<String,String>> {
     state.db.all_settings()
 }
@@ -2190,7 +2236,7 @@ fn main() {
             restore_previous_session, dismiss_restore, export_data, export_diagnostics,
             reset_browser, ai_status, set_ai_key, clear_ai_key, list_ai_models, synth_assist, request_page_context, request_selection_context, create_note, list_notes, delete_note, create_research_board,
             list_research_boards, delete_research_board, add_current_to_board, list_board_items,
-            get_settings, set_setting, reset_settings
+            complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings
         ])
         .build(tauri::generate_context!())
         .expect("error while building Synth Browser");
