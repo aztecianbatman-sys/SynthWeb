@@ -588,7 +588,7 @@ fn get_snapshot(state: State<AppState>) -> Snapshot {
 }
 
 #[tauri::command]
-fn navigate(app: tauri::AppHandle, state: State<AppState>, input: String) -> AppResult<()> {
+async fn navigate(app: tauri::AppHandle, state: State<AppState>, input: String) -> AppResult<()> {
     let decision = classify(&input)?;
     let active_id = state.active_id.lock().unwrap().clone();
     let private = state.tabs.lock().unwrap().iter().find(|t| t.id == active_id).map(|t| t.private).ok_or_else(|| AppError::Message("active tab missing".into()))?;
@@ -674,7 +674,7 @@ fn close_tab(app: tauri::AppHandle, state: State<AppState>, tab_id: String) -> A
 }
 
 #[tauri::command]
-fn reopen_closed_tab(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
+async fn reopen_closed_tab(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
     let old = state.closed.lock().unwrap().pop_front().ok_or_else(|| AppError::Message("No closed tabs".into()))?;
     let id = state.next_tab_id();
     let url_string = old.url.clone();
@@ -875,7 +875,7 @@ fn list_sessions(state: State<AppState>) -> AppResult<Vec<SavedSession>> {
 }
 
 #[tauri::command]
-fn open_session(app: tauri::AppHandle, state: State<AppState>, id: i64, append: bool) -> AppResult<()> {
+async fn open_session(app: tauri::AppHandle, state: State<AppState>, id: i64, append: bool) -> AppResult<()> {
     let saved=state.db.load_session(id)?;
     if !append {
         let old_ids:Vec<String>=state.tabs.lock().unwrap().iter().map(|t|t.id.clone()).collect();
