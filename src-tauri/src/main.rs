@@ -655,6 +655,21 @@ fn create_page_webview<R: tauri::Runtime>(
         .zoom_hotkeys_enabled(true)
         .on_navigation(move |next| {
             if !matches!(next.scheme(), "http"|"https") { return false; }
+            if next.scheme()=="http" {
+                let db=Db{path:db_path.clone()};
+                if db.get_setting("https_only").ok().flatten().as_deref()==Some("true") {
+                    if let Ok(mut https)=next.clone().set_scheme("https") {
+                        let _ = app_nav.emit("browser://https-upgrade", serde_json::json!({
+                            "tabId":tab_id,"url":https.as_str()
+                        }));
+                    } else {
+                        let _ = app_nav.emit("browser://navigation-blocked", serde_json::json!({
+                            "tabId":tab_id,"url":next.as_str(),"reason":"HTTPS-only mode"
+                        }));
+                    }
+                    return false;
+                }
+            }
             if let Ok(mut tabs) = tabs_nav.lock() {
                 if let Some(tab) = tabs.iter_mut().find(|t| t.id == tab_id) {
                     tab.url = next.as_str().to_owned();
@@ -1378,7 +1393,7 @@ fn set_setting(state: State<AppState>, key: String, value: String) -> AppResult<
         "theme" if matches!(value.as_str(),"dark"|"light"|"system") => {}
         "accent" if matches!(value.as_str(),"cyan"|"violet"|"blue"|"green") => {}
         "density" if matches!(value.as_str(),"compact"|"comfortable") => {}
-        "show_clock"|"show_greeting"|"show_shortcuts"|"show_recent"|"search_history"|"quiet_mode"|"ai_enabled"|"ai_page_context"|"ai_selection_context" =>
+        "show_clock"|"show_greeting"|"show_shortcuts"|"show_recent"|"search_history"|"quiet_mode"|"https_only"|"ai_enabled"|"ai_page_context"|"ai_selection_context" =>
             if !matches!(value.as_str(),"true"|"false") { return Err(AppError::Message("Invalid boolean setting.".into())); },
         "default_zoom" => {
             let n=value.parse::<f64>().map_err(|_|AppError::Message("Invalid zoom.".into()))?;
@@ -1394,6 +1409,22 @@ fn set_setting(state: State<AppState>, key: String, value: String) -> AppResult<
 #[tauri::command]
 fn reset_settings(state: State<AppState>) -> AppResult<()> {
     state.db.clear_settings()
+}
+
+#[tauri::command]
+fn site_info(app: tauri::AppHandle, state: State<AppState>)->AppResult<serde_json::Value>{
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let url=view.url().map_err(|e|AppError::Message(e.to_string()))?;
+    let cookies=view.cookies().map_err(|e|AppError::Message(e.to_string()))?;
+    Ok(serde_json::json!({
+        "url":url.as_str(),
+        "scheme":url.scheme(),
+        "host":url.host_str().unwrap_or(""),
+        "secure":url.scheme()=="https",
+        "cookieCount":cookies.len(),
+        "private":state.tabs.lock().unwrap().iter().find(|t|t.id==id).map(|t|t.private).unwrap_or(false)
+    }))
 }
 
 #[tauri::command]
@@ -1435,7 +1466,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            get_snapshot, navigate, search_with_mode, new_tab, activate_tab, close_tab, reopen_closed_tab,
+            get_snapshot, navigate, search_with_mode, site_info, new_tab, activate_tab, close_tab, reopen_closed_tab,
             reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools,
             add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
             list_query_history, list_workspaces, create_workspace, switch_workspace,
