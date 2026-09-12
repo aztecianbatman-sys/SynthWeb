@@ -57,6 +57,24 @@ std::unique_ptr<content::WebContents> AzecotronRuntimeHost::CreateTab(
   return contents;
 }
 
+bool AzecotronRuntimeHost::AdoptWebContents(
+    content::WebContents* web_contents,
+    const GURL& url) {
+  if (!web_contents)
+    return false;
+
+  web_contents->SetDelegate(this);
+  Observe(web_contents);
+  AttachNativeView(web_contents);
+
+  if (url.is_valid()) {
+    content::NavigationController::LoadURLParams load(url);
+    load.transition_type = ui::PAGE_TRANSITION_TYPED;
+    web_contents->GetController().LoadURLWithParams(load);
+  }
+  return true;
+}
+
 bool AzecotronRuntimeHost::Navigate(content::WebContents* web_contents,
                                      const GURL& url) {
   if (!web_contents || !url.is_valid())
