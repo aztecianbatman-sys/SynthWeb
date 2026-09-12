@@ -1,4 +1,5 @@
 #include "azecotron/app/synth_browser_context.h"
+#include "components/keyed_service/content/browser_context_dependency_manager.h"
 
 namespace synth_azecotron {
 
@@ -7,7 +8,7 @@ SynthBrowserContext::SynthBrowserContext(
     const base::FilePath& path)
     : content::ShellBrowserContext(off_the_record, true),
       path_(path) {
-  content::ShellBrowserContext::CreateBrowserContextServices(this);
+  content::BrowserContextDependencyManager::GetInstance()->CreateBrowserContextServices(this);
 }
 
 SynthBrowserContext::~SynthBrowserContext() = default;
