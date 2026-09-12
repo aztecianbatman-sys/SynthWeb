@@ -54,6 +54,9 @@ struct Snapshot {
     active_workspace: String,
     workspaces: Vec<Workspace>,
     restore_available: bool,
+    profile: Profile,
+    profiles: Vec<Profile>,
+    guest: bool,
     runtime_name: String,
     runtime_revision: String,
     azecotron_status: String,
@@ -137,6 +140,65 @@ struct BoardItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct Profile {
+    id: String,
+    name: String,
+    guest: bool,
+}
+
+fn app_root() -> PathBuf {
+    dirs_next::data_dir().unwrap_or_else(|| PathBuf::from(".")).join("SynthBrowser")
+}
+
+fn validate_profile_id(id: &str) -> bool {
+    !id.is_empty() && id.len() <= 64 && id.chars().all(|c| c.is_ascii_alphanumeric() || c=='-' || c=='_')
+}
+
+fn load_profiles() -> AppResult<Vec<Profile>> {
+    let root=app_root();
+    fs::create_dir_all(&root)?;
+    let path=root.join("profiles.json");
+    if !path.exists() {
+        let default=vec![Profile{id:"default".into(),name:"Default".into(),guest:false}];
+        fs::write(&path,serde_json::to_vec_pretty(&default).map_err(|e|AppError::Message(e.to_string()))?)?;
+        return Ok(default);
+    }
+    let bytes=fs::read(path)?;
+    let profiles:Vec<Profile>=serde_json::from_slice(&bytes).map_err(|e|AppError::Message(e.to_string()))?;
+    if profiles.is_empty() { return Err(AppError::Message("Profile registry is empty.".into())); }
+    if !profiles.iter().all(|p|validate_profile_id(&p.id) && !p.name.trim().is_empty()) {
+        return Err(AppError::Message("Profile registry is invalid.".into()));
+    }
+    Ok(profiles)
+}
+
+fn save_profiles(profiles:&[Profile]) -> AppResult<()> {
+    fs::create_dir_all(app_root())?;
+    fs::write(app_root().join("profiles.json"),serde_json::to_vec_pretty(profiles).map_err(|e|AppError::Message(e.to_string()))?)?;
+    Ok(())
+}
+
+fn profile_dir(profile_id:&str)->PathBuf {
+    app_root().join("profiles").join(profile_id)
+}
+
+fn parse_start_profile() -> (String,bool) {
+    let mut profile="default".to_string();
+    let mut guest=false;
+    let args:Vec<String>=std::env::args().collect();
+    let mut i=0;
+    while i<args.len() {
+        match args[i].as_str() {
+            "--profile" if i+1<args.len() => { if validate_profile_id(&args[i+1]) { profile=args[i+1].clone(); } i+=1; }
+            "--guest" => guest=true,
+            _ => {}
+        }
+        i+=1;
+    }
+    (profile,guest)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct DownloadEntry {
     id: i64,
     url: String,
@@ -170,8 +232,8 @@ struct Db {
 }
 
 impl Db {
-    fn new() -> AppResult<Self> {
-        let root = dirs_next::data_dir().unwrap_or_else(|| PathBuf::from(".")).join("SynthBrowser");
+    fn new(profile_id:&str)->AppResult<Self> {
+        let root = profile_dir(profile_id);
         fs::create_dir_all(&root)?;
         let db = Self { path: root.join("browser.sqlite3") };
         db.migrate()?;
@@ -560,12 +622,15 @@ struct AppState {
     active_workspace: Arc<Mutex<String>>,
     workspaces: Arc<Mutex<Vec<Workspace>>>,
     restore_available: Arc<Mutex<bool>>,
+    profile: Profile,
+    profiles: Vec<Profile>,
+    guest: bool,
     next_id: AtomicU64,
     db: Db,
 }
 
 impl AppState {
-    fn new(db: Db) -> Self {
+    fn new(db: Db, profile: Profile, profiles: Vec<Profile>, guest: bool) -> Self {
         let restore_available = db.prepare_launch().unwrap_or(false);
         let workspaces = db.list_workspaces().unwrap_or_else(|_| vec![Workspace{id:1,name:"Default".into(),icon:"square".into(),accent:"#2ee6ff".into(),position:0}]);
         Self {
@@ -703,7 +768,10 @@ fn create_page_webview<R: tauri::Runtime>(
     let download_dir = dirs_next::download_dir().unwrap_or_else(|| PathBuf::from(".")).join("Synth Browser");
     fs::create_dir_all(&download_dir)?;
 
+    let data_dir = profile_dir(&state.profile.id).join("webview");
+    fs::create_dir_all(&data_dir)?;
     let builder = WebviewBuilder::new(label.clone(), WebviewUrl::External(url.clone()))
+        .data_directory(data_dir)
         .focused(false)
         .incognito(private)
         .devtools(cfg!(debug_assertions))
@@ -1054,6 +1122,63 @@ fn clear_browsing_data(app: tauri::AppHandle, state: State<AppState>) -> AppResu
     Ok(())
 }
 
+
+#[tauri::command]
+fn list_profiles(state: State<AppState>) -> Vec<Profile> { state.profiles.clone() }
+
+#[tauri::command]
+fn switch_profile(app: tauri::AppHandle, state: State<AppState>, profile_id:String)->AppResult<()> {
+    if state.guest { return Err(AppError::Message("Guest mode cannot switch profiles.".into())); }
+    let target=state.profiles.iter().find(|p|p.id==profile_id).cloned().ok_or_else(||AppError::Message("Profile not found.".into()))?;
+    if target.id==state.profile.id { return Ok(()); }
+    let exe=std::env::current_exe().map_err(|e|AppError::Message(e.to_string()))?;
+    std::process::Command::new(exe).arg("--profile").arg(&target.id).spawn().map_err(|e|AppError::Message(e.to_string()))?;
+    app.exit(0);
+    Ok(())
+}
+
+#[tauri::command]
+fn create_profile(app: tauri::AppHandle, state: State<AppState>, name:String)->AppResult<Profile>{
+    if state.guest { return Err(AppError::Message("Guest mode cannot create profiles.".into())); }
+    let name=name.trim();
+    if name.is_empty()||name.len()>60{return Err(AppError::Message("Profile name must be 1–60 characters.".into()))}
+    let mut profiles=state.profiles.clone();
+    let mut id=String::from("profile-");
+    id.push_str(&uuid_fragment(name));
+    let base=id.clone();
+    let mut suffix=2;
+    while profiles.iter().any(|p|p.id==id) { id=format!("{base}-{suffix}"); suffix+=1; }
+    let profile=Profile{id:id.clone(),name:name.into(),guest:false};
+    fs::create_dir_all(profile_dir(&id))?;
+    profiles.push(profile.clone());
+    save_profiles(&profiles)?;
+    *state.profiles.iter_mut().find(|p|p.id==state.profile.id).unwrap_or_else(||panic!("active profile registry entry missing")) = state.profile.clone();
+    let exe=std::env::current_exe().map_err(|e|AppError::Message(e.to_string()))?;
+    std::process::Command::new(exe).arg("--profile").arg(&id).spawn().map_err(|e|AppError::Message(e.to_string()))?;
+    app.exit(0);
+    Ok(profile)
+}
+
+#[tauri::command]
+fn delete_profile(app: tauri::AppHandle, state: State<AppState>, profile_id:String)->AppResult<()>{
+    if state.guest { return Err(AppError::Message("Guest mode cannot delete profiles.".into())); }
+    if profile_id=="default" { return Err(AppError::Message("The Default profile cannot be deleted.".into())); }
+    if profile_id==state.profile.id { return Err(AppError::Message("Close or switch away from the active profile before deleting it.".into())); }
+    let profiles:Vec<Profile>=state.profiles.iter().filter(|p|p.id!=profile_id).cloned().collect();
+    if profiles.len()==state.profiles.len(){return Err(AppError::Message("Profile not found.".into()))}
+    save_profiles(&profiles)?;
+    let dir=profile_dir(&profile_id);
+    if dir.exists(){fs::remove_dir_all(dir)?;}
+    let _=app.emit("browser://profiles-changed",profiles);
+    Ok(())
+}
+
+fn uuid_fragment(name:&str)->String{
+    let mut out=String::new();
+    for b in name.as_bytes().iter().take(18){if b.is_ascii_alphanumeric(){out.push((*b as char).to_ascii_lowercase())}}
+    if out.is_empty(){out.push_str("user");}
+    out
+}
 
 #[tauri::command]
 fn list_workspaces(state: State<AppState>) -> AppResult<Vec<Workspace>> {
@@ -1582,8 +1707,13 @@ fn runtime_info() -> serde_json::Value {
 
 
 fn main() {
-    let db = Db::new().expect("unable to initialize Synth Browser database");
-    let state = AppState::new(db);
+    let profiles=load_profiles().expect("unable to initialize Synth Browser profile registry");
+    let (profile_id,guest)=parse_start_profile();
+    let selected=profiles.iter().find(|p|p.id==profile_id).cloned().unwrap_or_else(||profiles[0].clone());
+    let selected=if guest { Profile{id:"guest".into(),name:"Guest".into(),guest:true} } else { selected };
+    let db = Db::new(if guest {"guest"} else { &selected.id }).expect("unable to initialize Synth Browser database");
+    if guest { fs::create_dir_all(profile_dir("guest")).expect("unable to create guest profile"); }
+    let state = AppState::new(db, selected, profiles, guest);
 
     let app = tauri::Builder::default()
         .manage(state)
@@ -1609,7 +1739,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            get_snapshot, navigate, search_with_mode, site_info, page_source, find_in_page, new_tab, activate_tab, close_tab, reopen_closed_tab,
+            get_snapshot, navigate, search_with_mode, site_info, page_source, find_in_page, list_profiles, switch_profile, create_profile, delete_profile, new_tab, activate_tab, close_tab, reopen_closed_tab,
             reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools,
             add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
             list_query_history, list_workspaces, create_workspace, switch_workspace,
