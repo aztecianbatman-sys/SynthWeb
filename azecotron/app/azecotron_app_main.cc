@@ -4,6 +4,8 @@
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/navigation_controller.h"
 #include "base/command_line.h"
+#include "base/functional/bind.h"
+#include "ui/base/page_transition_types.h"
 #include "url/gurl.h"
 
 #if BUILDFLAG(IS_WIN)
@@ -34,9 +36,9 @@ void AttachExistingContentShellToSynth() {
 
   GURL url(startup_url);
   if (url.is_valid()) {
-    web_contents->GetController().LoadURL(
-        url, content::Referrer(), ui::PAGE_TRANSITION_TYPED,
-        std::string());
+    content::NavigationController::LoadURLParams load(url);
+    load.transition_type = ui::PAGE_TRANSITION_TYPED;
+    web_contents->GetController().LoadURLWithParams(load);
   }
 
 #if BUILDFLAG(IS_WIN)
@@ -73,9 +75,13 @@ int main(int argc, const char** argv) {
   content::ShellMainDelegate delegate;
   content::ContentMainParams params(&delegate);
 
-#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
-  params.argc = argc;
-  params.argv = argv;
+#if BUILDFLAG(IS_WIN)
+  params.instance = GetModuleHandle(nullptr);
+#else
+  #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
+    params.argc = argc;
+    params.argv = argv;
+  #endif
 #endif
 
   params.ui_task = base::BindOnce([] {
