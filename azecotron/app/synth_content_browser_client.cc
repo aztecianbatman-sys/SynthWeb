@@ -37,3 +37,17 @@ SynthContentBrowserClient::CreateDevToolsManagerDelegate() {
 }
 
 }  // namespace synth_azecotron
+
+
+std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
+SynthContentBrowserClient::CreateURLLoaderThrottles(
+    const network::ResourceRequest&,
+    content::BrowserContext*,
+    const base::RepeatingCallback<content::WebContents*()>&,
+    content::NavigationUIData*,
+    content::FrameTreeNodeId,
+    std::optional<int64_t>) {
+  std::vector<std::unique_ptr<blink::URLLoaderThrottle>> throttles;
+  throttles.push_back(synth_azecotron::CreateSynthTrackerThrottle());
+  return throttles;
+}
