@@ -102,6 +102,37 @@ struct ShelfItem {
     saved_at: i64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Note {
+    id: i64,
+    title: String,
+    body: String,
+    url: Option<String>,
+    workspace: String,
+    created_at: i64,
+    updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ResearchBoard {
+    id: i64,
+    name: String,
+    workspace: Option<String>,
+    created_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct BoardItem {
+    id: i64,
+    board_id: i64,
+    item_type: String,
+    title: String,
+    url: Option<String>,
+    quote: Option<String>,
+    position: i64,
+    created_at: i64,
+}
+
 #[derive(Clone)]
 struct Db {
     path: PathBuf,
@@ -176,6 +207,34 @@ impl Db {
                key TEXT PRIMARY KEY,
                value TEXT NOT NULL
              );
+             CREATE TABLE IF NOT EXISTS notes(
+               id INTEGER PRIMARY KEY,
+               title TEXT NOT NULL,
+               body TEXT NOT NULL,
+               url TEXT,
+               workspace TEXT NOT NULL DEFAULT 'Default',
+               created_at INTEGER NOT NULL,
+               updated_at INTEGER NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS research_boards(
+               id INTEGER PRIMARY KEY,
+               name TEXT NOT NULL UNIQUE,
+               workspace TEXT,
+               created_at INTEGER NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS board_items(
+               id INTEGER PRIMARY KEY,
+               board_id INTEGER NOT NULL,
+               item_type TEXT NOT NULL,
+               title TEXT NOT NULL,
+               url TEXT,
+               quote TEXT,
+               position INTEGER NOT NULL DEFAULT 0,
+               created_at INTEGER NOT NULL,
+               FOREIGN KEY(board_id) REFERENCES research_boards(id) ON DELETE CASCADE
+             );
+             CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(updated_at DESC);
+             CREATE INDEX IF NOT EXISTS idx_board_items_board ON board_items(board_id,position);
              INSERT INTO schema_meta(version)
              SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM schema_meta);
              INSERT INTO workspaces(name,icon,accent,position)
@@ -926,6 +985,43 @@ fn remove_shelf(state: State<AppState>, id: i64) -> AppResult<()> {
 
 
 #[tauri::command]
+fn create_note(state: State<AppState>, title:String, body:String)->AppResult<Note>{
+    let id=state.active_id.lock().unwrap().clone();
+    let tab=state.tabs.lock().unwrap().iter().find(|t|t.id==id).cloned();
+    let (url,workspace)=match tab{Some(t)=>{let u=if t.url=="synth://newtab"{None}else{Some(t.url.as_str())};(u,t.workspace)},None=>(None,state.active_workspace.lock().unwrap().clone())};
+    state.db.create_note(&title,&body,url, &workspace)
+}
+
+#[tauri::command]
+fn list_notes(state: State<AppState>)->AppResult<Vec<Note>>{ state.db.list_notes() }
+
+#[tauri::command]
+fn delete_note(state: State<AppState>, id:i64)->AppResult<()>{ state.db.delete_note(id) }
+
+#[tauri::command]
+fn create_research_board(state: State<AppState>, name:String)->AppResult<ResearchBoard>{
+    let workspace=state.active_workspace.lock().unwrap().clone();
+    state.db.create_board(&name,Some(&workspace))
+}
+
+#[tauri::command]
+fn list_research_boards(state: State<AppState>)->AppResult<Vec<ResearchBoard>>{ state.db.list_boards() }
+
+#[tauri::command]
+fn delete_research_board(state: State<AppState>, id:i64)->AppResult<()>{ state.db.delete_board(id) }
+
+#[tauri::command]
+fn add_current_to_board(state: State<AppState>, board_id:i64)->AppResult<BoardItem>{
+    let id=state.active_id.lock().unwrap().clone();
+    let tab=state.tabs.lock().unwrap().iter().find(|t|t.id==id).cloned().ok_or_else(||AppError::Message("active tab missing".into()))?;
+    if tab.url=="synth://newtab"{return Err(AppError::Message("There is no page to add.".into()))}
+    state.db.add_board_item(board_id,"tab",&tab.title,Some(&tab.url),None)
+}
+
+#[tauri::command]
+fn list_board_items(state: State<AppState>, board_id:i64)->AppResult<Vec<BoardItem>>{state.db.list_board_items(board_id)}
+
+#[tauri::command]
 fn get_settings(state: State<AppState>) -> AppResult<std::collections::HashMap<String,String>> {
     state.db.all_settings()
 }
@@ -996,7 +1092,7 @@ fn main() {
             clear_browsing_data, runtime_info, list_workspaces, create_workspace,
             switch_workspace, rename_workspace, delete_workspace, reorder_tab,
             save_session, list_sessions, open_session, add_to_shelf, list_shelf,
-            toggle_shelf_read, remove_shelf, get_settings, set_setting, reset_settings
+            toggle_shelf_read, remove_shelf, create_note, list_notes, delete_note, create_research_board, list_research_boards, delete_research_board, add_current_to_board, list_board_items, get_settings, set_setting, reset_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running Synth Browser");
@@ -1035,4 +1131,65 @@ mod tests {
             _ => panic!("expected search classification"),
         }
     }
-}
+}    fn create_note(&self,title:&str,body:&str,url:Option<&str>,workspace:&str)->AppResult<Note>{
+        let title=title.trim();
+        if title.is_empty()||title.len()>200{return Err(AppError::Message("Note title must be 1–200 characters.".into()))}
+        if body.len()>100_000{return Err(AppError::Message("Note body is too large.".into()))}
+        let now=Self::now();
+        self.connect()?.execute("INSERT INTO notes(title,body,url,workspace,created_at,updated_at) VALUES(?1,?2,?3,?4,?5,?5)",rusqlite::params![title,body,url,workspace,now])?;
+        let c=self.connect()?;
+        Ok(c.query_row("SELECT id,title,body,url,workspace,created_at,updated_at FROM notes ORDER BY id DESC LIMIT 1",[],|r|Ok(Note{id:r.get(0)?,title:r.get(1)?,body:r.get(2)?,url:r.get(3)?,workspace:r.get(4)?,created_at:r.get(5)?,updated_at:r.get(6)?}))?)
+    }
+
+    fn list_notes(&self)->AppResult<Vec<Note>>{
+        let c=self.connect()?;
+        let mut s=c.prepare("SELECT id,title,body,url,workspace,created_at,updated_at FROM notes ORDER BY updated_at DESC")?;
+        let rows=s.query_map([],|r|Ok(Note{id:r.get(0)?,title:r.get(1)?,body:r.get(2)?,url:r.get(3)?,workspace:r.get(4)?,created_at:r.get(5)?,updated_at:r.get(6)?}))?;
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
+    }
+
+    fn delete_note(&self,id:i64)->AppResult<()>{
+        self.connect()?.execute("DELETE FROM notes WHERE id=?1",[id])?;
+        Ok(())
+    }
+
+    fn create_board(&self,name:&str,workspace:Option<&str>)->AppResult<ResearchBoard>{
+        let name=name.trim();
+        if name.is_empty()||name.len()>120{return Err(AppError::Message("Board name must be 1–120 characters.".into()))}
+        let now=Self::now();
+        self.connect()?.execute("INSERT INTO research_boards(name,workspace,created_at) VALUES(?1,?2,?3)",rusqlite::params![name,workspace,now])?;
+        let c=self.connect()?;
+        Ok(c.query_row("SELECT id,name,workspace,created_at FROM research_boards WHERE name=?1",[name],|r|Ok(ResearchBoard{id:r.get(0)?,name:r.get(1)?,workspace:r.get(2)?,created_at:r.get(3)?}))?)
+    }
+
+    fn list_boards(&self)->AppResult<Vec<ResearchBoard>>{
+        let c=self.connect()?;
+        let mut s=c.prepare("SELECT id,name,workspace,created_at FROM research_boards ORDER BY created_at DESC")?;
+        let rows=s.query_map([],|r|Ok(ResearchBoard{id:r.get(0)?,name:r.get(1)?,workspace:r.get(2)?,created_at:r.get(3)?}))?;
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
+    }
+
+    fn delete_board(&self,id:i64)->AppResult<()>{
+        let c=self.connect()?;
+        c.execute_batch("PRAGMA foreign_keys=ON;")?;
+        c.execute("DELETE FROM board_items WHERE board_id=?1",[id])?;
+        c.execute("DELETE FROM research_boards WHERE id=?1",[id])?;
+        Ok(())
+    }
+
+    fn add_board_item(&self,board_id:i64,item_type:&str,title:&str,url:Option<&str>,quote:Option<&str>)->AppResult<BoardItem>{
+        if !matches!(item_type,"tab"|"quote"|"url"){return Err(AppError::Message("Unsupported board item type.".into()))}
+        let c=self.connect()?;
+        let position:i64=c.query_row("SELECT COALESCE(MAX(position),-1)+1 FROM board_items WHERE board_id=?1",[board_id],|r|r.get(0))?;
+        c.execute("INSERT INTO board_items(board_id,item_type,title,url,quote,position,created_at) VALUES(?1,?2,?3,?4,?5,?6,?7)",rusqlite::params![board_id,item_type,title,url,quote,position,Self::now()])?;
+        Ok(c.query_row("SELECT id,board_id,item_type,title,url,quote,position,created_at FROM board_items ORDER BY id DESC LIMIT 1",[],|r|Ok(BoardItem{id:r.get(0)?,board_id:r.get(1)?,item_type:r.get(2)?,title:r.get(3)?,url:r.get(4)?,quote:r.get(5)?,position:r.get(6)?,created_at:r.get(7)?}))?)
+    }
+
+    fn list_board_items(&self,board_id:i64)->AppResult<Vec<BoardItem>>{
+        let c=self.connect()?;
+        let mut s=c.prepare("SELECT id,board_id,item_type,title,url,quote,position,created_at FROM board_items WHERE board_id=?1 ORDER BY position,id")?;
+        let rows=s.query_map([board_id],|r|Ok(BoardItem{id:r.get(0)?,board_id:r.get(1)?,item_type:r.get(2)?,title:r.get(3)?,url:r.get(4)?,quote:r.get(5)?,position:r.get(6)?,created_at:r.get(7)?}))?;
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
+    }
+
+
