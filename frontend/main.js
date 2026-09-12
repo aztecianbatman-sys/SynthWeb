@@ -433,13 +433,16 @@ listen("browser://title",e=>{const t=state.tabs.find(x=>x.id===e.payload.tabId);
 listen("browser://download",e=>toast(e.payload.status==="completed"?"Download complete":"Download "+e.payload.status));
 listen("browser://new-window",e=>go(e.payload.url));
 
+$("restoreYes").onclick=async()=>{try{await invoke("restore_previous_session");$("restore").classList.add("hidden");await refresh();toast("Previous session restored")}catch(e){toast(e)}};
+$("restoreNo").onclick=async()=>{try{await invoke("dismiss_restore");$("restore").classList.add("hidden")}catch(e){toast(e)}};
+
 (async()=>{
   try{
     state.runtime=await invoke("runtime_info");
     await refresh();
     $("runtimeText").textContent=state.runtime.runtime;
     $("runtimeDot").className="dot "+(state.runtime.runtime.includes("WebView2")?"":"cyan");
-    setTimeout(()=>$("boot").classList.add("hidden"),1700);
+    setTimeout(()=>{$("boot").classList.add("hidden");if(state.restoreAvailable)$("restore").classList.remove("hidden")},1700);
   }catch(e){
     $("boot").classList.add("hidden");
     toast(e);
