@@ -436,6 +436,8 @@ function showMenuPanel() {
     ["New Private Tab", async () => invoke("new_tab", { private: true })],
     ["Reopen Closed Tab", async () => invoke("reopen_closed_tab")],
     ["Tab Overview", async () => openOverview()],
+    ["Reader Mode", async () => openReaderMode()],
+    ["Page Lens", async () => openPageLens()],
     ["Reading Shelf", async () => showShelf()],
     ["Saved Sessions", async () => showSessions()],
     ["Notes", async () => showNotes()],
@@ -460,7 +462,7 @@ function showMenuPanel() {
     button.onclick = async () => {
       try {
         await action();
-        if (!["Reading Shelf","Saved Sessions","Notes","Research Board","Synth Assist","Bookmarks","History","Privacy Shield","Site Capsule","Settings","Runtime Status","Downloads","Tab Overview"].includes(label)) {
+        if (!["Reading Shelf","Saved Sessions","Notes","Research Board","Synth Assist","Bookmarks","History","Privacy Shield","Site Capsule","Settings","Runtime Status","Downloads","Tab Overview","Reader Mode","Page Lens"].includes(label)) {
           closePanel();
         }
         await refresh();
@@ -690,6 +692,39 @@ async function showBoardItems(name, id) {
   });
 }
 
+async function openReaderMode(){
+  try{await invoke("reader_mode");}catch(e){toast(e)}
+}
+async function openPageLens(){
+  try{await invoke("page_lens");}catch(e){toast(e)}
+}
+function renderReader(payload){
+  const panel=$("readerPanel");const content=$("readerContent");
+  panel.classList.remove("hidden");
+  content.innerHTML="";
+  const h=document.createElement("h1");h.textContent=payload.title||"Reader Mode";content.appendChild(h);
+  const meta=document.createElement("div");meta.className="reader-meta";meta.textContent=payload.url||"";content.appendChild(meta);
+  const text=document.createElement("div");text.className="reader-text";text.textContent=payload.text||"No readable content was found.";content.appendChild(text);
+  const note=document.createElement("div");note.className="reader-note";note.textContent="Reader Mode uses deterministic page extraction. Results can vary by site.";content.appendChild(note);
+}
+function renderLens(payload){
+  const panel=$("lensPanel");const content=$("lensContent");
+  panel.classList.remove("hidden");content.innerHTML="";
+  const h=document.createElement("h1");h.textContent=payload.title||"Page Lens";content.appendChild(h);
+  const meta=document.createElement("div");meta.className="reader-meta";meta.textContent=payload.url||"";content.appendChild(meta);
+  if(payload.author||payload.published||payload.description){
+    const details=document.createElement("div");details.className="reader-meta";
+    details.textContent=[payload.author&&("Author: "+payload.author),payload.published&&("Published: "+payload.published),payload.description].filter(Boolean).join(" · ");
+    content.appendChild(details);
+  }
+  if(payload.headings?.length){
+    const sh=document.createElement("h2");sh.textContent="Headings";content.appendChild(sh);
+    const ul=document.createElement("ul");ul.className="reader-list";payload.headings.forEach(item=>{const li=document.createElement("li");li.textContent=item;ul.appendChild(li)});content.appendChild(ul);
+  }
+  const th=document.createElement("h2");th.textContent="Visible text";content.appendChild(th);
+  const text=document.createElement("div");text.className="reader-text";text.textContent=payload.text||"No readable text was found.";content.appendChild(text);
+  const note=document.createElement("div");note.className="reader-note";note.textContent="Page Lens reports data actually extracted from the current page. It does not invent security or semantic claims.";content.appendChild(note);
+}
 async function showPrivacy() {
   const body = basePanel("Privacy Shield");
   const httpsOnly = state.settings.https_only === "true";
@@ -1068,6 +1103,8 @@ $("shelf").onclick = async () => {
 $("downloads").onclick = showDownloads;
 $("menu").onclick = showMenuPanel;
 $("privacy").onclick = showPrivacy;
+$("readerClose").onclick = () => $("readerPanel").classList.add("hidden");
+$("lensClose").onclick = () => $("lensPanel").classList.add("hidden");
 $("overview").onclick = openOverview;
 $("overviewClose").onclick = closeOverview;
 $("overviewSearch").oninput = (event) => renderOverview(event.target.value);
@@ -1164,6 +1201,8 @@ const commands = [
   ["Notes", "", () => showNotes()],
   ["Research Board", "", () => showBoards()],
   ["Synth Assist", "", () => showAssist()],
+  ["Reader Mode", "", () => openReaderMode()],
+  ["Page Lens", "", () => openPageLens()],
   ["Settings", "", () => showSettings()],
   ["Privacy Shield", "", () => showPrivacy()],
   ["Site Capsule", "", () => showSiteSecurity()],
@@ -1255,6 +1294,8 @@ listen("browser://favicon", (event) => {
   renderTabs();
 });
 
+listen("browser://reader", (event) => renderReader(event.payload));
+listen("browser://page-lens", (event) => renderLens(event.payload));
 listen("browser://download", (event) => {
   toast(event.payload.status === "completed" ? "Download complete" : "Download " + event.payload.status);
 });
