@@ -418,8 +418,7 @@ fn create_page_webview<R: tauri::Runtime>(
                 }
                 _ => true
             }
-        })
-
+        });
 
     let (pos, size) = webview_bounds(&window)?;
     let view = window.add_child(builder, pos, size).map_err(|e| AppError::Message(e.to_string()))?;
@@ -640,4 +639,39 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Synth Browser");
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_input_opens_new_tab() {
+        assert!(matches!(classify(" ").unwrap(), SearchDecision::NewTab));
+    }
+
+    #[test]
+    fn explicit_url_is_not_reinterpreted_as_search() {
+        match classify("https://example.com/path").unwrap() {
+            SearchDecision::Url(u) => assert_eq!(u.as_str(), "https://example.com/path"),
+            _ => panic!("expected URL classification"),
+        }
+    }
+
+    #[test]
+    fn domain_gets_https() {
+        match classify("example.com").unwrap() {
+            SearchDecision::Url(u) => assert_eq!(u.as_str(), "https://example.com/"),
+            _ => panic!("expected domain classification"),
+        }
+    }
+
+    #[test]
+    fn free_text_is_delegated_to_google_search() {
+        match classify("hello world").unwrap() {
+            SearchDecision::Search(u) => assert_eq!(u.as_str(), "https://www.google.com/search?q=hello+world"),
+            _ => panic!("expected search classification"),
+        }
+    }
 }
