@@ -1440,6 +1440,36 @@ fn request_selection_context(app: tauri::AppHandle, state: State<AppState>)->App
 
 
 #[tauri::command]
+fn page_source(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let app2=app.clone();
+    view.eval_with_callback(
+        "document.documentElement.outerHTML",
+        move |raw|{
+            let html=serde_json::from_str::<String>(&raw).unwrap_or(raw);
+            let _=app2.emit("browser://page-source",serde_json::json!({"html":html}));
+        }
+    ).map_err(|e|AppError::Message(e.to_string()))
+}
+
+#[tauri::command]
+fn find_in_page(app: tauri::AppHandle, state: State<AppState>, query:String, backwards:bool) -> AppResult<()> {
+    let q=query.trim();
+    if q.is_empty() { return Err(AppError::Message("Find text is empty.".into())); }
+    if q.len()>500 { return Err(AppError::Message("Find text is too long.".into())); }
+    let json=serde_json::to_string(q).map_err(|e|AppError::Message(e.to_string()))?;
+    let script=format!("(()=>{{const q={json};return {{found:window.find(q,false,{backwards},true,false,false),query:q}}}})()");
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let app2=app.clone();
+    view.eval_with_callback(&script,move|raw|{
+        let payload=serde_json::from_str::<serde_json::Value>(&raw).unwrap_or_else(|_|serde_json::json!({"found":false,"query":q}));
+        let _=app2.emit("browser://find-result",payload);
+    }).map_err(|e|AppError::Message(e.to_string()))
+}
+
+#[tauri::command]
 fn page_lens(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
     let id=state.active_id.lock().unwrap().clone();
     let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
@@ -1554,7 +1584,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            get_snapshot, navigate, search_with_mode, site_info, new_tab, activate_tab, close_tab, reopen_closed_tab,
+            get_snapshot, navigate, search_with_mode, site_info, page_source, find_in_page, new_tab, activate_tab, close_tab, reopen_closed_tab,
             reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools,
             add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
             list_query_history, list_workspaces, create_workspace, switch_workspace,
