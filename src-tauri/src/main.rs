@@ -8,7 +8,7 @@ use std::{
 };
 use tauri::{
     menu::{Menu, MenuItem},
-    webview::{DownloadEvent, NewWindowResponse, PageLoadEvent, WebviewBuilder, WebviewUrl},
+    webview::{DownloadEvent, PageLoadEvent, WebviewBuilder, WebviewUrl},
     Emitter, LogicalPosition, LogicalSize, Manager, State, WindowEvent,
 };
 use thiserror::Error;
@@ -330,7 +330,6 @@ fn create_page_webview<R: tauri::Runtime>(
     let tabs_nav = state.tabs.clone();
     let tabs_title = state.tabs.clone();
     let tabs_load = state.tabs.clone();
-    let active_for_new_window = state.active_id.clone();
     let app_nav = app.clone();
     let app_title = app.clone();
     let app_load = app.clone();
@@ -417,22 +416,10 @@ fn create_page_webview<R: tauri::Runtime>(
                     }));
                     true
                 }
-                DownloadEvent::Error { url, error } => {
-                    let _ = app_download.emit("browser://download", serde_json::json!({
-                        "status":"failed","url":url.as_str(),"error":error
-                    }));
-                    true
-                }
                 _ => true
             }
         })
-        .on_new_window(move |new_url, _features| {
-            let _ = app_download.emit("browser://new-window", serde_json::json!({
-                "url": new_url.as_str(),
-                "activeTab": active_for_new_window.lock().unwrap().clone()
-            }));
-            NewWindowResponse::Deny
-        });
+
 
     let (pos, size) = webview_bounds(&window)?;
     let view = window.add_child(builder, pos, size).map_err(|e| AppError::Message(e.to_string()))?;
