@@ -173,6 +173,7 @@ function renderFeatureDashboard(){
   const tabCount=state.tabs.length;
   const workspaceCount=state.workspaces.length;
   const profileCount=(state.profiles||[]).length;
+  const trackerBlocked=Number(state.trackerBlocked||0);
   const privateTabs=state.tabs.filter(t=>t.private).length;
   const runtime=state.runtime||{};
   const azecotron=runtime.azecotronWeb?.status||"BUILD / INTEGRATION";
@@ -1525,6 +1526,15 @@ $("restoreNo").onclick = async () => {
     $("restore").classList.add("hidden");
   } catch (error) { toast(error); }
 };
+
+listen("azecotron://event", (event) => {
+  const payload=event.payload||{};
+  if(payload.type==="tracker-blocked"){
+    state.trackerBlocked=Number(payload.blocked||0);
+    renderFeatureDashboard();
+    return;
+  }
+});
 
 listen("azecotron://process-exited", (event) => {
   const code = event.payload?.code;
