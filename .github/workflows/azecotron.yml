@@ -13,7 +13,7 @@ jobs:
       - name: Checkout SynthWeb
         uses: actions/checkout@v4
         with:
-          ref: azecotron/chromium-152-fork
+          ref: ${{ github.ref_name }}
           fetch-depth: 1
 
       - name: Verify depot_tools
