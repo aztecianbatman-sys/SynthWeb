@@ -338,6 +338,11 @@ async function updateReferenceCapsule(){
     const permissions=await invoke("list_site_permissions",{origin});
     $("capsulePermissions").textContent=String(permissions.length);
     $("shieldPermissions").textContent=String(permissions.length);
+    $("shieldHttpsState").textContent=state.settings.https_only==="true"?"Protected":"Off";
+    $("shieldCookiesState").textContent=tracker.interception==="PLATFORM_LIMITED"?"Host-limited":"Strict";
+    $("shieldFingerprintState").textContent="Chromium runtime dependent";
+    $("shieldLocationState").textContent=state.settings.permission_geolocation||"prompt";
+    $("shieldNotificationState").textContent=state.settings.permission_notifications||"prompt";
     $("capsuleTrackers").textContent=String(state.trackerBlocked||0);
     $("shieldBlocked").textContent=String(state.trackerBlocked||0);
     $("shieldTrackers").textContent=String(state.trackerBlocked||0);
