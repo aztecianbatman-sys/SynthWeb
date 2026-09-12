@@ -14,7 +14,7 @@ use std::{
 };
 use tauri::{
     menu::{Menu, MenuItem},
-    webview::{DownloadEvent, PageLoadEvent, PermissionKind, PermissionResponse, WebviewBuilder, WebviewUrl},
+    webview::{DownloadEvent, NewWindowResponse, PageLoadEvent, PermissionKind, PermissionResponse, WebviewBuilder, WebviewUrl},
     Emitter, LogicalPosition, LogicalSize, Manager, State, WindowEvent,
 };
 use thiserror::Error;
@@ -798,7 +798,11 @@ fn create_page_webview<R: tauri::Runtime>(
                 "url": webview.url().ok().map(|u| u.to_string()),
                 "kind": setting,
                 "policy": policy
-            }));
+            })
+        .on_new_window(move |url, _features| {
+            let _=app_download.emit("browser://new-window",serde_json::json!({"url":url.as_str(),"tabId":tab_id}));
+            NewWindowResponse::Deny
+        }));
             match policy.as_str() {
                 "allow" => PermissionResponse::Allow,
                 "deny" => PermissionResponse::Deny,
