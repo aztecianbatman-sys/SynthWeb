@@ -764,6 +764,7 @@ fn create_page_webview<R: tauri::Runtime>(
     let app_load = app.clone();
     let app_favicon = app.clone();
     let app_download = app.clone();
+    let app_new_window = app.clone();
     let db_path = state.db.path().to_path_buf();
     let permission_db_path = state.db.path().to_path_buf();
     let download_dir = dirs_next::download_dir().unwrap_or_else(|| PathBuf::from(".")).join("Synth Browser");
@@ -800,7 +801,7 @@ fn create_page_webview<R: tauri::Runtime>(
                 "policy": policy
             })
         .on_new_window(move |url, _features| {
-            let _=app_download.emit("browser://new-window",serde_json::json!({"url":url.as_str(),"tabId":tab_id}));
+            let _=app_new_window.emit("browser://new-window",serde_json::json!({"url":url.as_str(),"tabId":tab_id}));
             NewWindowResponse::Deny
         }));
             match policy.as_str() {
