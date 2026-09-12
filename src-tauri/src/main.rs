@@ -743,6 +743,35 @@ fn forward(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
 }
 
 #[tauri::command]
+fn stop_or_reload(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
+    let id = state.active_id.lock().unwrap().clone();
+    let loading = state.tabs.lock().unwrap().iter().find(|t| t.id == id).map(|t| t.loading).unwrap_or(false);
+    if let Some(view) = app.get_webview(&format!("page-{id}")) {
+        if loading { view.eval("window.stop()").map_err(|e| AppError::Message(e.to_string()))?; }
+        else { view.reload().map_err(|e| AppError::Message(e.to_string()))?; }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn print_page(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
+    let id = state.active_id.lock().unwrap().clone();
+    let view = app.get_webview(&format!("page-{id}")).ok_or_else(|| AppError::Message("No active web page.".into()))?;
+    view.print().map_err(|e| AppError::Message(e.to_string()))?;
+    Ok(())
+}
+
+#[tauri::command]
+fn set_zoom(app: tauri::AppHandle, state: State<AppState>, percent: f64) -> AppResult<()> {
+    if !(50.0..=200.0).contains(&percent) { return Err(AppError::Message("Zoom must be 50–200%.".into())); }
+    let id = state.active_id.lock().unwrap().clone();
+    let view = app.get_webview(&format!("page-{id}")).ok_or_else(|| AppError::Message("No active web page.".into()))?;
+    view.set_zoom(percent / 100.0).map_err(|e| AppError::Message(e.to_string()))?;
+    state.db.set_setting("default_zoom",&percent.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 fn open_devtools(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
     let id = state.active_id.lock().unwrap().clone();
     if let Some(view) = app.get_webview(&format!("page-{id}")) {
@@ -990,7 +1019,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             get_snapshot, navigate, new_tab, activate_tab, close_tab, reopen_closed_tab,
-            reload, back, forward, open_devtools, add_bookmark, list_bookmarks, list_history,
+            reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools, add_bookmark, list_bookmarks, list_history,
             clear_browsing_data, runtime_info, list_workspaces, create_workspace,
             switch_workspace, rename_workspace, delete_workspace, reorder_tab,
             save_session, list_sessions, open_session, add_to_shelf, list_shelf,
