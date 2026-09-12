@@ -236,4 +236,17 @@ function showAiAnswer(answer,title){
   const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Back to Assist";clear.onclick=showAssist;body.appendChild(clear);
 }
 
+async function showSiteSecurity(){
+  const body=basePanel("Site Capsule");
+  try{
+    const info=await invoke("site_info");
+    body.innerHTML='<div class="panel-row">Host <strong>'+esc(info.host||"—")+'</strong></div>'+
+      '<div class="panel-row">Connection <strong>'+esc(info.secure?"HTTPS":"HTTP")+'</strong></div>'+
+      '<div class="panel-row">Private <strong>'+esc(info.private?"Yes":"No")+'</strong></div>'+
+      '<div class="panel-row">Cookies visible to runtime <strong>'+info.cookieCount+'</strong></div>'+
+      '<div class="panel-row">URL <strong style="word-break:break-all">'+esc(info.url)+'</strong></div>';
+    const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear browsing data";clear.onclick=()=>runCommand("clear");body.appendChild(clear);
+  }catch(e){body.innerHTML='<div class="panel-row">No active web page.</div>'}
+}
+
 
