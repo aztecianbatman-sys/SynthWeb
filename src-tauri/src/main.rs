@@ -14,7 +14,7 @@ use std::{
 };
 use tauri::{
     menu::{Menu, MenuItem},
-    webview::{DownloadEvent, PageLoadEvent, WebviewBuilder, WebviewUrl},
+    webview::{DownloadEvent, PageLoadEvent, PermissionKind, PermissionResponse, WebviewBuilder, WebviewUrl},
     Emitter, LogicalPosition, LogicalSize, Manager, State, WindowEvent,
 };
 use thiserror::Error;
@@ -776,6 +776,20 @@ fn create_page_webview<R: tauri::Runtime>(
         .incognito(private)
         .devtools(cfg!(debug_assertions))
         .zoom_hotkeys_enabled(true)
+        .on_permission_request(|_webview, kind| {
+            match kind {
+                PermissionKind::Camera
+                | PermissionKind::Microphone
+                | PermissionKind::Geolocation
+                | PermissionKind::Notifications
+                | PermissionKind::DisplayCapture => PermissionResponse::Prompt,
+                PermissionKind::ClipboardRead
+                | PermissionKind::LocalFonts
+                | PermissionKind::Sensors
+                | PermissionKind::OtherSensors => PermissionResponse::Deny,
+                _ => PermissionResponse::Default,
+            }
+        })
         .on_navigation(move |next| {
             if !matches!(next.scheme(), "http"|"https") { return false; }
             if next.scheme()=="http" {
