@@ -1152,7 +1152,6 @@ fn create_profile(app: tauri::AppHandle, state: State<AppState>, name:String)->A
     fs::create_dir_all(profile_dir(&id))?;
     profiles.push(profile.clone());
     save_profiles(&profiles)?;
-    *state.profiles.iter_mut().find(|p|p.id==state.profile.id).unwrap_or_else(||panic!("active profile registry entry missing")) = state.profile.clone();
     let exe=std::env::current_exe().map_err(|e|AppError::Message(e.to_string()))?;
     std::process::Command::new(exe).arg("--profile").arg(&id).spawn().map_err(|e|AppError::Message(e.to_string()))?;
     app.exit(0);
@@ -1711,8 +1710,10 @@ fn main() {
     let (profile_id,guest)=parse_start_profile();
     let selected=profiles.iter().find(|p|p.id==profile_id).cloned().unwrap_or_else(||profiles[0].clone());
     let selected=if guest { Profile{id:"guest".into(),name:"Guest".into(),guest:true} } else { selected };
-    let db = Db::new(if guest {"guest"} else { &selected.id }).expect("unable to initialize Synth Browser database");
-    if guest { fs::create_dir_all(profile_dir("guest")).expect("unable to create guest profile"); }
+    let selected=if guest {
+        Profile{id:format!("guest-{}",uuid::Uuid::new_v4()),name:"Guest".into(),guest:true}
+    } else { selected };
+    let db = Db::new(&selected.id).expect("unable to initialize Synth Browser database");
     let state = AppState::new(db, selected, profiles, guest);
 
     let app = tauri::Builder::default()
@@ -1762,6 +1763,9 @@ fn main() {
                     active_workspace: state.active_workspace.lock().unwrap().clone(),
                 };
                 let _ = state.db.save_restore_state(&saved);
+                if state.guest {
+                    let _ = fs::remove_dir_all(profile_dir(&state.profile.id));
+                }
             }
         }
     });
