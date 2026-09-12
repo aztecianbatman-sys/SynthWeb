@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Synth Browser</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div id="app">
+  <header class="chrome">
+    <div class="tabbar">
+      <div class="brand-mini"><img src="./synth-mark.svg" alt="" class="mark"><span>Synth</span></div>
+      <div id="tabs" class="tabs"></div>
+      <button id="newTab" class="icon-btn" title="New tab" aria-label="New tab">+</button>
+    </div>
+    <div class="toolbar">
+      <div class="nav">
+        <button id="back" class="icon-btn" title="Back" aria-label="Back">‹</button>
+        <button id="forward" class="icon-btn" title="Forward" aria-label="Forward">›</button>
+        <button id="reload" class="icon-btn" title="Reload" aria-label="Reload">↻</button>
+      </div>
+      <div class="omnibox-wrap">
+        <span id="siteState" class="site-state">•</span>
+        <input id="omnibox" class="omnibox" aria-label="Address and search" autocomplete="off" spellcheck="false" placeholder="Search with Cortis or enter a URL">
+      </div>
+      <div class="actions">
+        <button id="bookmark" class="icon-btn" title="Bookmark" aria-label="Bookmark">☆</button>
+        <button id="downloads" class="icon-btn" title="Downloads" aria-label="Downloads">↓</button>
+        <button id="palette" class="icon-btn" title="Command palette" aria-label="Command palette">⌘</button>
+        <button id="menu" class="icon-btn" title="Menu" aria-label="Menu">⋯</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="newtab" class="newtab">
+    <section class="hero">
+      <img src="./synth-mark.svg" class="hero-mark" alt="Synth Browser">
+      <div class="wordmark">SYNTH BROWSER</div>
+      <div class="strap">BROWSE · SEARCH · FOCUS</div>
+      <form id="searchForm" class="search-box">
+        <span class="c-mark">C</span>
+        <input id="newtabSearch" aria-label="Search with Cortis or enter a URL" placeholder="Search with Cortis or enter a URL">
+        <button aria-label="Search">→</button>
+      </form>
+      <div id="shortcuts" class="shortcuts"></div>
+      <div class="state-row">
+        <span class="state-chip"><i id="runtimeDot" class="dot"></i><span id="runtimeText">Browser runtime</span></span>
+        <span class="state-chip"><i class="dot cyan"></i>Cortis search</span>
+        <button id="privacy" class="state-chip">Privacy</button>
+      </div>
+    </section>
+  </main>
+
+  <aside id="panel" class="panel hidden"></aside>
+
+  <div id="palettePanel" class="palette hidden">
+    <div class="palette-box">
+      <input id="paletteInput" placeholder="Type a browser command…" autocomplete="off">
+      <div id="paletteResults"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+</div>
+<script src="./main.js"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+[package]
+name = "synth-browser"
+version = "0.1.0"
+description = "Synth Browser desktop browser"
+authors = ["Synth Browser Contributors"]
+edition = "2021"
+rust-version = "1.77"
+
+[build-dependencies]
+tauri-build = { version = "2.5.1" }
+
+[dependencies]
+tauri = { version = "2.11.5", features = ["wry", "unstable", "devtools"] }
+rusqlite = { version = "0.37.0", features = ["bundled"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+url = "2.5.7"
+dirs-next = "2.0.0"
+thiserror = "2.0.16"
+
+[features]
+default = []
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+opt-level = "s"
+panic = "abort"
+strip = true

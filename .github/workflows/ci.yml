@@ -1,0 +1,45 @@
+name: Synth Browser CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  rust:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable-x86_64-pc-windows-msvc
+          components: rustfmt, clippy
+      - run: cargo fmt --check
+        working-directory: src-tauri
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+        working-directory: src-tauri
+      - run: cargo test
+        working-directory: src-tauri
+
+  build:
+    needs: rust
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable-x86_64-pc-windows-msvc
+      - name: Install Tauri CLI
+        shell: pwsh
+        run: cargo install tauri-cli --version 2.11.5 --locked
+      - name: Build
+        shell: pwsh
+        run: cargo tauri build --config src-tauri/tauri.conf.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synth-browser-windows
+          path: |
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.msi
+            src-tauri/target/release/synth-browser.exe
