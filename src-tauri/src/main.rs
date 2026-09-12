@@ -51,6 +51,7 @@ struct Snapshot {
     active_id: String,
     active_workspace: String,
     workspaces: Vec<Workspace>,
+    restore_available: bool,
     runtime_name: String,
     runtime_revision: String,
     azecotron_status: String,
@@ -133,6 +134,13 @@ struct BoardItem {
     created_at: i64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct RestoreState {
+    tabs: Vec<Tab>,
+    active_id: String,
+    active_workspace: String,
+}
+
 #[derive(Clone)]
 struct Db {
     path: PathBuf,
@@ -212,6 +220,14 @@ impl Db {
                query TEXT NOT NULL,
                searched_at INTEGER NOT NULL
              );
+             CREATE TABLE IF NOT EXISTS session_state(
+               id INTEGER PRIMARY KEY CHECK(id=1),
+               clean_exit INTEGER NOT NULL DEFAULT 1,
+               data TEXT
+             );
+             INSERT INTO session_state(id,clean_exit,data)
+             SELECT 1,1,NULL
+             WHERE NOT EXISTS (SELECT 1 FROM session_state WHERE id=1);
              CREATE INDEX IF NOT EXISTS idx_query_history_time ON query_history(searched_at DESC);
              CREATE TABLE IF NOT EXISTS notes(
                id INTEGER PRIMARY KEY,
@@ -402,6 +418,28 @@ impl Db {
         Ok(rows.collect::<Result<std::collections::HashMap<_,_>,_>>()?)
     }
 
+    fn prepare_launch(&self)->AppResult<bool> {
+        let c=self.connect()?;
+        let clean:i64=c.query_row("SELECT clean_exit FROM session_state WHERE id=1",[],|r|r.get(0))?;
+        c.execute("UPDATE session_state SET clean_exit=0 WHERE id=1",[])?;
+        Ok(clean==0)
+    }
+
+    fn save_restore_state(&self,state:&RestoreState)->AppResult<()> {
+        let data=serde_json::to_string(state).map_err(|e|AppError::Message(e.to_string()))?;
+        self.connect()?.execute(
+            "UPDATE session_state SET clean_exit=1,data=?1 WHERE id=1",
+            [data]
+        )?;
+        Ok(())
+    }
+
+    fn load_restore_state(&self)->AppResult<Option<RestoreState>> {
+        let c=self.connect()?;
+        let data:Option<String>=c.query_row("SELECT data FROM session_state WHERE id=1",[],|r|r.get(0)).optional()?;
+        data.map(|d|serde_json::from_str(&d).map_err(|e|AppError::Message(e.to_string()))).transpose()
+    }
+
     fn clear_settings(&self)->AppResult<()>{
         self.connect()?.execute("DELETE FROM settings",[])?;
         Ok(())
@@ -489,12 +527,14 @@ struct AppState {
     closed: Arc<Mutex<VecDeque<Tab>>>,
     active_workspace: Arc<Mutex<String>>,
     workspaces: Arc<Mutex<Vec<Workspace>>>,
+    restore_available: Arc<Mutex<bool>>,
     next_id: AtomicU64,
     db: Db,
 }
 
 impl AppState {
     fn new(db: Db) -> Self {
+        let restore_available = db.prepare_launch().unwrap_or(false);
         let workspaces = db.list_workspaces().unwrap_or_else(|_| vec![Workspace{id:1,name:"Default".into(),icon:"square".into(),accent:"#2ee6ff".into(),position:0}]);
         Self {
             tabs: Arc::new(Mutex::new(vec![Tab {
@@ -507,6 +547,7 @@ impl AppState {
             active_id: Arc::new(Mutex::new("tab-1".into())),
             active_workspace: Arc::new(Mutex::new("Default".into())),
             workspaces: Arc::new(Mutex::new(workspaces)),
+            restore_available: Arc::new(Mutex::new(restore_available)),
             closed: Arc::new(Mutex::new(VecDeque::new())),
             next_id: AtomicU64::new(2),
             db,
@@ -1125,8 +1166,43 @@ fn reset_browser(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()>
     *state.active_id.lock().unwrap()="tab-1".into();
     *state.active_workspace.lock().unwrap()="Default".into();
     *state.workspaces.lock().unwrap()=state.db.list_workspaces()?;
+    *state.restore_available.lock().unwrap()=false;
     layout(&app,&state)?;
     emit_snapshot(&app,&state);
+    Ok(())
+}
+
+#[tauri::command]
+async fn restore_previous_session(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
+    let saved=state.db.load_restore_state()?.ok_or_else(||AppError::Message("No previous session is available.".into()))?;
+    let old_ids:Vec<String>=state.tabs.lock().unwrap().iter().map(|t|t.id.clone()).collect();
+    for id in old_ids { if let Some(v)=app.get_webview(&format!("page-{id}")){let _=v.close();} }
+    state.tabs.lock().unwrap().clear();
+    *state.active_workspace.lock().unwrap()=saved.active_workspace.clone();
+    for mut tab in saved.tabs {
+        tab.id=state.next_tab_id();
+        let id=tab.id.clone();
+        let url=tab.url.clone();
+        let private=tab.private;
+        state.tabs.lock().unwrap().push(tab);
+        if private || url=="synth://newtab" { continue; }
+        if let Ok(u)=Url::parse(&url) {
+            create_page_webview(&app,&state,&id,&u,private)?;
+            if let Some(v)=app.get_webview(&format!("page-{id}")){v.navigate(u).map_err(|e|AppError::Message(e.to_string()))?;}
+        }
+    }
+    let target=state.tabs.lock().unwrap().iter().find(|t|t.workspace==*state.active_workspace.lock().unwrap()).map(|t|t.id.clone())
+        .or_else(||state.tabs.lock().unwrap().first().map(|t|t.id.clone()));
+    if let Some(id)=target{*state.active_id.lock().unwrap()=id;}
+    *state.restore_available.lock().unwrap()=false;
+    layout(&app,&state)?;
+    emit_snapshot(&app,&state);
+    Ok(())
+}
+
+#[tauri::command]
+fn dismiss_restore(state: State<AppState>) -> AppResult<()> {
+    *state.restore_available.lock().unwrap()=false;
     Ok(())
 }
 
@@ -1201,10 +1277,56 @@ fn main() {
             clear_browsing_data, runtime_info, list_query_history, list_workspaces, create_workspace,
             switch_workspace, rename_workspace, delete_workspace, reorder_tab,
             save_session, list_sessions, open_session, add_to_shelf, list_shelf,
-            toggle_shelf_read, remove_shelf, export_data, export_diagnostics, reset_browser, create_note, list_notes, delete_note, create_research_board, list_research_boards, delete_research_board, add_current_to_board, list_board_items, get_settings, set_setting, reset_settings
+            toggle_shelf_read, remove_shelf, restore_previous_session, dismiss_restore, export_data, export_diagnostics, reset_browser, create_note, list_notes, delete_note, create_research_board, list_research_boards, delete_research_board, add_current_to_board, list_board_items, get_settings, set_setting, reset_settings
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Synth Browser");
+    let mut app = tauri::Builder::default()
+        .manage(state)
+        .setup(|app| {
+            use_runtime_boundary();
+            let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&quit])?;
+            app.set_menu(menu)?;
+            app.on_menu_event(|app, event| {
+                if event.id().as_ref() == "quit" { app.exit(0); }
+            });
+            if let Some(window) = app.get_window("main") {
+                let handle = app.handle().clone();
+                window.on_window_event(move |event| {
+                    if let WindowEvent::Resized(_) = event {
+                        if let Some(state) = handle.try_state::<AppState>() {
+                            let _ = layout(&handle, &state);
+                        }
+                    }
+                });
+            }
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            get_snapshot, navigate, new_tab, activate_tab, close_tab, reopen_closed_tab,
+            reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools, add_bookmark,
+            list_bookmarks, list_history, clear_browsing_data, runtime_info, list_query_history,
+            list_workspaces, create_workspace, switch_workspace, rename_workspace, delete_workspace,
+            reorder_tab, save_session, list_sessions, open_session, add_to_shelf, list_shelf,
+            toggle_shelf_read, remove_shelf, restore_previous_session, dismiss_restore, export_data,
+            export_diagnostics, reset_browser, create_note, list_notes, delete_note,
+            create_research_board, list_research_boards, delete_research_board,
+            add_current_to_board, list_board_items, get_settings, set_setting, reset_settings
+        ])
+        .build(tauri::generate_context!())
+        .expect("error while building Synth Browser");
+
+    app.run(move |app, event| {
+        if let tauri::RunEvent::Exit = event {
+            if let Some(state) = app.try_state::<AppState>() {
+                let saved = RestoreState {
+                    tabs: state.tabs.lock().unwrap().clone(),
+                    active_id: state.active_id.lock().unwrap().clone(),
+                    active_workspace: state.active_workspace.lock().unwrap().clone(),
+                };
+                let _ = state.db.save_restore_state(&saved);
+            }
+        }
+    });
 }
 
 
