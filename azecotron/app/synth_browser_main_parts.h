@@ -1,6 +1,8 @@
 #ifndef SYNTH_AZECOTRON_SYNTH_BROWSER_MAIN_PARTS_H_
 #define SYNTH_AZECOTRON_SYNTH_BROWSER_MAIN_PARTS_H_
 
+#include <memory>
+
 #include "base/memory/raw_ptr.h"
 #include "content/public/browser/browser_main_parts.h"
 
@@ -11,6 +13,7 @@ class MainFunctionParams;
 namespace synth_azecotron {
 
 class SynthBrowserContext;
+class AzecotronRuntimeHost;
 
 class SynthBrowserMainParts final : public content::BrowserMainParts {
  public:
@@ -34,6 +37,7 @@ class SynthBrowserMainParts final : public content::BrowserMainParts {
   const content::MainFunctionParams& parameters_;
   std::unique_ptr<SynthBrowserContext> browser_context_;
   std::unique_ptr<SynthBrowserContext> off_the_record_browser_context_;
+  std::unique_ptr<AzecotronRuntimeHost> runtime_host_;
 };
 
 }  // namespace synth_azecotron
