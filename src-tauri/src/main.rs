@@ -1432,7 +1432,7 @@ fn reset_settings(state: State<AppState>) -> AppResult<()> {
 }
 
 #[tauri::command]
-fn site_info(app: tauri::AppHandle, state: State<AppState>)->AppResult<serde_json::Value>{
+async fn site_info(app: tauri::AppHandle, state: State<AppState>)->AppResult<serde_json::Value>{
     let id=state.active_id.lock().unwrap().clone();
     let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
     let url=view.url().map_err(|e|AppError::Message(e.to_string()))?;
