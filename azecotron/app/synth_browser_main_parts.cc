@@ -5,37 +5,39 @@
 #include "base/path_service.h"
 #include "azecotron/app/synth_browser_context.h"
 #include "content/public/common/content_switches.h"
+#include "content/public/common/result_codes.h"
 
 namespace synth_azecotron {
 
-SynthBrowserMainParts::SynthBrowserMainParts() = default;
+SynthBrowserMainParts::SynthBrowserMainParts(
+    const content::MainFunctionParams& parameters)
+    : parameters_(parameters) {}
 
 SynthBrowserMainParts::~SynthBrowserMainParts() = default;
 
 void SynthBrowserMainParts::InitializeBrowserContexts() {
-  base::FilePath path;
-  if (!base::PathService::Get(base::DIR_USER_DATA, &path)) {
-    path = base::CommandLine::ForCurrentProcess()->GetSwitchValuePath(
-        "user-data-dir");
-  }
-  if (path.empty()) {
-    path = base::FilePath(FILE_PATH_LITERAL("SynthBrowserProfile"));
+  base::FilePath root =
+      base::CommandLine::ForCurrentProcess()->GetSwitchValuePath(
+          "user-data-dir");
+
+  if (root.empty() && !base::PathService::Get(base::DIR_USER_DATA, &root)) {
+    root = base::FilePath(FILE_PATH_LITERAL("SynthBrowserProfile"));
   }
 
-  auto* context = new SynthBrowserContext(
-      false,
-      path.AppendASCII("AzecotronProfile"));
-  synth_browser_context_ = context;
-  set_browser_context(context);
-
-  auto* private_context = new SynthBrowserContext(
-      true,
-      path.AppendASCII("AzecotronPrivate"));
-  set_off_the_record_browser_context(private_context);
+  browser_context_ = std::make_unique<SynthBrowserContext>(
+      false, root.AppendASCII("AzecotronProfile"));
+  off_the_record_browser_context_ = std::make_unique<SynthBrowserContext>(
+      true, root.AppendASCII("AzecotronPrivate"));
 }
 
-void SynthBrowserMainParts::InitializeMessageLoopContext() {
-  // The Tauri host supplies the window. Do not create a Content Shell window.
+int SynthBrowserMainParts::PreMainMessageLoopRun() {
+  InitializeBrowserContexts();
+  return content::RESULT_CODE_NORMAL_EXIT;
+}
+
+void SynthBrowserMainParts::PostMainMessageLoopRun() {
+  browser_context_.reset();
+  off_the_record_browser_context_.reset();
 }
 
 }  // namespace synth_azecotron
