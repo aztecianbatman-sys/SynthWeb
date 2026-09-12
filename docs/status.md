@@ -81,16 +81,19 @@ The implementation follows the master prompt incrementally. Statuses below descr
 
 ## BLOCKED / EXPLICITLY NOT CLAIMED
 ### Azecotron Web
-The actual bundled browsing runtime is the host platform webview. On Windows, the target is WebView2. A true Chromium-derived Azecotron Web fork is not bundled in v0.1.0.
+Chromium fork workflow is now IMPLEMENTED IN SOURCE.
+- Chromium is pinned to 152.0.7977.119 at revision e6333471674f4d3af9f386bfc2e5e4388333b734.
+- Downstream patch series is stored under chromium/patches/.
+- Windows bootstrap/build scripts use depot_tools, gclient, GN and autoninja.
+- A manual self-hosted Windows CI job builds chrome and runs a headless about:blank smoke test.
 
-Required next milestone:
-1. pin an exact Chromium revision;
-2. maintain a reproducible patch series;
-3. build and test the fork;
-4. preserve Chromium sandbox/security updates;
-5. add required LICENSE/NOTICE material;
-6. integrate it behind BrowserRuntime;
-7. verify real sites, media, permissions, DevTools, downloads and crash isolation.
+Still required before marking the runtime VERIFIED:
+1. run the Windows build on a real runner;
+2. confirm patch application against the pinned source;
+3. run Chromium tests and security checks;
+4. package the runtime;
+5. perform real-site/media/permissions/DevTools/download/crash-isolation smoke testing;
+6. integrate the native Chromium Content API behind BrowserRuntime.
 
 ### Cortis
 Cortis is the branded search layer. v0.1 sends web/image/news/video/maps searches to real Google search endpoints. It does not claim to contain Google's source code or a private Google-scale index.
@@ -112,7 +115,7 @@ Privacy/security: PARTIALLY FUNCTIONAL
 Synth Assist: PARTIALLY FUNCTIONAL
 Reader/Page Lens/Research: FUNCTIONAL IN SOURCE
 Profiles/extensions/advanced permissions: NOT STARTED
-Azecotron Web Chromium fork: BLOCKED / DESIGNED
+Azecotron Web Chromium fork source/build workflow: IMPLEMENTED IN SOURCE; binary build: NOT VERIFIED
 Performance certification: NOT TESTED
 Packaging: CONFIGURED, NOT VERIFIED
 Release acceptance: NOT YET MET
