@@ -2098,6 +2098,24 @@ async fn site_info(app: tauri::AppHandle, state: State<AppState>)->AppResult<ser
 }
 
 #[tauri::command]
+fn tracker_status(state: State<AppState>)->AppResult<serde_json::Value>{
+    let enabled=state.db.get_setting("tracker_enabled")?.as_deref()==Some("true");
+    Ok(serde_json::json!({
+        "enabled":enabled,
+        "engine":"TrackerEngine",
+        "interception":"PLATFORM_LIMITED",
+        "requestInterception":"Tauri external WebView URLs are not intercepted by on_web_resource_request",
+        "counters":"not exposed until actual request interception is active",
+        "rules":tracker::default_rules().len()
+    }))
+}
+
+#[tauri::command]
+fn set_tracker_policy(state: State<AppState>, enabled:bool)->AppResult<()>{
+    state.db.set_setting("tracker_enabled",if enabled{"true"}else{"false"})
+}
+
+#[tauri::command]
 fn runtime_info() -> serde_json::Value {
     let (runtime_name, runtime_revision, azecotron_status) = runtime_status();
     serde_json::json!({
