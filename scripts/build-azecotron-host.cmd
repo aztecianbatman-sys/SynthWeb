@@ -23,7 +23,7 @@ if not exist "%OUT%\args.gn" (
 )
 
 echo Compiling Azecotron Content API host...
-autoninja -C "%OUT%" azecotron_host
+autoninja -C "%OUT%" //azecotron/app:azecotron_host
 if errorlevel 1 (
   popd
   echo ERROR: native host target failed.
