@@ -2,92 +2,367 @@ const tauri = window.__TAURI__;
 const invoke = tauri.core.invoke;
 const listen = tauri.event.listen;
 
-const state = {tabs:[],activeId:"",runtime:null};
+const state = {
+  tabs: [],
+  activeId: "",
+  activeWorkspace: "Default",
+  workspaces: [],
+  settings: {},
+  runtime: null
+};
 
-function $(id){return document.getElementById(id)}
-function active(){return state.tabs.find(t=>t.id===state.activeId)}
-function toast(msg){const el=$("toast");el.textContent=String(msg);el.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove("show"),2200)}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}[c]))}
+const $ = id => document.getElementById(id);
 
-function render(){
-  const host=$("tabs");host.replaceChildren();
-  state.tabs.forEach(tab=>{
-    const t=document.createElement("div");t.className="tab"+(tab.id===state.activeId?" active":"");
-    const f=document.createElement("span");f.textContent=tab.loading?"…":(tab.private?"◉":"•");f.style.color=tab.private?"#8b63ff":"#2ee6ff";
-    const title=document.createElement("span");title.className="tab-title";title.textContent=tab.title||"New Tab";
-    const x=document.createElement("button");x.className="tab-close";x.textContent="×";x.setAttribute("aria-label","Close tab");
-    x.onclick=e=>{e.stopPropagation();closeTab(tab.id)};
-    t.append(f,title,x);t.onclick=()=>activate(tab.id);host.appendChild(t);
+function activeTab() {
+  return state.tabs.find(t => t.id === state.activeId);
+}
+
+function toast(message) {
+  const el = $("toast");
+  el.textContent = String(message);
+  el.classList.add("show");
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, c => {
+    if (c === "&") return "&amp;";
+    if (c === "<") return "&lt;";
+    if (c === ">") return "&gt;";
+    if (c === "\"") return "&quot;";
+    return "&#39;";
   });
-  const tab=active();$("omnibox").value=tab&&tab.url!=="synth://newtab"?tab.url:"";
-  const secure=Boolean(tab&&tab.url.startsWith("https://"));
-  $("siteState").textContent=tab&&tab.url!=="synth://newtab"?(secure?"•":"!"):"•";
-  $("siteState").style.color=tab&&tab.url!=="synth://newtab"?(secure?"var(--good)":"var(--warn)"):"var(--muted)";
-  $("newtab").style.visibility=tab&&tab.url==="synth://newtab"?"visible":"hidden";
 }
 
-async function refresh(){Object.assign(state,await invoke("get_snapshot"));render()}
-async function go(value){const v=String(value||"").trim();if(!v)return;try{await invoke("navigate",{input:v});await refresh()}catch(e){toast(e)}}
-async function activate(id){try{await invoke("activate_tab",{tabId:id});await refresh()}catch(e){toast(e)}}
-async function closeTab(id){try{await invoke("close_tab",{tabId:id});await refresh()}catch(e){toast(e)}}
-
-const links=[["YouTube","https://youtube.com"],["GitHub","https://github.com"],["Reddit","https://reddit.com"],["Discord","https://discord.com"]];
-links.forEach(([name,url])=>{const b=document.createElement("button");b.className="shortcut";b.textContent=name;b.onclick=()=>go(url);$("shortcuts").appendChild(b)});
-
-$("back").onclick=()=>invoke("back").catch(toast)
-$("forward").onclick=()=>invoke("forward").catch(toast)
-$("reload").onclick=()=>invoke("reload").catch(toast)
-$("newTab").onclick=()=>invoke("new_tab",{private:false}).then(refresh).catch(toast)
-$("bookmark").onclick=async()=>{try{await invoke("add_bookmark");toast("Saved to Bookmarks")}catch(e){toast(e)}}
-$("omnibox").onkeydown=e=>{if(e.key==="Enter")go(e.target.value);if(e.key==="Escape")render()}
-$("searchForm").onsubmit=e=>{e.preventDefault();go($("newtabSearch").value)}
-$("newtabSearch").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();go(e.target.value)}}
-
-async function panel(kind){
-  const p=$("panel");p.classList.remove("hidden");
-  if(kind==="menu")p.innerHTML='<div class="panel-section"><div class="panel-title">Synth Browser</div><button class="panel-action" data-x="private">New Private Tab</button><button class="panel-action" data-x="reopen">Reopen Closed Tab</button><button class="panel-action" data-x="bookmarks">Bookmarks</button><button class="panel-action" data-x="history">History</button><button class="panel-action" data-x="clear">Clear Browsing Data</button><button class="panel-action" data-x="devtools">Developer Tools</button><button class="panel-action" data-x="runtime">Runtime & Security</button></div>';
-  if(kind==="privacy")p.innerHTML='<div class="panel-section"><div class="panel-title">Privacy Shield</div><div class="panel-row">Normal history <strong>Local SQLite</strong></div><div class="panel-row">Private tabs <strong>Incognito runtime</strong></div><div class="panel-row">Telemetry <strong>Not implemented</strong></div><div class="panel-row">Tracker filtering <strong>NOT STARTED</strong></div><button class="panel-action" data-x="clear">Clear Browsing Data</button></div>';
-  if(kind==="downloads")p.innerHTML='<div class="panel-section"><div class="panel-title">Downloads</div><div class="panel-row">Folder <strong>Downloads/Synth Browser</strong></div><div class="panel-row">Auto-run <strong>Disabled</strong></div><div class="panel-row">Checksum verification <strong>NOT STARTED</strong></div></div>';
-  p.querySelectorAll("[data-x]").forEach(b=>b.onclick=async()=>{const cmd=b.dataset.x;try{if(cmd==="private")await invoke("new_tab",{private:true});if(cmd==="reopen")await invoke("reopen_closed_tab");if(cmd==="bookmarks"){const rows=await invoke("list_bookmarks");dataPanel("Bookmarks",rows.map(x=>[x.title,x.url]))}if(cmd==="history"){const rows=await invoke("list_history");dataPanel("History",rows.map(x=>[x.title||x.domain,x.url]))}if(cmd==="clear"){if(confirm("Clear local history and active webview browsing data?")){await invoke("clear_browsing_data");toast("Browsing data cleared")}}if(cmd==="devtools")await invoke("open_devtools");if(cmd==="runtime"){const x=await invoke("runtime_info");dataPanel("Runtime & Security",[[x.runtime,x.revision],["Azecotron Web",x.azecotronWeb.status],["Cortis",x.search.status+" · "+x.search.mode]])}if(cmd!=="bookmarks"&&cmd!=="history"&&cmd!=="runtime"){p.classList.add("hidden")}await refresh()}catch(e){toast(e)}})
+function applySettings() {
+  const theme = state.settings.theme || "dark";
+  document.body.dataset.theme = theme === "system"
+    ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+    : theme;
+  document.body.classList.toggle("quiet", state.settings.quiet_mode === "true");
+  const accent = state.settings.accent || "cyan";
+  document.documentElement.style.setProperty("--cyan", accent === "violet" ? "#9b7cff" : accent === "blue" ? "#5da9ff" : accent === "green" ? "#4ade80" : "#2ee6ff");
 }
-$("menu").onclick=()=>panel("menu")
-$("downloads").onclick=()=>panel("downloads")
-$("privacy").onclick=()=>panel("privacy")
 
-function dataPanel(title,rows){const p=$("panel");p.classList.remove("hidden");p.innerHTML='<div class="panel-section"><div class="panel-title">'+esc(title)+'</div><div id="rows"></div></div>';const h=p.querySelector("#rows");if(!rows.length){h.innerHTML='<div class="panel-row">Nothing here yet.</div>';return}rows.slice(0,30).forEach(r=>{const b=document.createElement("button");b.className="panel-action";b.innerHTML="<strong>"+esc(r[0])+"</strong><br><span style='color:#6f8192'>"+esc(r[1])+"</span>";b.onclick=()=>go(r[1]);h.appendChild(b)})}
+function renderTabs() {
+  const host = $("tabs");
+  host.replaceChildren();
+  const visible = state.tabs.filter(t => t.workspace === state.activeWorkspace);
+  visible.forEach((tab, index) => {
+    const el = document.createElement("div");
+    el.className = "tab" + (tab.id === state.activeId ? " active" : "");
+    el.draggable = true;
+    el.dataset.index = String(state.tabs.indexOf(tab));
+    el.dataset.id = tab.id;
+    const favicon = document.createElement("span");
+    favicon.className = "tab-favicon";
+    favicon.textContent = tab.loading ? "…" : (tab.private ? "◉" : "•");
+    favicon.style.color = tab.private ? "#8b63ff" : (tab.url.startsWith("https://") ? "#34d399" : "#2ee6ff");
+    const title = document.createElement("span");
+    title.className = "tab-title";
+    title.textContent = tab.title || "New Tab";
+    const close = document.createElement("button");
+    close.className = "tab-close";
+    close.textContent = "×";
+    close.setAttribute("aria-label", "Close tab");
+    close.onclick = e => { e.stopPropagation(); closeTab(tab.id); };
+    el.append(favicon, title, close);
+    el.onclick = () => activateTab(tab.id);
+    el.ondragstart = e => e.dataTransfer.setData("text/plain", tab.id);
+    el.ondragover = e => e.preventDefault();
+    el.ondrop = async e => {
+      e.preventDefault();
+      const fromId = e.dataTransfer.getData("text/plain");
+      const from = state.tabs.findIndex(t => t.id === fromId);
+      const to = state.tabs.findIndex(t => t.id === tab.id);
+      if (from >= 0 && to >= 0 && from !== to) {
+        try { await invoke("reorder_tab", { from, to }); await refresh(); } catch (err) { toast(err); }
+      }
+    };
+    host.appendChild(el);
+  });
+}
+
+function renderAddress() {
+  const tab = activeTab();
+  $("omnibox").value = tab && tab.url !== "synth://newtab" ? tab.url : "";
+  const url = tab?.url || "";
+  const secure = url.startsWith("https://");
+  $("siteState").textContent = url && url !== "synth://newtab" ? (secure ? "•" : "!") : "•";
+  $("siteState").style.color = secure ? "var(--good)" : (url ? "var(--warn)" : "var(--muted)");
+}
+
+function render() {
+  renderTabs();
+  renderAddress();
+  const tab = activeTab();
+  $("newtab").style.visibility = tab && tab.url === "synth://newtab" ? "visible" : "hidden";
+  $("workspaceButton").textContent = state.activeWorkspace;
+  applySettings();
+}
+
+async function refresh() {
+  const snapshot = await invoke("get_snapshot");
+  Object.assign(state, snapshot);
+  state.settings = await invoke("get_settings");
+  render();
+}
+
+async function go(value) {
+  const v = String(value || "").trim();
+  if (!v) return;
+  try { await invoke("navigate", { input: v }); await refresh(); }
+  catch (e) { toast("Unable to load this request."); }
+}
+
+async function activateTab(id) {
+  try { await invoke("activate_tab", { tabId:id }); await refresh(); } catch (e) { toast(e); }
+}
+
+async function closeTab(id) {
+  try { await invoke("close_tab", { tabId:id }); await refresh(); } catch (e) { toast(e); }
+}
+
+async function showWorkspaceMenu() {
+  const existing = $("workspaceMenu");
+  if (existing) { existing.remove(); return; }
+  const menu = document.createElement("div");
+  menu.id = "workspaceMenu";
+  menu.className = "workspace-menu";
+  state.workspaces.forEach(w => {
+    const row = document.createElement("button");
+    row.className = "workspace-item" + (w.name === state.activeWorkspace ? " active" : "");
+    row.innerHTML = "<span>" + esc(w.name) + "</span><span>" + (w.name === state.activeWorkspace ? "●" : "") + "</span>";
+    row.onclick = async () => {
+      try { await invoke("switch_workspace", { name:w.name }); await refresh(); menu.remove(); }
+      catch(e){ toast(e); }
+    };
+    menu.appendChild(row);
+  });
+  const create = document.createElement("button");
+  create.className = "workspace-item workspace-create";
+  create.textContent = "+ Create workspace";
+  create.onclick = async () => {
+    const name = prompt("Workspace name");
+    if (!name) return;
+    try { await invoke("create_workspace", { name }); await refresh(); menu.remove(); }
+    catch(e){ toast(e); }
+  };
+  menu.appendChild(create);
+  $("tabbar").appendChild(menu);
+}
+
+function showPanel() {
+  const p = $("panel");
+  p.classList.remove("hidden");
+  p.innerHTML = '<div class="panel-section"><div class="panel-title">Synth Browser</div>' +
+    '<button class="panel-action" data-cmd="private">New Private Tab</button>' +
+    '<button class="panel-action" data-cmd="reopen">Reopen Closed Tab</button>' +
+    '<button class="panel-action" data-cmd="shelf">Reading Shelf</button>' +
+    '<button class="panel-action" data-cmd="sessions">Saved Sessions</button>' +
+    '<button class="panel-action" data-cmd="bookmarks">Bookmarks</button>' +
+    '<button class="panel-action" data-cmd="history">History</button>' +
+    '<button class="panel-action" data-cmd="settings">Settings</button>' +
+    '<button class="panel-action" data-cmd="privacy">Privacy Shield</button>' +
+    '<button class="panel-action" data-cmd="runtime">Runtime Status</button>' +
+    '<button class="panel-action" data-cmd="devtools">Developer Tools</button>' +
+    '<button class="panel-action" data-cmd="clear">Clear Browsing Data</button>' +
+    '</div>';
+  p.querySelectorAll("[data-cmd]").forEach(b => b.onclick = () => runCommand(b.dataset.cmd));
+}
+
+async function runCommand(cmd) {
+  try {
+    if (cmd === "private") await invoke("new_tab",{private:true});
+    if (cmd === "reopen") await invoke("reopen_closed_tab");
+    if (cmd === "shelf") return showShelf();
+    if (cmd === "sessions") return showSessions();
+    if (cmd === "bookmarks") return showBookmarks();
+    if (cmd === "history") return showHistory();
+    if (cmd === "settings") return showSettings();
+    if (cmd === "privacy") return showPrivacy();
+    if (cmd === "runtime") return showRuntime();
+    if (cmd === "devtools") await invoke("open_devtools");
+    if (cmd === "clear") {
+      if (confirm("Clear local history and active browser data?")) { await invoke("clear_browsing_data"); toast("Browsing data cleared"); }
+    }
+    $("panel").classList.add("hidden");
+    await refresh();
+  } catch (e) { toast(e); }
+}
+
+function basePanel(title) {
+  const p=$("panel");
+  p.classList.remove("hidden");
+  p.innerHTML='<div class="panel-section"><div class="panel-title">'+esc(title)+'</div><div id="panelBody"></div></div>';
+  return p.querySelector("#panelBody");
+}
+
+async function showShelf() {
+  const body=basePanel("Reading Shelf");
+  const rows=await invoke("list_shelf");
+  if(!rows.length){body.innerHTML='<div class="panel-row">Your reading shelf is empty.</div><div class="panel-row">Save a page for later.</div>';return}
+  rows.forEach(item=>{
+    const row=document.createElement("div");row.className="reading-row";
+    row.innerHTML='<div class="reading-info"><div class="reading-title">'+esc(item.title||item.url)+'</div><div class="reading-url">'+esc(item.url)+'</div></div>';
+    const open=document.createElement("button");open.className="mini-action";open.textContent="Open";open.onclick=()=>go(item.url);
+    const read=document.createElement("button");read.className="mini-action";read.textContent=item.is_read?"Unread":"Read";read.onclick=async()=>{await invoke("toggle_shelf_read",{id:item.id});showShelf()};
+    const remove=document.createElement("button");remove.className="mini-action";remove.textContent="×";remove.onclick=async()=>{await invoke("remove_shelf",{id:item.id});showShelf()};
+    row.append(open,read,remove);body.appendChild(row);
+  });
+}
+
+async function showSessions() {
+  const body=basePanel("Saved Sessions");
+  const rows=await invoke("list_sessions");
+  const save=document.createElement("button");save.className="panel-action";save.textContent="+ Save current workspace session";
+  save.onclick=async()=>{const name=prompt("Session name");if(!name)return;try{await invoke("save_session",{name});toast("Session saved");showSessions()}catch(e){toast(e)}};
+  body.appendChild(save);
+  if(!rows.length){body.innerHTML+='<div class="panel-row">No saved sessions yet.</div>';return}
+  rows.forEach(s=>{
+    const b=document.createElement("button");b.className="panel-action";b.textContent=s.name;
+    b.onclick=async()=>{try{await invoke("open_session",{id:s.id,append:false});await refresh();}catch(e){toast(e)}};
+    body.appendChild(b);
+  });
+}
+
+async function showBookmarks() {
+  const body=basePanel("Bookmarks");
+  const rows=await invoke("list_bookmarks");
+  if(!rows.length){body.innerHTML='<div class="panel-row">No bookmarks yet.</div>';return}
+  rows.forEach(r=>{const b=document.createElement("button");b.className="panel-action";b.innerHTML="<strong>"+esc(r.title)+"</strong><br><span style='color:#718396'>"+esc(r.url)+"</span>";b.onclick=()=>go(r.url);body.appendChild(b)});
+}
+
+async function showHistory() {
+  const body=basePanel("History");
+  const rows=await invoke("list_history");
+  if(!rows.length){body.innerHTML='<div class="panel-row">No history yet.</div>';return}
+  rows.forEach(r=>{const b=document.createElement("button");b.className="panel-action";b.innerHTML="<strong>"+esc(r.title||r.domain||r.url)+"</strong><br><span style='color:#718396'>"+esc(r.url)+"</span>";b.onclick=()=>go(r.url);body.appendChild(b)});
+}
+
+async function showPrivacy() {
+  const body=basePanel("Privacy Shield");
+  body.innerHTML =
+    '<div class="panel-row">History storage <strong>Local SQLite</strong></div>' +
+    '<div class="panel-row">Private tabs <strong>Incognito runtime</strong></div>' +
+    '<div class="panel-row">Telemetry <strong>Not implemented</strong></div>' +
+    '<div class="panel-row">Tracker blocking <strong>NOT STARTED</strong></div>' +
+    '<div class="panel-row">HTTPS-only <strong>NOT STARTED</strong></div>';
+  const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear Browsing Data";clear.onclick=()=>runCommand("clear");body.appendChild(clear);
+}
+
+async function showRuntime() {
+  const body=basePanel("Runtime Status");
+  const info=await invoke("runtime_info");
+  body.innerHTML =
+    '<div class="panel-row">Browser runtime <strong>'+esc(info.runtime)+'</strong></div>' +
+    '<div class="panel-row">Runtime revision <strong>'+esc(info.revision)+'</strong></div>' +
+    '<div class="panel-row">Azecotron Web <strong>'+esc(info.azecotronWeb.status)+'</strong></div>' +
+    '<div class="panel-row">Cortis <strong>'+esc(info.search.status)+'</strong></div>' +
+    '<div class="panel-row">'+esc(info.search.mode)+'</div>';
+}
+
+async function showSettings() {
+  const body=basePanel("Settings");
+  const s=await invoke("get_settings");Object.assign(state.settings,s);applySettings();
+  body.innerHTML='';
+  const search=document.createElement("input");search.className="setting-control";search.placeholder="Search settings…";body.appendChild(search);
+  const grid=document.createElement("div");grid.className="settings-grid";body.appendChild(grid);
+
+  const addSelect=(key,label,options)=>{
+    const wrap=document.createElement("label");wrap.innerHTML='<div class="setting-label">'+label+'</div>';
+    const sel=document.createElement("select");sel.className="setting-control";options.forEach(([v,t])=>{const o=document.createElement("option");o.value=v;o.textContent=t;sel.appendChild(o)});
+    sel.value=s[key] || options[0][0];sel.onchange=async()=>{await invoke("set_setting",{key,value:sel.value});state.settings[key]=sel.value;applySettings()};
+    wrap.appendChild(sel);grid.appendChild(wrap);return wrap;
+  };
+  const addToggle=(key,label)=>{
+    const row=document.createElement("label");row.className="setting-toggle";row.innerHTML='<span>'+label+'</span>';
+    const input=document.createElement("input");input.type="checkbox";input.checked=(s[key]||"false")==="true";
+    input.onchange=async()=>{await invoke("set_setting",{key,value:String(input.checked)});state.settings[key]=String(input.checked);applySettings()};
+    row.appendChild(input);grid.appendChild(row);return row;
+  };
+
+  addSelect("theme","Theme",[["dark","Dark"],["light","Light"],["system","System"]]);
+  addSelect("accent","Accent",[["cyan","Cyan"],["violet","Violet"],["blue","Blue"],["green","Green"]]);
+  addSelect("density","Density",[["comfortable","Comfortable"],["compact","Compact"]]);
+  addToggle("show_shortcuts","Show shortcuts");
+  addToggle("show_recent","Show recent activity");
+  addToggle("search_history","Store search history");
+  addToggle("quiet_mode","Quiet Mode");
+  addSelect("default_zoom","Default zoom",[["75","75%"],["90","90%"],["100","100%"],["110","110%"],["125","125%"],["150","150%"]]);
+  const reset=document.createElement("button");reset.className="panel-action";reset.textContent="Reset settings";reset.onclick=async()=>{if(confirm("Reset Synth Browser settings?")){await invoke("reset_settings");state.settings={};await refresh();showSettings()}};grid.appendChild(reset);
+
+  search.oninput=()=>{
+    const q=search.value.toLowerCase();
+    [...grid.children].forEach(el=>{el.style.display=el.textContent.toLowerCase().includes(q)?"":"none"});
+  };
+}
+
+$("workspaceButton").onclick=showWorkspaceMenu;
+$("back").onclick=()=>invoke("back").catch(e=>toast(e));
+$("forward").onclick=()=>invoke("forward").catch(e=>toast(e));
+$("reload").onclick=()=>invoke("reload").catch(e=>toast(e));
+$("newTab").onclick=()=>invoke("new_tab",{private:false}).then(refresh).catch(toast);
+$("bookmark").onclick=async()=>{try{await invoke("add_bookmark");toast("Saved to Bookmarks")}catch(e){toast(e)}};
+$("shelf").onclick=async()=>{try{const tab=activeTab();if(tab?.url && tab.url!=="synth://newtab"){await invoke("add_to_shelf");toast("Saved to Reading Shelf")}else{showShelf()}}catch(e){toast(e)}};
+$("downloads").onclick=()=>runCommand("downloads");
+$("menu").onclick=showPanel;
+
+$("omnibox").addEventListener("input",async e=>{
+  const q=e.target.value.trim();
+  const wrap=$("omnibox").parentElement;
+  let box=wrap.querySelector(".suggestions");
+  if(!q){box?.remove();return}
+  if(!box){box=document.createElement("div");box.className="suggestions";wrap.appendChild(box)}
+  const candidates=[];
+  state.tabs.filter(t=>t.workspace===state.activeWorkspace&&t.title.toLowerCase().includes(q.toLowerCase())).slice(0,4).forEach(t=>candidates.push(["Tab",t.title,t.url]));
+  try{const hs=await invoke("list_history");hs.filter(h=>(h.title+h.url).toLowerCase().includes(q.toLowerCase())).slice(0,4).forEach(h=>candidates.push(["History",h.title||h.url,h.url]));}catch{}
+  box.replaceChildren(...candidates.slice(0,7).map(c=>{const r=document.createElement("div");r.className="suggestion";r.innerHTML="<span>"+esc(c[1])+"</span><span class='suggestion-type'>"+esc(c[0])+"</span>";r.onclick=()=>{box.remove();go(c[2])};return r}));
+});
+$("omnibox").addEventListener("keydown",e=>{if(e.key==="Enter"){$("omnibox").parentElement.querySelector(".suggestions")?.remove();go(e.target.value)}if(e.key==="Escape"){renderAddress();$("omnibox").parentElement.querySelector(".suggestions")?.remove()}});
+
+$("searchForm").onsubmit=e=>{e.preventDefault();go($("newtabSearch").value)};
+$("newtabSearch").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();go(e.target.value)}};
 
 const commands=[
-  ["New Tab","Ctrl+T",()=>invoke("new_tab",{private:false})],
-  ["New Private Tab","Ctrl+Shift+N",()=>invoke("new_tab",{private:true})],
-  ["Close Tab","Ctrl+W",()=>closeTab(state.activeId)],
-  ["Reopen Closed Tab","Ctrl+Shift+T",()=>invoke("reopen_closed_tab")],
-  ["Reload","Ctrl+R",()=>invoke("reload")],
-  ["Add Bookmark","Ctrl+D",()=>invoke("add_bookmark")],
-  ["History","Ctrl+H",()=>panel("menu")],
-  ["Clear Browsing Data","Ctrl+Shift+Delete",()=>{if(confirm("Clear browsing data?"))return invoke("clear_browsing_data")}],
-  ["Developer Tools","F12",()=>invoke("open_devtools")],
-  ["Runtime & Security","",()=>panel("menu")]
+ ["New Tab","Ctrl+T",()=>invoke("new_tab",{private:false})],
+ ["New Private Tab","Ctrl+Shift+N",()=>invoke("new_tab",{private:true})],
+ ["Close Tab","Ctrl+W",()=>closeTab(state.activeId)],
+ ["Reopen Closed Tab","Ctrl+Shift+T",()=>invoke("reopen_closed_tab")],
+ ["Reload","Ctrl+R",()=>invoke("reload")],
+ ["Add Bookmark","Ctrl+D",()=>invoke("add_bookmark")],
+ ["Reading Shelf","",()=>showShelf()],
+ ["Saved Sessions","",()=>showSessions()],
+ ["Workspaces","",()=>showWorkspaceMenu()],
+ ["Settings","",()=>showSettings()],
+ ["Privacy Shield","",()=>showPrivacy()],
+ ["Developer Tools","F12",()=>invoke("open_devtools")],
+ ["Clear Browsing Data","Ctrl+Shift+Delete",()=>runCommand("clear")]
 ];
-function palette(){
-  $("palettePanel").classList.remove("hidden");$("paletteInput").value="";$("paletteInput").focus();renderCommands("")
-}
-function closePalette(){$("palettePanel").classList.add("hidden")}
-function renderCommands(q){const m=commands.filter(x=>x[0].toLowerCase().includes(q.toLowerCase()));const host=$("paletteResults");host.replaceChildren();m.forEach((c,i)=>{const r=document.createElement("div");r.className="palette-result"+(i===0?" selected":"");r.innerHTML="<span>"+esc(c[0])+"</span><span class='palette-key'>"+esc(c[1])+"</span>";r.onclick=async()=>{closePalette();try{await c[2]();await refresh()}catch(e){toast(e)}};host.appendChild(r)})}
-$("palette").onclick=palette
-$("paletteInput").oninput=e=>renderCommands(e.target.value)
-$("paletteInput").onkeydown=async e=>{if(e.key==="Escape")closePalette();if(e.key==="Enter"){const c=commands.find(x=>x[0].toLowerCase().includes(e.target.value.toLowerCase()));if(c){closePalette();try{await c[2]();await refresh()}catch(err){toast(err)}}else{closePalette();go(e.target.value)}}}
+function openPalette(){ $("palettePanel").classList.remove("hidden");$("paletteInput").value="";$("paletteInput").focus();renderCommands("") }
+function closePalette(){ $("palettePanel").classList.add("hidden") }
+function renderCommands(q){const matches=commands.filter(x=>x[0].toLowerCase().includes(q.toLowerCase()));const host=$("paletteResults");host.replaceChildren();matches.forEach((c,i)=>{const row=document.createElement("div");row.className="palette-result"+(i===0?" selected":"");row.innerHTML="<span>"+esc(c[0])+"</span><span class='palette-key'>"+esc(c[1])+"</span>";row.onclick=async()=>{closePalette();try{await c[2]();await refresh()}catch(e){toast(e)}};host.appendChild(row)})}
+$("palette").onclick=openPalette;
+$("paletteInput").oninput=e=>renderCommands(e.target.value);
+$("paletteInput").onkeydown=async e=>{if(e.key==="Escape")closePalette();if(e.key==="Enter"){const c=commands.find(x=>x[0].toLowerCase().includes(e.target.value.toLowerCase()));if(c){closePalette();try{await c[2]();await refresh()}catch(err){toast(err)}}else{closePalette();go(e.target.value)}}};
 
-document.onkeydown=async e=>{
+document.addEventListener("click",e=>{
+  if(!e.target.closest("#workspaceButton")&&!e.target.closest("#workspaceMenu")) $("workspaceMenu")?.remove();
+  if(!e.target.closest("#panel")&&!e.target.closest("#menu")&&!e.target.closest("#downloads")&&!e.target.closest("#shelf")&&!e.target.closest("#privacy")) $("panel").classList.add("hidden");
+});
+
+document.addEventListener("keydown",async e=>{
  const m=e.ctrlKey||e.metaKey;
  if(m&&e.key.toLowerCase()==="l"){e.preventDefault();$("omnibox").focus();$("omnibox").select()}
- if(m&&e.key.toLowerCase()==="k"){e.preventDefault();palette()}
+ if(m&&e.key.toLowerCase()==="k"){e.preventDefault();openPalette()}
  if(m&&e.key.toLowerCase()==="t"){e.preventDefault();await invoke("new_tab",{private:false});await refresh()}
  if(m&&e.key.toLowerCase()==="w"){e.preventDefault();await closeTab(state.activeId)}
  if(m&&e.shiftKey&&e.key.toLowerCase()==="t"){e.preventDefault();await invoke("reopen_closed_tab");await refresh()}
  if(m&&e.key.toLowerCase()==="d"){e.preventDefault();$("bookmark").click()}
  if(m&&e.key.toLowerCase()==="r"){e.preventDefault();await invoke("reload")}
  if(e.key==="F12"){e.preventDefault();invoke("open_devtools").catch(toast)}
-}
+});
 
 listen("browser://snapshot",e=>{Object.assign(state,e.payload);render()});
 listen("browser://navigation",e=>{const t=state.tabs.find(x=>x.id===e.payload.tabId);if(t){t.url=e.payload.url;t.loading=e.payload.loading}render()});
@@ -95,4 +370,15 @@ listen("browser://title",e=>{const t=state.tabs.find(x=>x.id===e.payload.tabId);
 listen("browser://download",e=>toast(e.payload.status==="completed"?"Download complete":"Download "+e.payload.status));
 listen("browser://new-window",e=>go(e.payload.url));
 
-refresh().then(async()=>{try{state.runtime=await invoke("runtime_info");$("runtimeText").textContent=state.runtime.runtime;$("runtimeDot").className="dot "+(state.runtime.runtime.includes("WebView2")?"":"cyan")}catch(e){toast(e)}}).catch(toast);
+(async()=>{
+  try{
+    state.runtime=await invoke("runtime_info");
+    await refresh();
+    $("runtimeText").textContent=state.runtime.runtime;
+    $("runtimeDot").className="dot "+(state.runtime.runtime.includes("WebView2")?"":"cyan");
+    setTimeout(()=>$("boot").classList.add("hidden"),220);
+  }catch(e){
+    $("boot").classList.add("hidden");
+    toast(e);
+  }
+})();
