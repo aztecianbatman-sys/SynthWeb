@@ -1094,6 +1094,7 @@ async function showSettings() {
   toggle("quiet_mode", "Quiet Mode");
   toggle("https_only", "HTTPS-only");
   toggle("tracker_enabled", "Tracker protection policy");
+  toggle("autofill", "Browser autofill");
 
   const permissionTitle=document.createElement("div");
   permissionTitle.className="setting-label";
