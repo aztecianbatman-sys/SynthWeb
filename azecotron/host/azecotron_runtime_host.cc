@@ -58,19 +58,21 @@ std::unique_ptr<content::WebContents> AzecotronRuntimeHost::CreateTab(
 }
 
 bool AzecotronRuntimeHost::AdoptWebContents(
-    content::WebContents* web_contents,
+    std::unique_ptr<content::WebContents> web_contents,
     const GURL& url) {
   if (!web_contents)
     return false;
 
-  web_contents->SetDelegate(this);
-  Observe(web_contents);
-  AttachNativeView(web_contents);
+  primary_web_contents_ = std::move(web_contents);
+  content::WebContents* raw = primary_web_contents_.get();
+  raw->SetDelegate(this);
+  Observe(raw);
+  AttachNativeView(raw);
 
   if (url.is_valid()) {
     content::NavigationController::LoadURLParams load(url);
     load.transition_type = ui::PAGE_TRANSITION_TYPED;
-    web_contents->GetController().LoadURLWithParams(load);
+    raw->GetController().LoadURLWithParams(load);
   }
   return true;
 }
