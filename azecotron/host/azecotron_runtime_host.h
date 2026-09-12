@@ -31,6 +31,7 @@ class AzecotronRuntimeHost final : public content::WebContentsDelegate,
   ~AzecotronRuntimeHost() override;
 
   std::unique_ptr<content::WebContents> CreateTab(const GURL& url);
+  bool AdoptWebContents(content::WebContents* web_contents, const GURL& url);
   bool Navigate(content::WebContents* web_contents, const GURL& url);
   bool GoBack(content::WebContents* web_contents);
   bool GoForward(content::WebContents* web_contents);
