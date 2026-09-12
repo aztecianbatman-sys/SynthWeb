@@ -12,7 +12,7 @@ pub struct AzecotronStatus {
 pub fn executable_path() -> PathBuf {
     let repo_root = std::env::var_os("SYNTHWEB_ROOT").map(PathBuf::from);
     let source_root = repo_root.unwrap_or_else(|| PathBuf::from("."));
-    source_root.join("third_party").join("azecotron-chromium").join("src").join("out").join("Azecotron").join(if cfg!(windows) {"chrome.exe"} else {"chrome"})
+    source_root.join("third_party").join("azecotron-chromium").join("src").join("out").join("Azecotron").join(if cfg!(windows) {"azecotron_host.exe"} else {"azecotron_host"})
 }
 
 pub fn status() -> AzecotronStatus {
@@ -30,6 +30,7 @@ pub fn launch(profile_dir:PathBuf,url:&str,parent_hwnd:Option<u64>)->Result<Chil
     std::fs::create_dir_all(&profile_dir).map_err(|e|e.to_string())?;
     Command::new(path)
         .arg(format!("--user-data-dir={}",profile_dir.display()))
+        .arg("--no-first-run")
         .arg("--no-first-run")
         .arg("--disable-default-apps")
         .args(parent_hwnd.map(|h| vec![format!("--synth-parent-hwnd={h}")]).unwrap_or_default())
