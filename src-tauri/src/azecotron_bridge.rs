@@ -23,7 +23,7 @@ pub fn status() -> AzecotronStatus {
     AzecotronStatus{executable:path.display().to_string(),available:path.exists(),version,runtime:"Azecotron Web / Chromium Content API".into()}
 }
 
-pub fn launch(profile_dir:PathBuf,url:&str)->Result<Child,String>{
+pub fn launch(profile_dir:PathBuf,url:&str,parent_hwnd:Option<u64>)->Result<Child,String>{
     let path=executable_path();
     if !path.exists(){return Err(format!("Azecotron executable was not found at {}",path.display()))}
     if !(url.starts_with("https://")||url.starts_with("http://")||url=="about:blank"){return Err("Azecotron launch accepts only HTTP(S) URLs or about:blank.".into())}
@@ -32,6 +32,7 @@ pub fn launch(profile_dir:PathBuf,url:&str)->Result<Child,String>{
         .arg(format!("--user-data-dir={}",profile_dir.display()))
         .arg("--no-first-run")
         .arg("--disable-default-apps")
+        .args(parent_hwnd.map(|h| vec![format!("--synth-parent-hwnd={h}")]).unwrap_or_default())
         .arg(url)
         .spawn()
         .map_err(|e|format!("Could not start Azecotron: {e}"))
