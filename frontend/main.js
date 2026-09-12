@@ -1045,7 +1045,8 @@ function showAiAnswer(answer, title) {
   heading.className = "panel-row";
   heading.innerHTML = "<strong>" + esc(title || "Answer") + "</strong>";
   const output = document.createElement("div");
-  output.style.cssText = "padding:10px 0;font-size:12px;line-height:1.65;white-space:pre-wrap;color:#d4dee6";
+  output.className = "ai-stream-output";
+  output.style.cssText = "padding:10px 0;font-size:12px;line-height:1.65;white-space:pre-wrap;color:#d4dee6;max-height:420px;overflow:auto";
   output.textContent = answer;
   const back = document.createElement("button");
   back.className = "panel-action";
