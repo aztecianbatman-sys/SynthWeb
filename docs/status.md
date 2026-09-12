@@ -224,3 +224,16 @@ The production-boundary guard fails the build if content/shell is reintroduced u
 
 Source status: IMPLEMENTED IN SOURCE.
 Verification status: NOT VERIFIED until the pinned Chromium 152 checkout compiles on Windows and the native integration test suite passes.
+
+## Reference UI direction
+
+The New Tab is now intentionally aligned to the approved Synth visual reference:
+- compact dark browser chrome with restrained borders;
+- left Synth navigation rail;
+- centered Cortis search;
+- floating Synth Shield capsule on the right;
+- dense feature modules below the search area;
+- cyan/violet/green accent signals used sparingly;
+- real values only; unsupported capabilities display explicit states instead of invented metrics.
+
+The generated UI reference is a design target, not a source of runtime facts. All browser counts and capability states shown by the dashboard are derived from actual Synth state or are explicitly marked NOT VERIFIED / NOT STARTED / PLATFORM LIMITED.
