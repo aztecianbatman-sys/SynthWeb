@@ -31,7 +31,7 @@ class AzecotronRuntimeHost final : public content::WebContentsDelegate,
   ~AzecotronRuntimeHost() override;
 
   std::unique_ptr<content::WebContents> CreateTab(const GURL& url);
-  bool AdoptWebContents(content::WebContents* web_contents, const GURL& url);
+  bool AdoptWebContents(std::unique_ptr<content::WebContents> web_contents, const GURL& url);
   bool Navigate(content::WebContents* web_contents, const GURL& url);
   bool GoBack(content::WebContents* web_contents);
   bool GoForward(content::WebContents* web_contents);
@@ -73,6 +73,7 @@ class AzecotronRuntimeHost final : public content::WebContentsDelegate,
   raw_ptr<content::BrowserContext> browser_context_;
   uintptr_t parent_hwnd_ = 0;
   std::string tab_id_;
+  std::unique_ptr<content::WebContents> primary_web_contents_;
 };
 
 }  // namespace synth_azecotron
