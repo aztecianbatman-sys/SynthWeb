@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 #include <cstdint>
 
 #include "content/public/browser/navigation_handle.h"
@@ -11,9 +12,9 @@
 #include "base/memory/raw_ptr.h"
 
 #include "content/public/browser/web_contents_delegate.h"
-#include "content/public/browser/web_contents_observer.h"
 
 class GURL;
+namespace synth_azecotron { class AzecotronTabObserver; }
 
 namespace content {
 class BrowserContext;
@@ -22,8 +23,7 @@ class WebContents;
 
 namespace synth_azecotron {
 
-class AzecotronRuntimeHost final : public content::WebContentsDelegate,
-                                   public content::WebContentsObserver {
+class AzecotronRuntimeHost final : public content::WebContentsDelegate {
  public:
   explicit AzecotronRuntimeHost(content::BrowserContext* browser_context);
   AzecotronRuntimeHost(const AzecotronRuntimeHost&) = delete;
@@ -59,22 +59,15 @@ class AzecotronRuntimeHost final : public content::WebContentsDelegate,
       const content::StoragePartitionConfig& partition_config,
       content::SessionStorageNamespace* session_storage_namespace) override;
 
-  void RendererUnresponsive(content::WebContents* source, content::RenderWidgetHost* render_widget_host, base::RepeatingClosure hang_monitor_restarter) override;
-  void RendererResponsive(content::WebContents* source) override;
-  void DidNavigateMainFramePostCommit(content::WebContents* source) override;
-  void DidFinishNavigation(content::NavigationHandle* navigation_handle) override;
-  void DidStartLoading() override;
-  void DidStopLoading() override;
-  void DidChangeVisibleSecurityState() override;
 
  private:
   void AttachNativeView(content::WebContents* web_contents);
-  void EmitEvent(const char* type, content::WebContents* source, const std::string& extra_key = {}, const std::string& extra_value = {}) const;
 
   raw_ptr<content::BrowserContext> browser_context_;
   uintptr_t parent_hwnd_ = 0;
   std::string tab_id_;
   std::unique_ptr<content::WebContents> primary_web_contents_;
+  std::vector<std::unique_ptr<AzecotronTabObserver>> observers_;
 };
 
 }  // namespace synth_azecotron
