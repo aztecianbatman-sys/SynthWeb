@@ -69,6 +69,14 @@
     </div>
   </div>
 
+  <div id="onboarding" class="onboarding hidden" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+  <div class="onboarding-shell">
+    <div class="onboarding-top"><div class="onboarding-brand"><img src="./synth-mark.svg" alt=""><span>Synth Browser</span></div><span id="onboardingStep">1 / 4</span></div>
+    <div class="onboarding-progress"><i id="onboardingProgress"></i></div>
+    <section id="onboardingContent" class="onboarding-content"></section>
+    <div class="onboarding-actions"><button id="onboardingBack" class="onboarding-back">Back</button><div><button id="onboardingSkip" class="onboarding-skip">Skip</button><button id="onboardingNext" class="onboarding-next">Continue</button></div></div>
+  </div>
+</div>
   <div id="toast" class="toast"></div>
 </div>
 <script src="./main.js"></script>
