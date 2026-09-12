@@ -241,6 +241,10 @@ async function showHistory() {
   rows.forEach(r=>{const b=document.createElement("button");b.className="panel-action";b.innerHTML="<strong>"+esc(r.title||r.domain||r.url)+"</strong><br><span style='color:#718396'>"+esc(r.url)+"</span>";b.onclick=()=>go(r.url);body.appendChild(b)});
 }
 
+async function showDownloads() {
+  const body=basePanel("Downloads");
+  body.innerHTML='<div class="panel-row">Download folder <strong>Downloads/Synth Browser</strong></div><div class="panel-row">Auto-run <strong>Disabled</strong></div><div class="panel-row">Checksum verification <strong>NOT STARTED</strong></div><div class="panel-row">Actual download history <strong>Stored locally</strong></div>';
+}
 async function showPrivacy() {
   const body=basePanel("Privacy Shield");
   body.innerHTML =
@@ -302,11 +306,11 @@ async function showSettings() {
 $("workspaceButton").onclick=showWorkspaceMenu;
 $("back").onclick=()=>invoke("back").catch(e=>toast(e));
 $("forward").onclick=()=>invoke("forward").catch(e=>toast(e));
-$("reload").onclick=()=>invoke("reload").catch(e=>toast(e));
+$("reload").onclick=()=>invoke("stop_or_reload").catch(e=>toast(e));
 $("newTab").onclick=()=>invoke("new_tab",{private:false}).then(refresh).catch(toast);
 $("bookmark").onclick=async()=>{try{await invoke("add_bookmark");toast("Saved to Bookmarks")}catch(e){toast(e)}};
 $("shelf").onclick=async()=>{try{const tab=activeTab();if(tab?.url && tab.url!=="synth://newtab"){await invoke("add_to_shelf");toast("Saved to Reading Shelf")}else{showShelf()}}catch(e){toast(e)}};
-$("downloads").onclick=()=>runCommand("downloads");
+$("downloads").onclick=()=>showDownloads();
 $("menu").onclick=showPanel;
 
 $("omnibox").addEventListener("input",async e=>{
@@ -330,7 +334,7 @@ const commands=[
  ["New Private Tab","Ctrl+Shift+N",()=>invoke("new_tab",{private:true})],
  ["Close Tab","Ctrl+W",()=>closeTab(state.activeId)],
  ["Reopen Closed Tab","Ctrl+Shift+T",()=>invoke("reopen_closed_tab")],
- ["Reload","Ctrl+R",()=>invoke("reload")],
+ ["Stop / Reload","Ctrl+R",()=>invoke("stop_or_reload")],
  ["Add Bookmark","Ctrl+D",()=>invoke("add_bookmark")],
  ["Reading Shelf","",()=>showShelf()],
  ["Saved Sessions","",()=>showSessions()],
@@ -338,8 +342,13 @@ const commands=[
  ["Settings","",()=>showSettings()],
  ["Privacy Shield","",()=>showPrivacy()],
  ["Developer Tools","F12",()=>invoke("open_devtools")],
+ ["Print Page","Ctrl+P",()=>invoke("print_page")],
+ ["Zoom In","Ctrl++",()=>setZoom(110)],
+ ["Zoom Reset","Ctrl+0",()=>setZoom(100)],
+ ["Zoom Out","Ctrl+-",()=>setZoom(90)],
  ["Clear Browsing Data","Ctrl+Shift+Delete",()=>runCommand("clear")]
 ];
+async function setZoom(percent){try{await invoke("set_zoom",{percent});state.settings.default_zoom=String(percent);toast("Zoom "+percent+"%")}catch(e){toast(e)}}
 function openPalette(){ $("palettePanel").classList.remove("hidden");$("paletteInput").value="";$("paletteInput").focus();renderCommands("") }
 function closePalette(){ $("palettePanel").classList.add("hidden") }
 function renderCommands(q){const matches=commands.filter(x=>x[0].toLowerCase().includes(q.toLowerCase()));const host=$("paletteResults");host.replaceChildren();matches.forEach((c,i)=>{const row=document.createElement("div");row.className="palette-result"+(i===0?" selected":"");row.innerHTML="<span>"+esc(c[0])+"</span><span class='palette-key'>"+esc(c[1])+"</span>";row.onclick=async()=>{closePalette();try{await c[2]();await refresh()}catch(e){toast(e)}};host.appendChild(row)})}
@@ -360,8 +369,12 @@ document.addEventListener("keydown",async e=>{
  if(m&&e.key.toLowerCase()==="w"){e.preventDefault();await closeTab(state.activeId)}
  if(m&&e.shiftKey&&e.key.toLowerCase()==="t"){e.preventDefault();await invoke("reopen_closed_tab");await refresh()}
  if(m&&e.key.toLowerCase()==="d"){e.preventDefault();$("bookmark").click()}
- if(m&&e.key.toLowerCase()==="r"){e.preventDefault();await invoke("reload")}
+ if(m&&e.key.toLowerCase()==="r"){e.preventDefault();await invoke("stop_or_reload")}
  if(e.key==="F12"){e.preventDefault();invoke("open_devtools").catch(toast)}
+ if(m&&e.key.toLowerCase()==="p"){e.preventDefault();invoke("print_page").catch(toast)}
+ if(m&&e.key==="+"){e.preventDefault();setZoom(110)}
+ if(m&&e.key==="-"){e.preventDefault();setZoom(90)}
+ if(m&&e.key==="0"){e.preventDefault();setZoom(100)}
 });
 
 listen("browser://snapshot",e=>{Object.assign(state,e.payload);render()});
@@ -376,7 +389,7 @@ listen("browser://new-window",e=>go(e.payload.url));
     await refresh();
     $("runtimeText").textContent=state.runtime.runtime;
     $("runtimeDot").className="dot "+(state.runtime.runtime.includes("WebView2")?"":"cyan");
-    setTimeout(()=>$("boot").classList.add("hidden"),220);
+    setTimeout(()=>$("boot").classList.add("hidden"),1700);
   }catch(e){
     $("boot").classList.add("hidden");
     toast(e);
