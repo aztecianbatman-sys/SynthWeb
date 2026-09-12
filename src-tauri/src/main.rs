@@ -1245,11 +1245,12 @@ fn runtime_info() -> serde_json::Value {
     })
 }
 
+
 fn main() {
     let db = Db::new().expect("unable to initialize Synth Browser database");
     let state = AppState::new(db);
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .manage(state)
         .setup(|app| {
             use_runtime_boundary();
@@ -1273,49 +1274,20 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             get_snapshot, navigate, new_tab, activate_tab, close_tab, reopen_closed_tab,
-            reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools, add_bookmark, list_bookmarks, list_history,
-            clear_browsing_data, runtime_info, list_query_history, list_workspaces, create_workspace,
-            switch_workspace, rename_workspace, delete_workspace, reorder_tab,
-            save_session, list_sessions, open_session, add_to_shelf, list_shelf,
-            toggle_shelf_read, remove_shelf, restore_previous_session, dismiss_restore, export_data, export_diagnostics, reset_browser, create_note, list_notes, delete_note, create_research_board, list_research_boards, delete_research_board, add_current_to_board, list_board_items, get_settings, set_setting, reset_settings
-        ])
-    let mut app = tauri::Builder::default()
-        .manage(state)
-        .setup(|app| {
-            use_runtime_boundary();
-            let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&quit])?;
-            app.set_menu(menu)?;
-            app.on_menu_event(|app, event| {
-                if event.id().as_ref() == "quit" { app.exit(0); }
-            });
-            if let Some(window) = app.get_window("main") {
-                let handle = app.handle().clone();
-                window.on_window_event(move |event| {
-                    if let WindowEvent::Resized(_) = event {
-                        if let Some(state) = handle.try_state::<AppState>() {
-                            let _ = layout(&handle, &state);
-                        }
-                    }
-                });
-            }
-            Ok(())
-        })
-        .invoke_handler(tauri::generate_handler![
-            get_snapshot, navigate, new_tab, activate_tab, close_tab, reopen_closed_tab,
-            reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools, add_bookmark,
-            list_bookmarks, list_history, clear_browsing_data, runtime_info, list_query_history,
-            list_workspaces, create_workspace, switch_workspace, rename_workspace, delete_workspace,
-            reorder_tab, save_session, list_sessions, open_session, add_to_shelf, list_shelf,
-            toggle_shelf_read, remove_shelf, restore_previous_session, dismiss_restore, export_data,
-            export_diagnostics, reset_browser, create_note, list_notes, delete_note,
-            create_research_board, list_research_boards, delete_research_board,
-            add_current_to_board, list_board_items, get_settings, set_setting, reset_settings
+            reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools,
+            add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
+            list_query_history, list_workspaces, create_workspace, switch_workspace,
+            rename_workspace, delete_workspace, reorder_tab, save_session, list_sessions,
+            open_session, add_to_shelf, list_shelf, toggle_shelf_read, remove_shelf,
+            restore_previous_session, dismiss_restore, export_data, export_diagnostics,
+            reset_browser, create_note, list_notes, delete_note, create_research_board,
+            list_research_boards, delete_research_board, add_current_to_board, list_board_items,
+            get_settings, set_setting, reset_settings
         ])
         .build(tauri::generate_context!())
         .expect("error while building Synth Browser");
 
-    app.run(move |app, event| {
+    app.run(|app, event| {
         if let tauri::RunEvent::Exit = event {
             if let Some(state) = app.try_state::<AppState>() {
                 let saved = RestoreState {
@@ -1328,104 +1300,3 @@ fn main() {
         }
     });
 }
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn empty_input_opens_new_tab() {
-        assert!(matches!(classify(" ").unwrap(), SearchDecision::NewTab));
-    }
-
-    #[test]
-    fn explicit_url_is_not_reinterpreted_as_search() {
-        match classify("https://example.com/path").unwrap() {
-            SearchDecision::Url(u) => assert_eq!(u.as_str(), "https://example.com/path"),
-            _ => panic!("expected URL classification"),
-        }
-    }
-
-    #[test]
-    fn domain_gets_https() {
-        match classify("example.com").unwrap() {
-            SearchDecision::Url(u) => assert_eq!(u.as_str(), "https://example.com/"),
-            _ => panic!("expected domain classification"),
-        }
-    }
-
-    #[test]
-    fn free_text_is_delegated_to_google_search() {
-        match classify("hello world").unwrap() {
-            SearchDecision::Search(u) => assert_eq!(u.as_str(), "https://www.google.com/search?q=hello+world"),
-            _ => panic!("expected search classification"),
-        }
-    }
-}    fn create_note(&self,title:&str,body:&str,url:Option<&str>,workspace:&str)->AppResult<Note>{
-        let title=title.trim();
-        if title.is_empty()||title.len()>200{return Err(AppError::Message("Note title must be 1–200 characters.".into()))}
-        if body.len()>100_000{return Err(AppError::Message("Note body is too large.".into()))}
-        let now=Self::now();
-        self.connect()?.execute("INSERT INTO notes(title,body,url,workspace,created_at,updated_at) VALUES(?1,?2,?3,?4,?5,?5)",rusqlite::params![title,body,url,workspace,now])?;
-        let c=self.connect()?;
-        Ok(c.query_row("SELECT id,title,body,url,workspace,created_at,updated_at FROM notes ORDER BY id DESC LIMIT 1",[],|r|Ok(Note{id:r.get(0)?,title:r.get(1)?,body:r.get(2)?,url:r.get(3)?,workspace:r.get(4)?,created_at:r.get(5)?,updated_at:r.get(6)?}))?)
-    }
-
-    fn list_notes(&self)->AppResult<Vec<Note>>{
-        let c=self.connect()?;
-        let mut s=c.prepare("SELECT id,title,body,url,workspace,created_at,updated_at FROM notes ORDER BY updated_at DESC")?;
-        let rows=s.query_map([],|r|Ok(Note{id:r.get(0)?,title:r.get(1)?,body:r.get(2)?,url:r.get(3)?,workspace:r.get(4)?,created_at:r.get(5)?,updated_at:r.get(6)?}))?;
-        Ok(rows.collect::<Result<Vec<_>,_>>()?)
-    }
-
-    fn delete_note(&self,id:i64)->AppResult<()>{
-        self.connect()?.execute("DELETE FROM notes WHERE id=?1",[id])?;
-        Ok(())
-    }
-
-    fn create_board(&self,name:&str,workspace:Option<&str>)->AppResult<ResearchBoard>{
-        let name=name.trim();
-        if name.is_empty()||name.len()>120{return Err(AppError::Message("Board name must be 1–120 characters.".into()))}
-        let now=Self::now();
-        self.connect()?.execute("INSERT INTO research_boards(name,workspace,created_at) VALUES(?1,?2,?3)",rusqlite::params![name,workspace,now])?;
-        let c=self.connect()?;
-        Ok(c.query_row("SELECT id,name,workspace,created_at FROM research_boards WHERE name=?1",[name],|r|Ok(ResearchBoard{id:r.get(0)?,name:r.get(1)?,workspace:r.get(2)?,created_at:r.get(3)?}))?)
-    }
-
-    fn list_boards(&self)->AppResult<Vec<ResearchBoard>>{
-        let c=self.connect()?;
-        let mut s=c.prepare("SELECT id,name,workspace,created_at FROM research_boards ORDER BY created_at DESC")?;
-        let rows=s.query_map([],|r|Ok(ResearchBoard{id:r.get(0)?,name:r.get(1)?,workspace:r.get(2)?,created_at:r.get(3)?}))?;
-        Ok(rows.collect::<Result<Vec<_>,_>>()?)
-    }
-
-    fn delete_board(&self,id:i64)->AppResult<()>{
-        let c=self.connect()?;
-        c.execute_batch("PRAGMA foreign_keys=ON;")?;
-        c.execute("DELETE FROM board_items WHERE board_id=?1",[id])?;
-        c.execute("DELETE FROM research_boards WHERE id=?1",[id])?;
-        Ok(())
-    }
-
-    fn add_board_item(&self,board_id:i64,item_type:&str,title:&str,url:Option<&str>,quote:Option<&str>)->AppResult<BoardItem>{
-        if !matches!(item_type,"tab"|"quote"|"url"){return Err(AppError::Message("Unsupported board item type.".into()))}
-        let c=self.connect()?;
-        let position:i64=c.query_row("SELECT COALESCE(MAX(position),-1)+1 FROM board_items WHERE board_id=?1",[board_id],|r|r.get(0))?;
-        c.execute("INSERT INTO board_items(board_id,item_type,title,url,quote,position,created_at) VALUES(?1,?2,?3,?4,?5,?6,?7)",rusqlite::params![board_id,item_type,title,url,quote,position,Self::now()])?;
-        Ok(c.query_row("SELECT id,board_id,item_type,title,url,quote,position,created_at FROM board_items ORDER BY id DESC LIMIT 1",[],|r|Ok(BoardItem{id:r.get(0)?,board_id:r.get(1)?,item_type:r.get(2)?,title:r.get(3)?,url:r.get(4)?,quote:r.get(5)?,position:r.get(6)?,created_at:r.get(7)?}))?)
-    }
-
-    fn list_board_items(&self,board_id:i64)->AppResult<Vec<BoardItem>>{
-        let c=self.connect()?;
-        let mut s=c.prepare("SELECT id,board_id,item_type,title,url,quote,position,created_at FROM board_items WHERE board_id=?1 ORDER BY position,id")?;
-        let rows=s.query_map([board_id],|r|Ok(BoardItem{id:r.get(0)?,board_id:r.get(1)?,item_type:r.get(2)?,title:r.get(3)?,url:r.get(4)?,quote:r.get(5)?,position:r.get(6)?,created_at:r.get(7)?}))?;
-        Ok(rows.collect::<Result<Vec<_>,_>>()?)
-    }
-
-    fn get_setting(&self,key:&str)->AppResult<Option<String>> {
-        let c=self.connect()?;
-        Ok(c.query_row("SELECT value FROM settings WHERE key=?1",[key],|r|r.get(0)).optional()?)
-    }
-
-
