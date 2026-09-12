@@ -1526,6 +1526,11 @@ $("restoreNo").onclick = async () => {
   } catch (error) { toast(error); }
 };
 
+listen("azecotron://process-exited", (event) => {
+  const code = event.payload?.code;
+  toast(code === 0 ? "Azecotron closed." : "Azecotron exited unexpectedly.");
+});
+
 listen("azecotron://event", (event) => {
   const payload = event.payload || {};
   const tab = state.tabs.find((item) => item.id === payload.tab_id);
