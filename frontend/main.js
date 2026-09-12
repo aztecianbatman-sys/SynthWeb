@@ -191,4 +191,44 @@ async function showWorkspaceMenu() {
   const create=document.createElement("button");create.className="workspace-item workspace-create";create.textContent="+ Create workspace";create.onclick=async()=>{const n=prompt("Workspace name");if(!n)return;try{await invoke("create_workspace",{name:n});await refresh();menu.remove()}catch(e){toast(e)}};
   menu.appendChild(create);document.body.appendChild(menu);
 }
+async function showAssist(){
+  const body=basePanel("Synth Assist");
+  let info;
+  try{info=await invoke("ai_status")}catch(e){body.innerHTML="<div class='panel-row'>AI status unavailable.</div>";return}
+  body.innerHTML=
+    '<div class="panel-row">Status <strong>'+ (info.enabled?"Enabled":"Disabled") +'</strong></div>'+
+    '<div class="panel-row">Provider <strong>'+esc(info.provider)+'</strong></div>'+
+    '<div class="panel-row">Endpoint <strong>'+esc(info.endpoint)+'</strong></div>'+
+    '<div class="setting-label">Model</div>';
+  const model=document.createElement("input");model.className="setting-control";model.value=info.model;model.placeholder="e.g. llama3.2";model.onchange=async()=>{try{await invoke("set_setting",{key:"ai_model",value:model.value});toast("AI model saved")}catch(e){toast(e)}};
+  body.appendChild(model);
+  const endpoint=document.createElement("input");endpoint.className="setting-control";endpoint.value=info.endpoint;endpoint.placeholder="http://127.0.0.1:11434/v1";endpoint.onchange=async()=>{try{await invoke("set_setting",{key:"ai_endpoint",value:endpoint.value});toast("AI endpoint saved")}catch(e){toast(e)}};
+  body.appendChild(document.createElement("div")).textContent="Endpoint";
+  body.appendChild(endpoint);
+  const enabled=document.createElement("label");enabled.className="setting-toggle";enabled.innerHTML="<span>Enable Synth Assist</span>";
+  const check=document.createElement("input");check.type="checkbox";check.checked=info.enabled;check.onchange=async()=>{try{await invoke("set_setting",{key:"ai_enabled",value:String(check.checked)});showAssist()}catch(e){toast(e)}};
+  enabled.appendChild(check);body.appendChild(enabled);
+  const page=document.createElement("label");page.className="setting-toggle";page.innerHTML="<span>Allow page context on request</span>";
+  const pageCheck=document.createElement("input");pageCheck.type="checkbox";pageCheck.checked=(state.settings.ai_page_context||"false")==="true";pageCheck.onchange=async()=>{await invoke("set_setting",{key:"ai_page_context",value:String(pageCheck.checked)});state.settings.ai_page_context=String(pageCheck.checked)};
+  page.appendChild(pageCheck);body.appendChild(page);
+  const selection=document.createElement("label");selection.className="setting-toggle";selection.innerHTML="<span>Allow selection context on request</span>";
+  const selectionCheck=document.createElement("input");selectionCheck.type="checkbox";selectionCheck.checked=(state.settings.ai_selection_context||"false")==="true";selectionCheck.onchange=async()=>{await invoke("set_setting",{key:"ai_selection_context",value:String(selectionCheck.checked)});state.settings.ai_selection_context=String(selectionCheck.checked)};
+  selection.appendChild(selectionCheck);body.appendChild(selection);
+  const keyStatus=document.createElement("div");keyStatus.className="panel-row";keyStatus.innerHTML="Credential <strong>"+(info.keyStored?"Stored in OS secure storage":"Not stored")+"</strong>";body.appendChild(keyStatus);
+  const key=document.createElement("input");key.type="password";key.className="setting-control";key.placeholder=info.keyStored?"Replace secure API key":"Store API key securely";body.appendChild(key);
+  const save=document.createElement("button");save.className="panel-action";save.textContent="Save API key";save.onclick=async()=>{if(!key.value)return;try{await invoke("set_ai_key",{provider:info.provider,key:key.value});key.value="";toast("API key stored securely");showAssist()}catch(e){toast(e)}};body.appendChild(save);
+  const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear API key";clear.onclick=async()=>{try{await invoke("clear_ai_key",{provider:info.provider});toast("API key removed");showAssist()}catch(e){toast(e)}};body.appendChild(clear);
+  const models=document.createElement("button");models.className="panel-action";models.textContent="Load available models";models.onclick=async()=>{try{const rows=await invoke("list_ai_models");toast(rows.length?("Models: "+rows.slice(0,4).join(", ")): "Provider returned no models")}catch(e){toast(e)}};body.appendChild(models);
+  const ask=document.createElement("button");ask.className="panel-action";ask.textContent="Ask about current page";ask.onclick=async()=>{try{await invoke("request_page_context");toast("Page context requested…")}catch(e){toast(e)}};body.appendChild(ask);
+  const explain=document.createElement("button");explain.className="panel-action";explain.textContent="Explain current selection";explain.onclick=async()=>{try{await invoke("request_selection_context");toast("Selection context requested…")}catch(e){toast(e)}};body.appendChild(explain);
+  const note=document.createElement("div");note.className="panel-row";note.textContent="Page or selection text is sent only after you explicitly request context.";body.appendChild(note);
+}
+
+function showAiAnswer(answer,title){
+  const body=basePanel("Synth Assist");
+  const h=document.createElement("div");h.className="panel-row";h.innerHTML="<strong>"+esc(title||"Answer")+"</strong>";body.appendChild(h);
+  const out=document.createElement("div");out.style.cssText="padding:10px 0;font-size:12px;line-height:1.65;white-space:pre-wrap;color:#d4dee6";out.textContent=answer;body.appendChild(out);
+  const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Back to Assist";clear.onclick=showAssist;body.appendChild(clear);
+}
+
 
