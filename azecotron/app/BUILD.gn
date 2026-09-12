@@ -1,0 +1,28 @@
+executable("azecotron_host") {
+  sources = [
+    "azecotron_app_main.cc",
+  ]
+
+  deps = [
+    "//build/win:default_exe_manifest",
+    "//content/shell:content_shell_lib",
+    "//content/shell",
+    "//sandbox",
+  ]
+
+  data_deps = [
+    "//content/shell:pak",
+    "//tools/v8_context_snapshot:v8_context_snapshot",
+  ]
+
+  if (is_win) {
+    configs -= [ "//build/config/win:default_incremental_linking" ]
+    configs += [ "//build/config/win:default_large_module_incremental_linking" ]
+  }
+}
+
+group("azecotron") {
+  deps = [
+    ":azecotron_host",
+  ]
+}
