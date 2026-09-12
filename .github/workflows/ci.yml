@@ -35,7 +35,8 @@ jobs:
         run: cargo install tauri-cli --version 2.11.5 --locked
       - name: Build
         shell: pwsh
-        run: cargo tauri build --config src-tauri/tauri.conf.json
+        working-directory: src-tauri
+        run: cargo tauri build
       - uses: actions/upload-artifact@v4
         with:
           name: synth-browser-windows
