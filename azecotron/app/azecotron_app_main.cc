@@ -57,7 +57,7 @@ void AttachExistingContentShellToSynth() {
     const auto raw =
         static_cast<uintptr_t>(std::strtoull(parent_value.c_str(), nullptr, 10));
     HWND parent = reinterpret_cast<HWND>(raw);
-    HWND child = g_runtime_host->GetNativeViewForEmbedding();
+    HWND child = static_cast<HWND>(g_runtime_host->GetNativeViewForEmbedding());
 
     if (parent && child) {
       SetParent(child, parent);
