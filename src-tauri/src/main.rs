@@ -328,6 +328,14 @@ impl Db {
                updated_at INTEGER NOT NULL,
                PRIMARY KEY(origin,kind)
              );
+             CREATE TABLE IF NOT EXISTS permission_history(
+               id INTEGER PRIMARY KEY,
+               origin TEXT NOT NULL,
+               kind TEXT NOT NULL,
+               decision TEXT NOT NULL,
+               occurred_at INTEGER NOT NULL
+             );
+             CREATE INDEX IF NOT EXISTS idx_permission_history_time ON permission_history(occurred_at DESC);
              CREATE TABLE IF NOT EXISTS download_verification(
                download_id INTEGER PRIMARY KEY,
                checksum TEXT NOT NULL,
@@ -482,6 +490,24 @@ impl Db {
         let c=self.connect()?;
         Ok(c.query_row("SELECT policy FROM site_permissions WHERE origin=?1 AND kind=?2",[origin,kind],|r|r.get(0)).optional()?)
     }
+
+    fn record_permission_history(&self,origin:&str,kind:&str,decision:&str)->AppResult<()>{
+        self.connect()?.execute("INSERT INTO permission_history(origin,kind,decision,occurred_at) VALUES(?1,?2,?3,?4)",rusqlite::params![origin,kind,decision,Self::now()])?;
+        Ok(())
+    }
+
+    fn list_permission_history(&self,origin:Option<&str>)->AppResult<Vec<serde_json::Value>>{
+        let c=self.connect()?;
+        let sql=if origin.is_some(){"SELECT origin,kind,decision,occurred_at FROM permission_history WHERE origin=?1 ORDER BY occurred_at DESC LIMIT 100"}else{"SELECT origin,kind,decision,occurred_at FROM permission_history ORDER BY occurred_at DESC LIMIT 250"};
+        let mut s=c.prepare(sql)?;
+        let rows=if let Some(o)=origin{
+            s.query_map([o],|r|Ok(serde_json::json!({"origin":r.get::<_,String>(0)?,"kind":r.get::<_,String>(1)?,"decision":r.get::<_,String>(2)?,"occurred_at":r.get::<_,i64>(3)?})))?
+        }else{
+            s.query_map([],|r|Ok(serde_json::json!({"origin":r.get::<_,String>(0)?,"kind":r.get::<_,String>(1)?,"decision":r.get::<_,String>(2)?,"occurred_at":r.get::<_,i64>(3)?})))?
+        };
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
+    }
+
 
     fn set_download_checksum(&self,id:i64,checksum:&str)->AppResult<()>{
         self.connect()?.execute(
@@ -1518,6 +1544,11 @@ fn remove_shelf(state: State<AppState>, id: i64) -> AppResult<()> {
 fn origin_key(url:&Url)->String{
     let port=url.port().map(|p|format!(":{p}")).unwrap_or_default();
     format!("{}://{}{}",url.scheme(),url.host_str().unwrap_or(""),port)
+}
+
+#[tauri::command]
+fn list_permission_history(state: State<AppState>, origin:Option<String>)->AppResult<Vec<serde_json::Value>>{
+    state.db.list_permission_history(origin.as_deref())
 }
 
 #[tauri::command]
