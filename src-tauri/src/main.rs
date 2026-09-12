@@ -1037,6 +1037,25 @@ fn delete_workspace(app: tauri::AppHandle, state: State<AppState>, id: i64) -> A
 }
 
 #[tauri::command]
+fn move_tab_to_workspace(app: tauri::AppHandle, state: State<AppState>, tab_id:String, name:String)->AppResult<()> {
+    if !state.workspaces.lock().unwrap().iter().any(|w|w.name==name){return Err(AppError::Message("Workspace not found.".into()))}
+    let mut tabs=state.tabs.lock().unwrap();
+    let tab=tabs.iter_mut().find(|t|t.id==tab_id).ok_or_else(||AppError::Message("tab not found".into()))?;
+    tab.workspace=name.clone();
+    if tab.workspace!=*state.active_workspace.lock().unwrap() {
+        let active_now=state.active_id.lock().unwrap().clone();
+        if active_now==tab_id {
+            if let Some(next)=tabs.iter().find(|t|t.workspace==*state.active_workspace.lock().unwrap()).map(|t|t.id.clone()){*state.active_id.lock().unwrap()=next;}
+            else {drop(tabs);drop(state);return Ok(());}
+        }
+    }
+    drop(tabs);
+    layout(&app,&state)?;
+    emit_snapshot(&app,&state);
+    Ok(())
+}
+
+#[tauri::command]
 fn toggle_pin(app: tauri::AppHandle, state: State<AppState>, tab_id:String)->AppResult<()>{
     let mut tabs=state.tabs.lock().unwrap();
     let tab=tabs.iter_mut().find(|t|t.id==tab_id).ok_or_else(||AppError::Message("tab not found".into()))?;
@@ -1343,7 +1362,7 @@ fn main() {
             reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools,
             add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
             list_query_history, list_workspaces, create_workspace, switch_workspace,
-            rename_workspace, delete_workspace, reorder_tab, toggle_pin, close_other_tabs, close_tabs_right, duplicate_workspace, save_session, list_sessions,
+            rename_workspace, delete_workspace, reorder_tab, move_tab_to_workspace, toggle_pin, close_other_tabs, close_tabs_right, duplicate_workspace, save_session, list_sessions,
             open_session, add_to_shelf, list_shelf, toggle_shelf_read, remove_shelf,
             restore_previous_session, dismiss_restore, export_data, export_diagnostics,
             reset_browser, create_note, list_notes, delete_note, create_research_board,
