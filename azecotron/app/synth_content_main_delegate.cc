@@ -2,6 +2,9 @@
 
 #include "azecotron/app/synth_content_browser_client.h"
 #include "content/public/browser/content_browser_client.h"
+#include "content/public/gpu/content_gpu_client.h"
+#include "content/public/renderer/content_renderer_client.h"
+#include "content/public/utility/content_utility_client.h"
 #include "content/public/common/content_client.h"
 
 namespace synth_azecotron {
