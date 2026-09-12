@@ -115,7 +115,7 @@ Privacy/security: PARTIALLY FUNCTIONAL
 Synth Assist: PARTIALLY FUNCTIONAL
 Reader/Page Lens/Research: FUNCTIONAL IN SOURCE
 Profiles/extensions/advanced permissions: NOT STARTED
-Azecotron Web Chromium fork source/build workflow: IMPLEMENTED IN SOURCE; binary build: NOT VERIFIED
+Azecotron Web Chromium fork source/build workflow: IMPLEMENTED IN SOURCE; Cortis provider transformation: IMPLEMENTED IN SOURCE; binary build: NOT VERIFIED
 Performance certification: NOT TESTED
 Packaging: CONFIGURED, NOT VERIFIED
 Release acceptance: NOT YET MET
