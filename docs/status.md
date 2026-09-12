@@ -147,7 +147,7 @@ Implemented in this pass:
 - Copy URL and Copy Title + URL commands
 - TrackerEngine rule/allowlist/blocklist/counter architecture; current external-request interception remains platform-limited by the Tauri host-webview path
 
-Not yet verified: Rust compilation, Windows packaging, Azecotron native Content API integration, Chromium DevTools protocol integration, and full runtime smoke/performance tests.
+Not yet verified: Rust compilation, Windows packaging, Windows Chromium native host compilation, HWND embedding smoke test, Chromium DevTools protocol integration, and full runtime smoke/performance tests.
 
 
 ## Privacy-first onboarding
@@ -163,3 +163,19 @@ Shielded is the default. Its real defaults include search/history memory off, re
 For existing profiles, Shielded setup offers an explicit cleanup action. When selected, the browser clears local history, search memory, download metadata, site permissions, permission history, AI history, and runtime browsing data. Bookmarks and saved sessions are intentionally retained.
 
 The current Tauri/Wry host does not intercept external web resource requests, so full network-level tracker blocking and third-party cookie policy enforcement remain PLATFORM LIMITED until the Azecotron Chromium network/runtime integration is active. Tauri's current documentation confirms that external URLs are outside the current on_web_resource_request interception path. citeturn920487search1turn920487search5
+
+## Native Azecotron host integration pass
+
+Implemented in source:
+- native Chromium ContentMain bootstrap with Windows sandbox initialization
+- AzecotronRuntimeHost attached to a real Chromium WebContents
+- native WebContents view attachment to the Synth host HWND on Windows
+- navigation/load/security/renderer health event emission
+- popup/new-WebContents event path
+- Rust stdout IPC bridge for native events
+- Azecotron process supervision and exit reporting
+- explicit native executable path override for packaging
+- Tauri Runtime Status detection and launch action
+- explicit GN dependency from azecotron_host to the Content API host target
+
+The runtime still uses Chromium Content Shell services as the initial integration harness. Because Chromium marks Content Shell libraries test-only, this phase is not yet the production browser application. The next native step is replacing the Content Shell delegate/client stack with Synth's own ContentMain/BrowserContext implementation while retaining the same BrowserRuntime seam.
