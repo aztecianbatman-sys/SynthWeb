@@ -177,7 +177,7 @@ function render() {
 }
 
 
-const onboardingState={step:0,profileName:"",privacy:"strict",theme:"dark",showRecent:false,searchHistory:false};
+const onboardingState={step:0,profileName:"",privacy:"strict",theme:"dark",showRecent:false,searchHistory:false,wipeExisting:true};
 function onboardingSteps(){
   return [
     {
@@ -215,6 +215,7 @@ function renderOnboarding(){
   $("onboardingSkip").style.display=onboardingState.step===0?"none":"inline-block";
   $("onboardingNext").textContent=onboardingState.step===steps.length-1?"Finish":"Continue";
   if(onboardingState.step===1){
+    const wipe=document.getElementById("obWipe"); if(wipe){wipe.checked=onboardingState.wipeExisting;wipe.onchange=e=>onboardingState.wipeExisting=e.target.checked}
     document.querySelectorAll('input[name="privacyMode"]').forEach(input=>{
       input.onchange=()=>{onboardingState.privacy=input.value;document.querySelectorAll(".onboarding-choice").forEach(x=>x.classList.remove("selected"));input.closest(".onboarding-choice")?.classList.add("selected")}
     });
@@ -253,6 +254,7 @@ async function completeOnboarding(){
   };
   try{
     if(!balanced) await invoke("privacy_preset");
+    if(!balanced && onboardingState.wipeExisting) await invoke("clear_browsing_data");
     settings.show_recent=balanced?"true":"false";
     settings.search_history=balanced?"true":"false";
     await invoke("complete_onboarding",{settings});
