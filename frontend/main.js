@@ -502,28 +502,22 @@ async function showProfiles(){
     const create=document.createElement("button");create.className="panel-action";create.textContent="+ Create profile";create.onclick=async()=>{const name=prompt("Profile name");if(!name)return;try{await invoke("create_profile",{name});toast("Launching new profile…")}catch(e){toast(e)}};body.appendChild(create);
   }
 }
-async function showDownloads() {
-  const body = basePanel("Downloads");
-  try {
-    const rows = await invoke("list_downloads");
-    body.innerHTML = '<div class="panel-row">Folder <strong>Downloads/Synth Browser</strong></div>' +
-      '<div class="panel-row">Auto-run <strong>Disabled</strong></div>' +
-      '<div class="panel-row">Checksum verification <strong>NOT STARTED</strong></div>';
-    if (!rows.length) {
-      body.innerHTML += '<div class="panel-row">No downloads yet.</div>';
-      return;
-    }
-    rows.slice(0, 25).forEach((download) => {
-      const row = document.createElement("div");
-      row.className = "reading-row";
-      const filename = download.path ? download.path.split(/[\\\\/]/).pop() : download.url;
-      row.innerHTML = '<div class="reading-info"><div class="reading-title">' + esc(filename) + '</div><div class="reading-url">' +
-        esc(download.status) + ' · ' + esc(download.path || download.url) + '</div></div>';
-      body.appendChild(row);
+async function showDownloads(){
+  const body=basePanel("Downloads");
+  try{
+    const rows=await invoke("list_downloads");
+    const head=document.createElement("div");head.className="panel-row";head.innerHTML='Folder <strong>Downloads/Synth Browser</strong>';body.appendChild(head);
+    if(!rows.length){body.innerHTML+='<div class="panel-row">No downloads yet.</div>';return}
+    rows.slice(0,25).forEach(d=>{
+      const row=document.createElement("div");row.className="reading-row";
+      const info=document.createElement("div");info.className="reading-info";
+      const filename=d.path?d.path.split(/[\\\\/]/).pop():d.url;
+      info.innerHTML='<div class="reading-title">'+esc(filename)+'</div><div class="reading-url">'+esc(d.status)+' · '+esc(d.verification||"unverified")+'</div>';
+      const verify=document.createElement("button");verify.className="mini-action";verify.textContent="Verify";
+      verify.onclick=async()=>{const sum=prompt("Expected SHA-256 checksum (64 hex characters)");if(!sum)return;try{const result=await invoke("verify_download",{id:d.id,expected:sum});toast(result==="verified"?"Checksum verified":"Checksum mismatch");showDownloads()}catch(e){toast(e)}};
+      row.append(info,verify);body.appendChild(row);
     });
-  } catch (error) {
-    toast(error);
-  }
+  }catch(e){toast(e)}
 }
 
 async function showBookmarks() {
@@ -767,31 +761,50 @@ function renderPageSource(payload){
   $("sourcePanel").classList.remove("hidden");
   $("sourceContent").textContent=payload.html||"";
 }
-async function showPrivacy() {
-  const body = basePanel("Privacy Shield");
-  const httpsOnly = state.settings.https_only === "true";
-  body.innerHTML =
-    '<div class="panel-row">History storage <strong>Local SQLite</strong></div>' +
-    '<div class="panel-row">Private tabs <strong>Incognito runtime</strong></div>' +
-    '<div class="panel-row">Telemetry <strong>Not implemented</strong></div>' +
-    '<div class="panel-row">Tracker blocking <strong>NOT STARTED</strong></div>' +
-    '<div class="panel-row">HTTPS-only <strong>' + (httpsOnly ? "Enabled" : "Disabled") + '</strong></div>';
-  const clear = document.createElement("button");
-  clear.className = "panel-action";
-  clear.textContent = "Clear Browsing Data";
-  clear.onclick = () => runClear();
-  body.appendChild(clear);
+async function showPrivacy(){
+  const body=basePanel("Privacy Shield");
+  const httpsOnly=state.settings.https_only==="true";
+  body.innerHTML='<div class="panel-row">Connection <strong>'+ (httpsOnly?"HTTPS-only enabled":"Standard HTTPS policy") +'</strong></div>'+
+    '<div class="panel-row">Telemetry <strong>Disabled / not implemented</strong></div>'+
+    '<div class="panel-row">Tracker blocking <strong>PLATFORM LIMITED</strong></div>'+
+    '<div class="panel-row">Request interception <strong>Host WebView does not expose external-URL interception in this Tauri path</strong></div>';
+  const perm=document.createElement("button");perm.className="panel-action";perm.textContent="Per-site permissions";perm.onclick=showSitePermissions;body.appendChild(perm);
+  const cookies=document.createElement("button");cookies.className="panel-action";cookies.textContent="Current site cookies";cookies.onclick=showCookies;body.appendChild(cookies);
+  const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear current site data";clear.onclick=async()=>{if(!confirm("Clear cookies, local storage, session storage and indexed databases for the current site?"))return;try{await invoke("clear_current_site_data");toast("Current site data cleared");}catch(e){toast(e)}};body.appendChild(clear);
+  const all=document.createElement("button");all.className="panel-action";all.textContent="Clear all browser data";all.onclick=runClear;body.appendChild(all);
 }
 
-async function runClear() {
-  if (!confirm("Clear local history, search history and active browser data?")) return;
-  try {
-    await invoke("clear_browsing_data");
-    toast("Browsing data cleared");
-    await refresh();
-  } catch (error) {
-    toast(error);
-  }
+async function showSitePermissions(){
+  const body=basePanel("Per-site permissions");
+  let currentOrigin="";
+  try{const info=await invoke("site_info");currentOrigin=info.secure?(new URL(info.url)).origin:(new URL(info.url)).origin}catch{}
+  const rows=await invoke("list_site_permissions",{origin:currentOrigin||null});
+  body.innerHTML='<div class="panel-row">Origin <strong>'+esc(currentOrigin||"No active site")+'</strong></div>';
+  const kinds=[["permission_camera","Camera"],["permission_microphone","Microphone"],["permission_geolocation","Location"],["permission_notifications","Notifications"],["permission_display_capture","Screen sharing"],["permission_clipboard","Clipboard read"],["permission_local_fonts","Local fonts"],["permission_sensors","Sensors"]];
+  kinds.forEach(([key,label])=>{
+    const current=rows.find(r=>r.kind===key)?.policy||"prompt";
+    const wrap=document.createElement("label");wrap.className="setting-label";wrap.textContent=label;
+    const select=document.createElement("select");select.className="setting-control";
+    [["prompt","Ask"],["deny","Block"],["allow","Allow"]].forEach(([v,t])=>{const o=document.createElement("option");o.value=v;o.textContent=t;select.appendChild(o)});
+    select.value=current;select.onchange=async()=>{try{await invoke("set_site_permission",{origin:currentOrigin,kind:key,policy:select.value});toast(label+" policy updated")}catch(e){toast(e)}};
+    body.append(wrap,select);
+  });
+  const reset=document.createElement("button");reset.className="panel-action";reset.textContent="Reset this site's permission overrides";reset.onclick=async()=>{if(!currentOrigin)return;await invoke("reset_site_permissions",{origin:currentOrigin});showSitePermissions()};body.appendChild(reset);
+  const history=document.createElement("button");history.className="panel-action";history.textContent="Permission history";history.onclick=async()=>{const items=await invoke("list_permission_history",{origin:currentOrigin||null});const b=basePanel("Permission history");items.slice(0,40).forEach(x=>{const r=document.createElement("div");r.className="panel-row";r.textContent=x.origin+" · "+x.kind+" · "+x.decision; b.appendChild(r)})};body.appendChild(history);
+}
+
+async function showCookies(){
+  const body=basePanel("Current site cookies");
+  try{
+    const cookies=await invoke("list_current_site_cookies");
+    if(!cookies.length){body.innerHTML='<div class="panel-row">No cookies found for this URL.</div>';return}
+    cookies.forEach(cookie=>{
+      const row=document.createElement("div");row.className="reading-row";
+      const info=document.createElement("div");info.className="reading-info";info.innerHTML='<div class="reading-title">'+esc(cookie.name)+'</div><div class="reading-url">'+esc(cookie.domain)+esc(cookie.path)+' · '+(cookie.secure?"Secure":"")+' '+(cookie.http_only?"HttpOnly":"")+'</div>';
+      const del=document.createElement("button");del.className="mini-action";del.textContent="Delete";del.onclick=async()=>{try{await invoke("delete_current_site_cookie",{name:cookie.name,domain:cookie.domain,path:cookie.path});toast("Cookie deleted");showCookies()}catch(e){toast(e)}};
+      row.append(info,del);body.appendChild(row);
+    });
+  }catch(e){toast(e)}
 }
 
 async function showSiteSecurity() {
