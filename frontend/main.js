@@ -142,6 +142,26 @@ async function cortisSearch(query, mode=state.searchMode) {
   catch(e){toast("Cortis could not complete that search.")}
 }
 
+async function processOmnibox(value){
+  const v=String(value||"").trim();
+  const lower=v.toLowerCase();
+  if(lower.startsWith("open ")){return go(v.slice(5).trim())}
+  if(lower.startsWith("search ")){return cortisSearch(v.slice(7).trim())}
+  if(lower.startsWith("zoom ")){
+    const n=Number(v.slice(5).trim().replace("%",""));
+    if(Number.isFinite(n)&&n>=50&&n<=200){return setZoom(n)}
+    toast("Zoom must be 50–200%.");return;
+  }
+  if(lower.startsWith("workspace ")){
+    const name=v.slice(10).trim();if(!name)return;
+    try{await invoke("switch_workspace",{name});await refresh()}catch(e){toast(e)}
+    return;
+  }
+  if(lower.startsWith("bookmarks ")){await showBookmarks();return}
+  if(lower.startsWith("history ")){await showHistory();return}
+  return go(v);
+}
+
 async function go(value) {
   const v = String(value || "").trim();
   if (!v) return;
