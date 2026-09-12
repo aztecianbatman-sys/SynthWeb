@@ -164,6 +164,51 @@ async function renderRecent() {
   }
 }
 
+function featureCard({icon,title,description,status,metric,action,label="Open",tone="cyan"}){
+  return '<article class="feature-card" data-tone="'+tone+'"><div class="feature-top"><span class="feature-icon">'+icon+'</span><span class="feature-state">'+esc(status)+'</span></div><h3>'+esc(title)+'</h3><p>'+esc(description)+'</p>'+(metric?'<div class="feature-metric">'+metric+'</div>':'')+'<div class="feature-actions"><button class="feature-action primary" data-feature="'+esc(action)+'">'+esc(label)+'</button></div><span class="feature-glow"></span></article>';
+}
+
+function renderFeatureDashboard(){
+  const grid=$("featureGrid");if(!grid)return;
+  const tabCount=state.tabs.length;
+  const workspaceCount=state.workspaces.length;
+  const profileCount=(state.profiles||[]).length;
+  const privateTabs=state.tabs.filter(t=>t.private).length;
+  const runtime=state.runtime||{};
+  const azecotron=runtime.azecotronWeb?.status||"BUILD / INTEGRATION";
+  const privacy=state.settings.https_only==="true"&&state.settings.search_history==="false"&&state.settings.ai_enabled!=="true";
+  grid.innerHTML=[
+    featureCard({icon:"✦",title:"Synth Assist",description:"Chat with your configured model, search with AI, or work from explicitly requested context.",status:state.settings.ai_enabled==="true"?"ENABLED":"OFF BY DEFAULT",metric:state.settings.ai_enabled==="true"?"Provider · "+esc(state.settings.ai_provider||"custom"):"No remote AI is running",action:"assist",tone:"violet"}),
+    featureCard({icon:"◈",title:"Privacy Center",description:"Manage permissions, cookies, site data, HTTPS-only mode and local privacy controls.",status:privacy?"SHIELDED":"CUSTOM",metric:privateTabs+" private tab"+(privateTabs===1?"":"s"),action:"privacy",tone:"cyan"}),
+    featureCard({icon:"◉",title:"Profiles & Guest",description:"Separate browser data by profile, or start a disposable Guest session.",status:state.guest?"GUEST":"ACTIVE",metric:profileCount+" saved profile"+(profileCount===1?"":"s"),action:"profiles",tone:"green"}),
+    featureCard({icon:"⌘",title:"Command Palette",description:"Search commands, navigation tools, DevTools and browser actions without leaving the keyboard.",status:"READY",metric:"Ctrl+K · F12 · Ctrl+F",action:"palette",tone:"violet"}),
+    featureCard({icon:"⊞",title:"Extensions",description:"Extension architecture is reserved for the native Chromium runtime and is not faked in this build.",status:"NOT STARTED",metric:"Chromium runtime required",action:"extensions",label:"View status",tone:"violet"}),
+    featureCard({icon:"◌",title:"Browser Features",description:"Tabs, workspaces, Reader Mode, Page Lens, source viewing, find-in-page and sessions.",status:"LIVE",metric:tabCount+" open tab"+(tabCount===1?"":"s")+" · "+workspaceCount+" workspace"+(workspaceCount===1?"":"s"),action:"overview",tone:"cyan"}),
+    featureCard({icon:"◍",title:"Media & WebRTC",description:"Permission plumbing exists, but full Chromium media/device verification waits for Azecotron.",status:"PARTIAL",metric:"Native permission layer",action:"permissions",label:"Permissions",tone:"violet"}),
+    featureCard({icon:"↓",title:"Downloads",description:"Real download history, local file actions and SHA-256 integrity verification.",status:"LIVE",metric:"Checksums available",action:"downloads",tone:"green"}),
+    featureCard({icon:"◇",title:"Bookmarks · History · Reading",description:"Keep useful pages locally organized without requiring a cloud account.",status:"LIVE",metric:"Local SQLite",action:"library",tone:"violet"}),
+    featureCard({icon:"▦",title:"Workspaces & Sessions",description:"Organize tabs into isolated workspaces and save sessions for later restoration.",status:"LIVE",metric:workspaceCount+" workspace"+(workspaceCount===1?"":"s"),action:"workspaces",tone:"cyan"}),
+    featureCard({icon:"ϟ",title:"Performance & Reliability",description:"Crash recovery, persistent state and source-level diagnostics are in place; measured benchmarks are not yet certified.",status:"NOT VERIFIED",metric:"Windows benchmark required",action:"runtime",tone:"violet"}),
+    featureCard({icon:"⬡",title:"Azecotron Web",description:"Pinned Chromium fork with reproducible patch/build tooling. Native Content API integration is the remaining major runtime milestone.",status:esc(azecotron),metric:"Chromium 152.0.7977.119",action:"azecotron",label:"Runtime status",tone:"cyan"})
+  ].join("");
+  grid.querySelectorAll("[data-feature]").forEach(btn=>btn.onclick=async()=>{
+    const action=btn.dataset.feature;
+    try{
+      if(action==="assist")return showAssist();
+      if(action==="privacy")return showPrivacy();
+      if(action==="profiles")return showProfiles();
+      if(action==="palette")return $("palette").click();
+      if(action==="overview")return openOverview();
+      if(action==="downloads")return showDownloads();
+      if(action==="library")return showBookmarks();
+      if(action==="workspaces")return showWorkspaceMenu();
+      if(action==="runtime"||action==="azecotron")return showRuntime();
+      if(action==="permissions")return showSitePermissions();
+      if(action==="extensions")return toast("Extension support waits for the native Azecotron Chromium runtime.");
+    }catch(e){toast(e)}
+  });
+}
+
 function render() {
   renderTabs();
   renderAddress();
@@ -174,6 +219,7 @@ function render() {
   });
   applySettings();
   renderRecent();
+  renderFeatureDashboard();
 }
 
 
