@@ -193,7 +193,7 @@ function renderFeatureDashboard(){
     featureCard({icon:"↓",title:"Downloads",description:"Real download history, local file actions and SHA-256 integrity verification.",status:"LIVE",metric:"Checksums available",action:"downloads",tone:"green"}),
     featureCard({icon:"◇",title:"Bookmarks · History · Reading",description:"Keep useful pages locally organized without requiring a cloud account.",status:"LIVE",metric:"Local SQLite",action:"library",tone:"violet"}),
     featureCard({icon:"▦",title:"Workspaces & Sessions",description:"Organize tabs into isolated workspaces and save sessions for later restoration.",status:"LIVE",metric:workspaceCount+" workspace"+(workspaceCount===1?"":"s"),action:"workspaces",tone:"cyan"}),
-    featureCard({icon:"ϟ",title:"Performance & Reliability",description:"Crash recovery, persistent state and source-level diagnostics are in place; measured benchmarks are not yet certified.",status:"NOT VERIFIED",metric:"Windows benchmark required",action:"runtime",tone:"violet"}),
+    featureCard({icon:"ϟ",title:"Performance & Reliability",description:"Crash recovery, persistent state and source-level diagnostics are in place; measured benchmarks are not yet certified.",status:"NOT VERIFIED",metric:"Windows benchmark required",action:"performance",tone:"violet"}),
     featureCard({icon:"⬡",title:"Azecotron Web",description:"Pinned Chromium fork with reproducible patch/build tooling. Native Content API integration is the remaining major runtime milestone.",status:esc(azecotron),metric:"Chromium 152.0.7977.119",action:"azecotron",label:"Runtime status",tone:"cyan"})
   ].join("");
   grid.querySelectorAll("[data-feature]").forEach(btn=>btn.onclick=async()=>{
@@ -206,10 +206,11 @@ function renderFeatureDashboard(){
       if(action==="overview")return openOverview();
       if(action==="downloads")return showDownloads();
       if(action==="library")return showBookmarks();
-      if(action==="workspaces")return showWorkspaceMenu();
+      if(action==="workspaces")return showSessions();
       if(action==="runtime"||action==="azecotron")return showRuntime();
-      if(action==="permissions")return showSitePermissions();
-      if(action==="extensions")return toast("Extension support waits for the native Azecotron Chromium runtime.");
+      if(action==="performance")return showPerformance();
+      if(action==="permissions")return showMedia();
+      if(action==="extensions")return showExtensions();
     }catch(e){toast(e)}
   });
 }
@@ -1042,18 +1043,72 @@ async function showTrackerStatus(){
   }catch(e){toast(e)}
 }
 
-async function showPrivacy(){
-  const body=basePanel("Privacy Shield");
-  const httpsOnly=state.settings.https_only==="true";
-  body.innerHTML='<div class="panel-row">Connection <strong>'+ (httpsOnly?"HTTPS-only enabled":"Standard HTTPS policy") +'</strong></div>'+
-    '<div class="panel-row">Telemetry <strong>Disabled / not implemented</strong></div>'+
-    '<div class="panel-row">Tracker blocking <strong>PLATFORM LIMITED</strong></div>'+
-    '<div class="panel-row">Request interception <strong>Host WebView does not expose external-URL interception in this Tauri path</strong></div>';
-  const perm=document.createElement("button");perm.className="panel-action";perm.textContent="Per-site permissions";perm.onclick=showSitePermissions;body.appendChild(perm);
-  const cookies=document.createElement("button");cookies.className="panel-action";cookies.textContent="Current site cookies";cookies.onclick=showCookies;body.appendChild(cookies);
-  const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear current site data";clear.onclick=async()=>{if(!confirm("Clear cookies, local storage, session storage and indexed databases for the current site?"))return;try{await invoke("clear_current_site_data");toast("Current site data cleared");}catch(e){toast(e)}};body.appendChild(clear);
-  const all=document.createElement("button");all.className="panel-action";all.textContent="Clear all browser data";all.onclick=runClear;body.appendChild(all);
+async function showExtensions(){
+  const body=basePanel("Extensions");
+  body.innerHTML='<div class="security-hero"><div class="security-orb">⌘</div><div><div class="panel-title">Native extension runtime</div><strong>NOT STARTED</strong><div class="reading-url">Requires Azecotron extension services</div></div></div>';
+  const items=[
+    ["Install / enable / disable","Waiting for Chromium extension runtime"],
+    ["Permissions","Waiting for Chromium extension permission store"],
+    ["Update management","Waiting for verified extension updater"],
+    ["Compatibility tests","Chrome Web Store compatibility is not claimed"]
+  ];
+  items.forEach(([a,b])=>{const r=document.createElement("div");r.className="panel-row";r.innerHTML=esc(a)+' <strong>'+esc(b)+'</strong>';body.appendChild(r)});
+  const runtime=document.createElement("button");runtime.className="panel-action";runtime.textContent="Open Azecotron runtime status";runtime.onclick=showRuntime;body.appendChild(runtime);
 }
+
+async function showMedia(){
+  const body=basePanel("Media & WebRTC");
+  const permissionKeys=[["permission_camera","Camera"],["permission_microphone","Microphone"],["permission_display_capture","Screen sharing"],["permission_notifications","Notifications"]];
+  body.innerHTML='<div class="panel-row">The current host exposes native permission prompts, but full device routing/WebRTC verification waits for Azecotron.</div>';
+  permissionKeys.forEach(([key,label])=>{
+    const row=document.createElement("div");row.className="reading-row";
+    const policy=state.settings[key]||"prompt";
+    row.innerHTML='<div class="reading-info"><div class="reading-title">'+label+'</div><div class="reading-url">Policy: '+esc(policy)+'</div></div>';
+    const manage=document.createElement("button");manage.className="mini-action";manage.textContent="Manage";manage.onclick=showSitePermissions;
+    row.appendChild(manage);body.appendChild(row);
+  });
+  const runtime=document.createElement("button");runtime.className="panel-action";runtime.textContent="Runtime capability status";runtime.onclick=showRuntime;body.appendChild(runtime);
+}
+
+async function showPerformance(){
+  const body=basePanel("Performance & Reliability");
+  let az=null,info=null;
+  try{az=await invoke("azecotron_status");info=await invoke("runtime_info")}catch{}
+  const rows=[
+    ["Current runtime",info?.runtime||"Unknown"],
+    ["Azecotron build",az?.available?"Available":"Not built"],
+    ["Startup benchmark","NOT VERIFIED"],
+    ["10 / 50 / 100 / 200 tab tests","NOT VERIFIED"],
+    ["1h / 4h stability","NOT VERIFIED"],
+    ["GPU acceleration","NOT VERIFIED"],
+    ["Crash recovery","Source implemented; runtime test pending"],
+    ["Memory growth","NOT VERIFIED"]
+  ];
+  rows.forEach(([a,b])=>{const row=document.createElement("div");row.className="panel-row";row.innerHTML=esc(a)+' <strong>'+esc(b)+'</strong>';body.appendChild(row)});
+  const diag=document.createElement("button");diag.className="panel-action";diag.textContent="Export diagnostics";diag.onclick=async()=>{try{const x=await invoke("export_diagnostics");toast("Diagnostics exported: "+x.path)}catch(e){toast(e)}};body.appendChild(diag);
+}
+
+async function showPrivacy(){
+  const body=basePanel("Synth Shield");
+  try{
+    const info=await invoke("site_info");
+    const httpsOnly=state.settings.https_only==="true";
+    const tracker=await invoke("tracker_status");
+    const permissionRows=await invoke("list_site_permissions",{origin:(new URL(info.url)).origin});
+    body.innerHTML=
+      '<div class="security-hero"><div class="security-orb">◇</div><div><div class="panel-title">Privacy posture</div><strong>'+esc(httpsOnly&&state.settings.search_history==="false"&&state.settings.ai_enabled!=="true"?"SHIELDED":"CUSTOM")+'</strong><div class="reading-url">'+esc(info.host||"Current site")+'</div></div></div>'+
+      '<div class="shield-mini-grid"><div><span>Trackers</span><b>'+String(state.trackerBlocked||0)+'</b></div><div><span>Cookies</span><b>'+String(info.cookieCount??"—")+'</b></div><div><span>Permissions</span><b>'+String(permissionRows.length)+'</b></div><div><span>History</span><b>'+esc(state.settings.search_history==="true"?"ON":"OFF")+'</b></div></div>'+
+      '<div class="panel-row">HTTPS-only <strong>'+esc(httpsOnly?"Enabled":"Disabled")+'</strong></div>'+
+      '<div class="panel-row">Native tracker interception <strong>'+esc(tracker.interception)+'</strong></div>'+
+      '<div class="panel-row">'+esc(tracker.requestInterception)+'</div>';
+    const site=document.createElement("button");site.className="panel-action";site.textContent="Per-site permissions";site.onclick=showSitePermissions;body.appendChild(site);
+    const cookies=document.createElement("button");cookies.className="panel-action";cookies.textContent="Cookies & site storage";cookies.onclick=showCookies;body.appendChild(cookies);
+    const report=document.createElement("button");report.className="panel-action";report.textContent="Privacy diagnostics";report.onclick=async()=>{try{const data=await invoke("export_diagnostics");toast("Diagnostics exported: "+data.path)}catch(e){toast(e)}};body.appendChild(report);
+    const strict=document.createElement("button");strict.className="panel-action";strict.textContent="Apply Shielded privacy preset";strict.onclick=async()=>{try{await invoke("privacy_preset");await refresh();toast("Shielded preset applied");showPrivacy()}catch(e){toast(e)}};body.appendChild(strict);
+    const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear browsing data";clear.onclick=async()=>{if(confirm("Clear history, search memory, downloads, permissions and local AI history?")){try{await invoke("clear_browsing_data");await refresh();toast("Browsing data cleared");showPrivacy()}catch(e){toast(e)}}};body.appendChild(clear);
+  }catch(e){body.innerHTML='<div class="panel-row">No active site.</div>'}
+}
+
 
 async function showSitePermissions(){
   const body=basePanel("Per-site permissions");
