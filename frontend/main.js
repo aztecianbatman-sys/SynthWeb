@@ -366,6 +366,7 @@ function wireHomeRail(){
       if(action==="profiles")return showProfiles();
       if(action==="extensions")return toast("Extensions are waiting for the native Azecotron extension runtime.");
       if(action==="settings")return showSettings();
+      if(action==="tools")return showBrowserTools();
     };
   });
   $("railClose").onclick=()=>document.body.classList.toggle("rail-collapsed");
@@ -1048,6 +1049,26 @@ async function showTrackerStatus(){
   }catch(e){toast(e)}
 }
 
+async function showBrowserTools(){
+  const body=basePanel("Browser Tools");
+  const tools=[
+    ["Print current page","Real Chromium/Tauri print command",async()=>invoke("print_page"),"Available"],
+    ["Screenshot","Capture API is awaiting native runtime support",async()=>toast("Screenshot is runtime-limited in the current host."),"Platform limited"],
+    ["Save page / archive","Full archive writer is waiting for native Chromium page-save APIs",async()=>toast("Save page is waiting for Azecotron."),"Pending"],
+    ["PDF viewer","Built-in Chromium PDF surface will be used by Azecotron",async()=>toast("PDF viewer is waiting for Azecotron."),"Pending"],
+    ["Picture-in-picture","Requires native Chromium media/PiP plumbing",async()=>toast("Picture-in-picture is waiting for Azecotron."),"Pending"],
+    ["Fullscreen","Requires native Chromium fullscreen delegate",async()=>toast("Fullscreen is waiting for Azecotron."),"Pending"],
+    ["WebRTC devices","Camera/microphone permission policies are available",async()=>showMedia(),"Partial"],
+    ["Media controls","Native media session integration waits for Azecotron",async()=>showMedia(),"Partial"]
+  ];
+  tools.forEach(([name,desc,action,status])=>{
+    const row=document.createElement("div");row.className="tool-row";
+    row.innerHTML='<div class="tool-copy"><strong>'+esc(name)+'</strong><span>'+esc(desc)+'</span></div><div class="tool-state">'+esc(status)+'</div>';
+    const button=document.createElement("button");button.className="mini-action";button.textContent=status==="Available"?"Run":"Open";
+    button.onclick=action;row.appendChild(button);body.appendChild(row);
+  });
+}
+
 async function showExtensions(){
   const body=basePanel("Extensions");
   body.innerHTML='<div class="security-hero"><div class="security-orb">⌘</div><div><div class="panel-title">Native extension runtime</div><strong>NOT STARTED</strong><div class="reading-url">Requires Azecotron extension services</div></div></div>';
@@ -1584,6 +1605,7 @@ const commands = [
   ["Privacy Shield", "", () => showPrivacy()],
   ["Site Capsule", "", () => showSiteSecurity()],
   ["Tracker Protection", "", () => showTrackerStatus()],
+  ["Browser Tools", "", () => showBrowserTools()],
   ["Downloads", "Ctrl+J", () => showDownloads()],
   ["Print Page", "Ctrl+P", () => invoke("print_page")],
   ["Developer Tools", "F12", () => invoke("open_devtools")],
