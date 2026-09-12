@@ -768,14 +768,20 @@ fn switch_workspace(app: tauri::AppHandle, state: State<AppState>, name: String)
     }
     *state.active_workspace.lock().unwrap() = name.clone();
     let current = state.active_id.lock().unwrap().clone();
-    let should_switch = state.tabs.lock().unwrap().iter().any(|t| t.id == current && t.workspace == name);
-    if !should_switch {
-        if let Some(tab) = state.tabs.lock().unwrap().iter().find(|t| t.workspace == name) {
-            *state.active_id.lock().unwrap() = tab.id.clone();
-        } else {
-            drop(should_switch);
-            new_tab(app.clone(), state.clone(), false)?;
-        }
+    let target = state.tabs.lock().unwrap().iter().find(|t| t.id == current && t.workspace == name).map(|t| t.id.clone())
+        .or_else(|| state.tabs.lock().unwrap().iter().find(|t| t.workspace == name).map(|t| t.id.clone()));
+    if let Some(id) = target {
+        *state.active_id.lock().unwrap() = id;
+    } else {
+        let id = state.next_tab_id();
+        state.tabs.lock().unwrap().push(Tab {
+            id: id.clone(),
+            title: "New Tab".into(),
+            url: "synth://newtab".into(),
+            pinned: false, muted: false, private: false, loading: false,
+            workspace: name, has_webview: false
+        });
+        *state.active_id.lock().unwrap() = id;
     }
     layout(&app, &state)?;
     emit_snapshot(&app, &state);
@@ -797,14 +803,15 @@ fn rename_workspace(state: State<AppState>, id: i64, name: String) -> AppResult<
 fn delete_workspace(app: tauri::AppHandle, state: State<AppState>, id: i64) -> AppResult<()> {
     let current = state.workspaces.lock().unwrap().iter().find(|w|w.id==id).map(|w|w.name.clone()).ok_or_else(||AppError::Message("Workspace not found.".into()))?;
     state.db.delete_workspace(id)?;
-    let target = state.db.list_workspaces()?.into_iter().find(|w|w.name=="Default").map(|w|w.name).unwrap_or_else(||"Default".into());
+    let target = "Default".to_string();
     {
         let mut tabs = state.tabs.lock().unwrap();
         for tab in tabs.iter_mut() { if tab.workspace==current { tab.workspace=target.clone(); } }
     }
     *state.workspaces.lock().unwrap() = state.db.list_workspaces()?;
-    *state.active_workspace.lock().unwrap() = target;
-    if let Some(tab)=state.tabs.lock().unwrap().iter().find(|t|t.workspace==*state.active_workspace.lock().unwrap()) { *state.active_id.lock().unwrap()=tab.id.clone(); }
+    *state.active_workspace.lock().unwrap() = target.clone();
+    let first_default = state.tabs.lock().unwrap().iter().find(|t|t.workspace==target).map(|t|t.id.clone());
+    if let Some(tab_id)=first_default { *state.active_id.lock().unwrap()=tab_id; }
     layout(&app,&state)?;
     emit_snapshot(&app,&state);
     Ok(())
