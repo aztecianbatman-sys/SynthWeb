@@ -1789,6 +1789,22 @@ fn dismiss_restore(state: State<AppState>) -> AppResult<()> {
 }
 
 #[tauri::command]
+async fn synth_ai_search(state: State<AppState>, query:String)->AppResult<String>{
+    if state.db.get_setting("ai_enabled")?.as_deref()!=Some("true"){return Err(AppError::Message("Synth Assist is disabled.".into()))}
+    let provider=state.db.get_setting("ai_provider")?.unwrap_or_else(||"openrouter".into());
+    if provider!="openrouter"{return Err(AppError::Message("AI Search currently requires the OpenRouter provider.".into()))}
+    let endpoint=state.db.get_setting("ai_endpoint")?.unwrap_or_else(||"https://openrouter.ai/api/v1".into());
+    let mut model=state.db.get_setting("ai_model")?.unwrap_or_default();
+    if model.trim().is_empty(){return Err(AppError::Message("Select an OpenRouter model first.".into()))}
+    if !model.ends_with(":online"){model.push_str(":online");}
+    let answer=ai::chat(&endpoint,"openrouter",&model,
+        "You are Synth Browser AI Search. Answer using the provider's web-search grounding when available. Clearly distinguish sourced facts from uncertainty. Do not invent citations.",
+        "",&query).await.map_err(AppError::Message)?;
+    let _=state.db.add_ai_history("openrouter",&model,&query,&answer);
+    Ok(answer)
+}
+
+#[tauri::command]
 fn ai_presets()->Vec<ai::ProviderPreset>{ai::presets()}
 
 #[tauri::command]
