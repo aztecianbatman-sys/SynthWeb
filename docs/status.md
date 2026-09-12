@@ -56,8 +56,6 @@ The implementation follows the master prompt incrementally. Statuses below descr
 - Workspace UI exposes management through contextual interaction; a dedicated polished workspace management surface is still pending.
 
 ## DESIGNED / NOT STARTED
-- full profile manager and Guest Mode
-- per-profile browser data isolation
 - extension manager and extension permission UI
 - full site permission center for camera/microphone/location/notifications/etc.
 - tracker-blocking rule engine and measured interception counters
@@ -114,8 +112,14 @@ Workspaces/sessions/shelf: FUNCTIONAL IN SOURCE
 Privacy/security: PARTIALLY FUNCTIONAL
 Synth Assist: PARTIALLY FUNCTIONAL
 Reader/Page Lens/Research: FUNCTIONAL IN SOURCE
-Profiles/extensions/advanced permissions: NOT STARTED
+Profiles: FUNCTIONAL IN SOURCE; Guest Mode: FUNCTIONAL IN SOURCE; full site permission center/extensions: NOT STARTED
 Azecotron Web Chromium fork source/build workflow: IMPLEMENTED IN SOURCE; Cortis provider transformation: IMPLEMENTED IN SOURCE; binary build: NOT VERIFIED
 Performance certification: NOT TESTED
 Packaging: CONFIGURED, NOT VERIFIED
 Release acceptance: NOT YET MET
+
+## Profiles and permissions in this phase
+
+Profiles use separate native profile roots for the SQLite browser database and Tauri webview data directory. Switching profiles relaunches the app into the selected profile so data boundaries are not faked. Guest Mode uses a unique temporary profile root and deletes it on exit.
+
+The current host webview runtime uses real Tauri/Wry permission handling. Sensitive permissions default to Ask through the native permission system; clipboard read, local fonts, and sensors default to Block. Browser policies can be changed in Settings. Full per-site management and Chromium-native permission delegation remain pending the Azecotron runtime integration.
