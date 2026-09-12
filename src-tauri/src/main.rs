@@ -45,6 +45,8 @@ struct Tab {
 struct Snapshot {
     tabs: Vec<Tab>,
     active_id: String,
+    active_workspace: String,
+    workspaces: Vec<Workspace>,
     runtime_name: String,
     runtime_revision: String,
     azecotron_status: String,
@@ -68,6 +70,32 @@ struct HistoryEntry {
     domain: String,
     workspace: String,
     visited_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Workspace {
+    id: i64,
+    name: String,
+    icon: String,
+    accent: String,
+    position: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SavedSession {
+    id: i64,
+    name: String,
+    created_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ShelfItem {
+    id: i64,
+    title: String,
+    url: String,
+    tags: String,
+    is_read: bool,
+    saved_at: i64,
 }
 
 #[derive(Clone)]
@@ -119,8 +147,32 @@ impl Db {
                created_at INTEGER NOT NULL,
                finished_at INTEGER
              );
+             CREATE TABLE IF NOT EXISTS workspaces(
+               id INTEGER PRIMARY KEY,
+               name TEXT NOT NULL UNIQUE,
+               icon TEXT NOT NULL DEFAULT 'square',
+               accent TEXT NOT NULL DEFAULT '#2ee6ff',
+               position INTEGER NOT NULL DEFAULT 0
+             );
+             CREATE TABLE IF NOT EXISTS sessions(
+               id INTEGER PRIMARY KEY,
+               name TEXT NOT NULL UNIQUE,
+               created_at INTEGER NOT NULL,
+               data TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS reading_shelf(
+               id INTEGER PRIMARY KEY,
+               title TEXT NOT NULL,
+               url TEXT NOT NULL UNIQUE,
+               tags TEXT NOT NULL DEFAULT '',
+               is_read INTEGER NOT NULL DEFAULT 0,
+               saved_at INTEGER NOT NULL
+             );
              INSERT INTO schema_meta(version)
-             SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM schema_meta);"
+             SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM schema_meta);
+             INSERT INTO workspaces(name,icon,accent,position)
+             SELECT 'Default','square','#2ee6ff',0
+             WHERE NOT EXISTS (SELECT 1 FROM workspaces WHERE name='Default');"
         )?;
         Ok(())
     }
@@ -182,6 +234,100 @@ impl Db {
         Ok(())
     }
 
+    fn list_workspaces(&self) -> AppResult<Vec<Workspace>> {
+        let c = self.connect()?;
+        let mut s = c.prepare("SELECT id,name,icon,accent,position FROM workspaces ORDER BY position ASC, id ASC")?;
+        let rows = s.query_map([], |r| Ok(Workspace {
+            id:r.get(0)?, name:r.get(1)?, icon:r.get(2)?, accent:r.get(3)?, position:r.get(4)?
+        }))?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    fn create_workspace(&self, name: &str, icon: &str, accent: &str) -> AppResult<Workspace> {
+        let name = name.trim();
+        if name.is_empty() || name.len() > 60 { return Err(AppError::Message("Workspace name must be 1–60 characters.".into())); }
+        if accent.len() > 20 { return Err(AppError::Message("Invalid workspace accent.".into())); }
+        let position: i64 = self.connect()?.query_row("SELECT COALESCE(MAX(position),-1)+1 FROM workspaces", [], |r| r.get(0))?;
+        self.connect()?.execute(
+            "INSERT INTO workspaces(name,icon,accent,position) VALUES(?1,?2,?3,?4)",
+            rusqlite::params![name, icon, accent, position]
+        )?;
+        let c = self.connect()?;
+        Ok(c.query_row("SELECT id,name,icon,accent,position FROM workspaces WHERE name=?1",[name],|r|Ok(Workspace{
+            id:r.get(0)?,name:r.get(1)?,icon:r.get(2)?,accent:r.get(3)?,position:r.get(4)?
+        }))?)
+    }
+
+    fn rename_workspace(&self, id: i64, name: &str) -> AppResult<()> {
+        let name=name.trim();
+        if name.is_empty() || name.len()>60 { return Err(AppError::Message("Workspace name must be 1–60 characters.".into())); }
+        self.connect()?.execute("UPDATE workspaces SET name=?1 WHERE id=?2 AND name<>'Default'",rusqlite::params![name,id])?;
+        Ok(())
+    }
+
+    fn delete_workspace(&self, id: i64) -> AppResult<()> {
+        let c=self.connect()?;
+        let name:String=c.query_row("SELECT name FROM workspaces WHERE id=?1",[id],|r|r.get(0))?;
+        if name=="Default" { return Err(AppError::Message("The Default workspace cannot be deleted.".into())); }
+        c.execute("DELETE FROM workspaces WHERE id=?1",[id])?;
+        Ok(())
+    }
+
+    fn save_session(&self, name:&str, tabs:&[Tab]) -> AppResult<SavedSession> {
+        let name=name.trim();
+        if name.is_empty() || name.len()>80 { return Err(AppError::Message("Session name must be 1–80 characters.".into())); }
+        let data=serde_json::to_string(tabs).map_err(|e|AppError::Message(e.to_string()))?;
+        self.connect()?.execute(
+            "INSERT INTO sessions(name,created_at,data) VALUES(?1,?2,?3)
+             ON CONFLICT(name) DO UPDATE SET created_at=excluded.created_at,data=excluded.data",
+            rusqlite::params![name,Self::now(),data]
+        )?;
+        let c=self.connect()?;
+        Ok(c.query_row("SELECT id,name,created_at FROM sessions WHERE name=?1",[name],|r|Ok(SavedSession{id:r.get(0)?,name:r.get(1)?,created_at:r.get(2)?}))?)
+    }
+
+    fn list_sessions(&self)->AppResult<Vec<SavedSession>>{
+        let c=self.connect()?;
+        let mut s=c.prepare("SELECT id,name,created_at FROM sessions ORDER BY created_at DESC")?;
+        let rows=s.query_map([],|r|Ok(SavedSession{id:r.get(0)?,name:r.get(1)?,created_at:r.get(2)?}))?;
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
+    }
+
+    fn load_session(&self,id:i64)->AppResult<Vec<Tab>>{
+        let c=self.connect()?;
+        let data:String=c.query_row("SELECT data FROM sessions WHERE id=?1",[id],|r|r.get(0))?;
+        serde_json::from_str(&data).map_err(|e|AppError::Message(e.to_string()))
+    }
+
+    fn add_shelf(&self,title:&str,url:&str)->AppResult<ShelfItem>{
+        self.connect()?.execute(
+            "INSERT INTO reading_shelf(title,url,tags,is_read,saved_at) VALUES(?1,?2,'',0,?3)
+             ON CONFLICT(url) DO UPDATE SET title=excluded.title",
+            rusqlite::params![title,url,Self::now()]
+        )?;
+        let c=self.connect()?;
+        Ok(c.query_row("SELECT id,title,url,tags,is_read,saved_at FROM reading_shelf WHERE url=?1",[url],|r|Ok(ShelfItem{
+            id:r.get(0)?,title:r.get(1)?,url:r.get(2)?,tags:r.get(3)?,is_read:r.get::<_,i64>(4)?!=0,saved_at:r.get(5)?
+        }))?)
+    }
+
+    fn list_shelf(&self)->AppResult<Vec<ShelfItem>>{
+        let c=self.connect()?;
+        let mut s=c.prepare("SELECT id,title,url,tags,is_read,saved_at FROM reading_shelf ORDER BY saved_at DESC")?;
+        let rows=s.query_map([],|r|Ok(ShelfItem{id:r.get(0)?,title:r.get(1)?,url:r.get(2)?,tags:r.get(3)?,is_read:r.get::<_,i64>(4)?!=0,saved_at:r.get(5)?}))?;
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
+    }
+
+    fn toggle_shelf_read(&self,id:i64)->AppResult<()>{
+        self.connect()?.execute("UPDATE reading_shelf SET is_read=CASE is_read WHEN 0 THEN 1 ELSE 0 END WHERE id=?1",[id])?;
+        Ok(())
+    }
+
+    fn remove_shelf(&self,id:i64)->AppResult<()>{
+        self.connect()?.execute("DELETE FROM reading_shelf WHERE id=?1",[id])?;
+        Ok(())
+    }
+
     fn download_finished(&self, url: &str, path: Option<&Path>, success: bool) -> AppResult<()> {
         self.connect()?.execute(
             "UPDATE downloads SET status=?1, path=COALESCE(?2,path), finished_at=?3
@@ -201,12 +347,15 @@ struct AppState {
     tabs: Arc<Mutex<Vec<Tab>>>,
     active_id: Arc<Mutex<String>>,
     closed: Arc<Mutex<VecDeque<Tab>>>,
+    active_workspace: Arc<Mutex<String>>,
+    workspaces: Arc<Mutex<Vec<Workspace>>>,
     next_id: AtomicU64,
     db: Db,
 }
 
 impl AppState {
     fn new(db: Db) -> Self {
+        let workspaces = db.list_workspaces().unwrap_or_else(|_| vec![Workspace{id:1,name:"Default".into(),icon:"square".into(),accent:"#2ee6ff".into(),position:0}]);
         Self {
             tabs: Arc::new(Mutex::new(vec![Tab {
                 id: "tab-1".into(),
@@ -216,6 +365,8 @@ impl AppState {
                 workspace:"Default".into(), has_webview:false,
             }])),
             active_id: Arc::new(Mutex::new("tab-1".into())),
+            active_workspace: Arc::new(Mutex::new("Default".into())),
+            workspaces: Arc::new(Mutex::new(workspaces)),
             closed: Arc::new(Mutex::new(VecDeque::new())),
             next_id: AtomicU64::new(2),
             db,
@@ -301,7 +452,8 @@ fn layout<R: tauri::Runtime>(app: &tauri::AppHandle<R>, state: &AppState) -> App
     let active = state.active_id.lock().unwrap().clone();
     for tab in state.tabs.lock().unwrap().iter() {
         if let Some(view) = app.get_webview(&format!("page-{}", tab.id)) {
-            if tab.id == active && tab.has_webview {
+            let current_workspace = state.active_workspace.lock().unwrap().clone();
+            if tab.id == active && tab.has_webview && tab.workspace == current_workspace {
                 view.set_position(pos).map_err(|e| AppError::Message(e.to_string()))?;
                 view.set_size(size).map_err(|e| AppError::Message(e.to_string()))?;
                 view.show().map_err(|e| AppError::Message(e.to_string()))?;
@@ -464,11 +616,12 @@ fn navigate(app: tauri::AppHandle, state: State<AppState>, input: String) -> App
 #[tauri::command]
 fn new_tab(app: tauri::AppHandle, state: State<AppState>, private: bool) -> AppResult<()> {
     let id = state.next_tab_id();
+    let workspace = state.active_workspace.lock().unwrap().clone();
     state.tabs.lock().unwrap().push(Tab {
         id: id.clone(),
         title: if private {"Private Tab".into()} else {"New Tab".into()},
         url:"synth://newtab".into(), pinned:false, muted:false, private, loading:false,
-        workspace:"Default".into(), has_webview:false,
+        workspace, has_webview:false,
     });
     *state.active_id.lock().unwrap() = id;
     layout(&app, &state)?;
@@ -595,6 +748,141 @@ fn clear_browsing_data(app: tauri::AppHandle, state: State<AppState>) -> AppResu
     Ok(())
 }
 
+
+#[tauri::command]
+fn list_workspaces(state: State<AppState>) -> AppResult<Vec<Workspace>> {
+    state.db.list_workspaces()
+}
+
+#[tauri::command]
+fn create_workspace(state: State<AppState>, name: String) -> AppResult<Workspace> {
+    let ws = state.db.create_workspace(&name, "square", "#2ee6ff")?;
+    *state.workspaces.lock().unwrap() = state.db.list_workspaces()?;
+    Ok(ws)
+}
+
+#[tauri::command]
+fn switch_workspace(app: tauri::AppHandle, state: State<AppState>, name: String) -> AppResult<()> {
+    if !state.workspaces.lock().unwrap().iter().any(|w| w.name == name) {
+        return Err(AppError::Message("Workspace not found.".into()));
+    }
+    *state.active_workspace.lock().unwrap() = name.clone();
+    let current = state.active_id.lock().unwrap().clone();
+    let should_switch = state.tabs.lock().unwrap().iter().any(|t| t.id == current && t.workspace == name);
+    if !should_switch {
+        if let Some(tab) = state.tabs.lock().unwrap().iter().find(|t| t.workspace == name) {
+            *state.active_id.lock().unwrap() = tab.id.clone();
+        } else {
+            drop(should_switch);
+            new_tab(app.clone(), state.clone(), false)?;
+        }
+    }
+    layout(&app, &state)?;
+    emit_snapshot(&app, &state);
+    Ok(())
+}
+
+#[tauri::command]
+fn rename_workspace(state: State<AppState>, id: i64, name: String) -> AppResult<()> {
+    let current = state.workspaces.lock().unwrap().iter().find(|w| w.id==id).map(|w|w.name.clone()).ok_or_else(||AppError::Message("Workspace not found.".into()))?;
+    state.db.rename_workspace(id, &name)?;
+    if *state.active_workspace.lock().unwrap() == current {
+        *state.active_workspace.lock().unwrap() = name.trim().to_string();
+    }
+    *state.workspaces.lock().unwrap() = state.db.list_workspaces()?;
+    Ok(())
+}
+
+#[tauri::command]
+fn delete_workspace(app: tauri::AppHandle, state: State<AppState>, id: i64) -> AppResult<()> {
+    let current = state.workspaces.lock().unwrap().iter().find(|w|w.id==id).map(|w|w.name.clone()).ok_or_else(||AppError::Message("Workspace not found.".into()))?;
+    state.db.delete_workspace(id)?;
+    let target = state.db.list_workspaces()?.into_iter().find(|w|w.name=="Default").map(|w|w.name).unwrap_or_else(||"Default".into());
+    {
+        let mut tabs = state.tabs.lock().unwrap();
+        for tab in tabs.iter_mut() { if tab.workspace==current { tab.workspace=target.clone(); } }
+    }
+    *state.workspaces.lock().unwrap() = state.db.list_workspaces()?;
+    *state.active_workspace.lock().unwrap() = target;
+    if let Some(tab)=state.tabs.lock().unwrap().iter().find(|t|t.workspace==*state.active_workspace.lock().unwrap()) { *state.active_id.lock().unwrap()=tab.id.clone(); }
+    layout(&app,&state)?;
+    emit_snapshot(&app,&state);
+    Ok(())
+}
+
+#[tauri::command]
+fn reorder_tab(app: tauri::AppHandle, state: State<AppState>, from: usize, to: usize) -> AppResult<()> {
+    let mut tabs=state.tabs.lock().unwrap();
+    if from>=tabs.len() || to>=tabs.len() { return Err(AppError::Message("Invalid tab position.".into())); }
+    let tab=tabs.remove(from);
+    tabs.insert(to,tab);
+    drop(tabs);
+    emit_snapshot(&app,&state);
+    Ok(())
+}
+
+#[tauri::command]
+fn save_session(state: State<AppState>, name: String) -> AppResult<SavedSession> {
+    let active=state.active_workspace.lock().unwrap().clone();
+    let tabs:Vec<Tab>=state.tabs.lock().unwrap().iter().filter(|t|t.workspace==active).cloned().collect();
+    state.db.save_session(&name,&tabs)
+}
+
+#[tauri::command]
+fn list_sessions(state: State<AppState>) -> AppResult<Vec<SavedSession>> {
+    state.db.list_sessions()
+}
+
+#[tauri::command]
+fn open_session(app: tauri::AppHandle, state: State<AppState>, id: i64, append: bool) -> AppResult<()> {
+    let saved=state.db.load_session(id)?;
+    if !append {
+        let old_ids:Vec<String>=state.tabs.lock().unwrap().iter().map(|t|t.id.clone()).collect();
+        for oid in old_ids { if let Some(v)=app.get_webview(&format!("page-{oid}")){let _=v.close();} }
+        state.tabs.lock().unwrap().clear();
+    }
+    for mut tab in saved {
+        tab.id=state.next_tab_id();
+        tab.workspace=state.active_workspace.lock().unwrap().clone();
+        let id=tab.id.clone();
+        let url=tab.url.clone();
+        let private=tab.private;
+        state.tabs.lock().unwrap().push(tab);
+        if private || url=="synth://newtab" { continue; }
+        if let Ok(u)=Url::parse(&url) {
+            create_page_webview(&app,&state,&id,&u,private)?;
+            if let Some(v)=app.get_webview(&format!("page-{id}")){v.navigate(u).map_err(|e|AppError::Message(e.to_string()))?;}
+        }
+    }
+    if let Some(last)=state.tabs.lock().unwrap().last(){*state.active_id.lock().unwrap()=last.id.clone();}
+    layout(&app,&state)?;
+    emit_snapshot(&app,&state);
+    Ok(())
+}
+
+#[tauri::command]
+fn add_to_shelf(state: State<AppState>) -> AppResult<ShelfItem> {
+    let id=state.active_id.lock().unwrap().clone();
+    let tab=state.tabs.lock().unwrap().iter().find(|t|t.id==id).cloned().ok_or_else(||AppError::Message("active tab missing".into()))?;
+    if tab.url=="synth://newtab" {return Err(AppError::Message("There is no page to save.".into()));}
+    state.db.add_shelf(&tab.title,&tab.url)
+}
+
+#[tauri::command]
+fn list_shelf(state: State<AppState>) -> AppResult<Vec<ShelfItem>> {
+    state.db.list_shelf()
+}
+
+#[tauri::command]
+fn toggle_shelf_read(state: State<AppState>, id: i64) -> AppResult<()> {
+    state.db.toggle_shelf_read(id)
+}
+
+#[tauri::command]
+fn remove_shelf(state: State<AppState>, id: i64) -> AppResult<()> {
+    state.db.remove_shelf(id)
+}
+
 #[tauri::command]
 fn runtime_info() -> serde_json::Value {
     let (runtime_name, runtime_revision, azecotron_status) = runtime_status();
@@ -634,7 +922,10 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_snapshot, navigate, new_tab, activate_tab, close_tab, reopen_closed_tab,
             reload, back, forward, open_devtools, add_bookmark, list_bookmarks, list_history,
-            clear_browsing_data, runtime_info
+            clear_browsing_data, runtime_info, list_workspaces, create_workspace,
+            switch_workspace, rename_workspace, delete_workspace, reorder_tab,
+            save_session, list_sessions, open_session, add_to_shelf, list_shelf,
+            toggle_shelf_read, remove_shelf
         ])
         .run(tauri::generate_context!())
         .expect("error while running Synth Browser");
