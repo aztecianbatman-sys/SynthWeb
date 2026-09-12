@@ -1095,9 +1095,11 @@ fn move_tab_to_workspace(app: tauri::AppHandle, state: State<AppState>, tab_id:S
 
 #[tauri::command]
 fn toggle_pin(app: tauri::AppHandle, state: State<AppState>, tab_id:String)->AppResult<()>{
-    let mut tabs=state.tabs.lock().unwrap();
-    let tab=tabs.iter_mut().find(|t|t.id==tab_id).ok_or_else(||AppError::Message("tab not found".into()))?;
-    tab.pinned=!tab.pinned;
+    {
+        let mut tabs=state.tabs.lock().unwrap();
+        let tab=tabs.iter_mut().find(|t|t.id==tab_id).ok_or_else(||AppError::Message("tab not found".into()))?;
+        tab.pinned=!tab.pinned;
+    }
     emit_snapshot(&app,&state);
     Ok(())
 }
@@ -1314,7 +1316,8 @@ async fn restore_previous_session(app: tauri::AppHandle, state: State<AppState>)
             if let Some(v)=app.get_webview(&format!("page-{id}")){v.navigate(u).map_err(|e|AppError::Message(e.to_string()))?;}
         }
     }
-    let target=state.tabs.lock().unwrap().iter().find(|t|t.workspace==*state.active_workspace.lock().unwrap()).map(|t|t.id.clone())
+    let active_workspace=state.active_workspace.lock().unwrap().clone();
+    let target=state.tabs.lock().unwrap().iter().find(|t|t.workspace==active_workspace).map(|t|t.id.clone())
         .or_else(||state.tabs.lock().unwrap().first().map(|t|t.id.clone()));
     if let Some(id)=target{*state.active_id.lock().unwrap()=id;}
     *state.restore_available.lock().unwrap()=false;
