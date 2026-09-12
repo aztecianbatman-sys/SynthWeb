@@ -190,7 +190,7 @@ function onboardingSteps(){
       kicker:"PRIVACY",
       title:"Start with Shielded mode?",
       body:"Shielded is Synth's privacy-first preset. You can change every setting later.",
-      html:'<label class="onboarding-choice selected"><input type="radio" name="privacyMode" value="strict" checked><div><strong>Shielded</strong><small>No search/history memory, HTTPS-only navigation, AI disabled, recent activity hidden, and sensitive permissions ask or block.</small></div></label><label class="onboarding-choice"><input type="radio" name="privacyMode" value="balanced"><div><strong>Balanced</strong><small>Normal browsing convenience with history and recent activity enabled. HTTPS-only stays on.</small></div></label>'
+      html:'<label class="onboarding-choice selected"><input type="radio" name="privacyMode" value="strict" checked><div><strong>Shielded</strong><small>No search/history memory, HTTPS-only navigation, AI disabled, recent activity hidden, and sensitive permissions ask or block.</small></div></label><label class="onboarding-choice"><input type="radio" name="privacyMode" value="balanced"><div><strong>Balanced</strong><small>Normal browsing convenience with history and recent activity enabled. HTTPS-only stays on.</small></div></label><label class="onboarding-choice"><input id="obWipe" type="checkbox" checked><div><strong>Clean existing browsing data</strong><small>For an existing profile, clear local history, search memory, cookies, cache and site data before finishing setup. Bookmarks and saved sessions are kept.</small></div></label>'
     },
     {
       kicker:"PERSONALIZE",
