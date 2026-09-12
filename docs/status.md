@@ -179,3 +179,28 @@ Implemented in source:
 - explicit GN dependency from azecotron_host to the Content API host target
 
 The runtime still uses Chromium Content Shell services as the initial integration harness. Because Chromium marks Content Shell libraries test-only, this phase is not yet the production browser application. The next native step is replacing the Content Shell delegate/client stack with Synth's own ContentMain/BrowserContext implementation while retaining the same BrowserRuntime seam.
+
+
+## Native ContentMain / network Shield milestone
+
+Implemented in source:
+- SynthContentMainDelegate now owns the ContentBrowserClient/client stack.
+- SynthBrowserMainParts and SynthBrowserContext provide a named Synth profile context.
+- The initial page is created directly with content::WebContents from SynthBrowserContext instead of content::Shell startup.
+- AzecotronRuntimeHost owns the primary WebContents and attaches its native view to the Synth host HWND.
+- Native navigation/loading/security/renderer events are forwarded through the Synth event pipe.
+- Synth Shield is attached to Chromium's browser-side URLLoaderThrottle path.
+- Matched tracker subresource requests can be canceled with ERR_BLOCKED_BY_CLIENT.
+- Strict mode strips Cookie request headers for cross-origin web requests.
+- Tracker block events include a measured session counter for the native runtime.
+
+Still requires a real Windows build before verification:
+- compile the pinned Chromium 152 checkout;
+- compile the Synth ContentMain stack and native host;
+- launch against a real Synth HWND;
+- verify navigation/media/download/permissions;
+- run tracker-blocking and cookie-isolation tests;
+- verify DevToolsAgentHost integration;
+- run performance and crash/recovery tests.
+
+The current host WebView2 path remains the fallback browser runtime until those tests pass.
