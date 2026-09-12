@@ -1070,9 +1070,13 @@ fn close_tabs_right(app: tauri::AppHandle, state: State<AppState>, tab_id:String
 
 #[tauri::command]
 fn duplicate_workspace(state: State<AppState>, source:String, name:String)->AppResult<Workspace>{
-    let source_tabs:Vec<Tab>=state.tabs.lock().unwrap().iter().filter(|t|t.workspace==source).cloned().collect();
+    if !state.workspaces.lock().unwrap().iter().any(|w|w.name==source){return Err(AppError::Message("Source workspace not found.".into()))}
     let ws=state.db.create_workspace(&name,"square","#2ee6ff")?;
-    drop(source_tabs);
+    let copies:Vec<Tab>=state.tabs.lock().unwrap().iter().filter(|t|t.workspace==source).map(|t|Tab{
+        id:state.next_tab_id(), title:t.title.clone(), url:t.url.clone(), pinned:t.pinned, muted:t.muted,
+        private:t.private, loading:false, workspace:ws.name.clone(), has_webview:false
+    }).collect();
+    state.tabs.lock().unwrap().extend(copies);
     *state.workspaces.lock().unwrap()=state.db.list_workspaces()?;
     Ok(ws)
 }
