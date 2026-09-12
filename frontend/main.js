@@ -183,6 +183,9 @@ async function refresh() {
   state.activeWorkspace = snapshot.active_workspace;
   state.workspaces = snapshot.workspaces;
   state.restoreAvailable = snapshot.restore_available;
+  state.profile = snapshot.profile;
+  state.profiles = snapshot.profiles;
+  state.guest = snapshot.guest;
   state.runtime = await invoke("runtime_info");
   state.settings = await invoke("get_settings");
   render();
