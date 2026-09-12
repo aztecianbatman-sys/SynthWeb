@@ -1,3 +1,4 @@
+mod services;
 mod ai;
 mod browser_runtime;
 mod search;
@@ -591,6 +592,29 @@ impl AppState {
 
 use ai::{chat as ai_chat, delete_key, key_present, list_models as ai_list_models, set_key};
 use search::{classify, search_url, SearchDecision};
+
+fn use_service_boundaries() {
+    fn assert_interfaces<
+        D: services::DownloadService,
+        H: services::HistoryStore,
+        B: services::BookmarkStore,
+        W: services::WorkspaceStore,
+        P: services::PermissionStore,
+        S: services::SettingsStore,
+        G: services::DiagnosticsService,
+        U: services::UpdateService,
+    >() {}
+    let _ = assert_interfaces::<
+        services::NullDownloadService,
+        services::NullHistoryStore,
+        services::NullBookmarkStore,
+        services::NullWorkspaceStore,
+        services::NullPermissionStore,
+        services::NullSettingsStore,
+        services::NullDiagnosticsService,
+        services::NullUpdateService,
+    > as fn();
+}
 
 fn use_runtime_boundary() {
     fn accepts_runtime<T: crate::browser_runtime::BrowserRuntime>() {}
@@ -1565,6 +1589,7 @@ fn main() {
         .manage(state)
         .setup(|app| {
             use_runtime_boundary();
+            use_service_boundaries();
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&quit])?;
             app.set_menu(menu)?;
