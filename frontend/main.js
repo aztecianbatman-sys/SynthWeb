@@ -515,7 +515,10 @@ async function showDownloads(){
       info.innerHTML='<div class="reading-title">'+esc(filename)+'</div><div class="reading-url">'+esc(d.status)+' · '+esc(d.verification||"unverified")+'</div>';
       const verify=document.createElement("button");verify.className="mini-action";verify.textContent="Verify";
       verify.onclick=async()=>{const sum=prompt("Expected SHA-256 checksum (64 hex characters)");if(!sum)return;try{const result=await invoke("verify_download",{id:d.id,expected:sum});toast(result==="verified"?"Checksum verified":"Checksum mismatch");showDownloads()}catch(e){toast(e)}};
-      row.append(info,verify);body.appendChild(row);
+      const open=document.createElement("button");open.className="mini-action";open.textContent="Open";open.onclick=async()=>{try{await invoke("open_download",{id:d.id})}catch(e){toast(e)}};
+      const reveal=document.createElement("button");reveal.className="mini-action";reveal.textContent="Reveal";reveal.onclick=async()=>{try{await invoke("reveal_download",{id:d.id})}catch(e){toast(e)}};
+      const remove=document.createElement("button");remove.className="mini-action";remove.textContent="Remove";remove.onclick=async()=>{try{await invoke("remove_download_history",{id:d.id});showDownloads()}catch(e){toast(e)}};
+      row.append(info,verify,open,reveal,remove);body.appendChild(row);
     });
   }catch(e){toast(e)}
 }
@@ -754,7 +757,7 @@ function closeFind(){$("findPanel").classList.add("hidden")}
 async function performFind(backwards=false){
   const q=$("findInput").value;
   if(!q)return;
-  try{await invoke("find_in_page",{query:q,backwards})}catch(e){toast(e)}
+  try{await invoke("find_in_page",{query:q,backwards,caseSensitive:$("findCase").checked,wholeWord:$("findWhole").checked})}catch(e){toast(e)}
 }
 async function openPageSource(){try{await invoke("page_source")}catch(e){toast(e)}}
 function renderPageSource(payload){
@@ -1121,6 +1124,8 @@ $("overviewSearch").oninput = (event) => renderOverview(event.target.value);
 $("sourceClose").onclick = () => $("sourcePanel").classList.add("hidden");
 $("findClose").onclick = closeFind;
 $("findInput").oninput = () => performFind(false);
+$("findCase").onchange = () => performFind(false);
+$("findWhole").onchange = () => performFind(false);
 $("findInput").onkeydown = (event) => { if(event.key==="Enter"){event.preventDefault();performFind(event.shiftKey)} if(event.key==="Escape")closeFind() };
 $("findNext").onclick=()=>performFind(false);
 $("findPrev").onclick=()=>performFind(true);
@@ -1315,7 +1320,7 @@ listen("browser://favicon", (event) => {
 listen("browser://reader", (event) => renderReader(event.payload));
 listen("browser://page-lens", (event) => renderLens(event.payload));
 listen("browser://page-source", (event) => renderPageSource(event.payload));
-listen("browser://find-result", (event) => { if(!event.payload.found) toast("No matches found."); });
+listen("browser://find-result", (event) => { const count=Number(event.payload?.count||0); $("findCount").textContent=count===0?"No matches":count+" match"+(count===1?"":"es"); if(!event.payload.found&&count>0) toast("No further matches."); });
 listen("browser://new-window", async (event) => {
   try {
     await invoke("new_tab", { private: false });
