@@ -11,6 +11,7 @@ The implementation follows the master prompt incrementally. Statuses below descr
 - pin/unpin command and tab context menu
 - close other tabs / close tabs right
 - private tabs using runtime incognito mode
+- real renderer popup requests routed into new browser tabs
 - omnibox URL/domain/search classification
 - explicit omnibox commands: open, search, zoom, workspace, bookmarks, history
 - local tab/history suggestions
@@ -35,6 +36,10 @@ The implementation follows the master prompt incrementally. Statuses below descr
 - local browser data export
 - sanitized diagnostics export
 - browser reset
+- profile registry with isolated SQLite roots
+- per-profile Tauri webview data directories
+- disposable Guest Mode profile roots
+- native browser permission prompts with persisted allow/deny/ask policies
 - theme/accent/density/quiet-mode settings
 - HTTPS-only navigation setting
 - Site Capsule with actual URL/security/cookie-count data from runtime
@@ -112,7 +117,7 @@ Workspaces/sessions/shelf: FUNCTIONAL IN SOURCE
 Privacy/security: PARTIALLY FUNCTIONAL
 Synth Assist: PARTIALLY FUNCTIONAL
 Reader/Page Lens/Research: FUNCTIONAL IN SOURCE
-Profiles: FUNCTIONAL IN SOURCE; Guest Mode: FUNCTIONAL IN SOURCE; full site permission center/extensions: NOT STARTED
+Profiles: FUNCTIONAL IN SOURCE; Guest Mode: FUNCTIONAL IN SOURCE; native permission prompts: FUNCTIONAL IN SOURCE; full per-site permission center/extensions: NOT STARTED
 Azecotron Web Chromium fork source/build workflow: IMPLEMENTED IN SOURCE; Cortis provider transformation: IMPLEMENTED IN SOURCE; binary build: NOT VERIFIED
 Performance certification: NOT TESTED
 Packaging: CONFIGURED, NOT VERIFIED
