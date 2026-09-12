@@ -3,7 +3,11 @@
 
 #include <memory>
 
+#include <optional>
+#include <vector>
+
 #include "content/public/browser/content_browser_client.h"
+#include "third_party/blink/public/common/loader/url_loader_throttle.h"
 
 namespace synth_azecotron {
 
@@ -29,6 +33,15 @@ class SynthContentBrowserClient final : public content::ContentBrowserClient {
 
   std::unique_ptr<content::DevToolsManagerDelegate>
   CreateDevToolsManagerDelegate() override;
+
+  std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
+  CreateURLLoaderThrottles(
+      const network::ResourceRequest& request,
+      content::BrowserContext* browser_context,
+      const base::RepeatingCallback<content::WebContents*()>& wc_getter,
+      content::NavigationUIData* navigation_ui_data,
+      content::FrameTreeNodeId frame_tree_node_id,
+      std::optional<int64_t> navigation_id) override;
 
   raw_ptr<SynthBrowserMainParts> browser_main_parts_ = nullptr;
 };
