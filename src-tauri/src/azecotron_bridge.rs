@@ -37,13 +37,14 @@ pub fn launch(app: tauri::AppHandle, profile_dir:PathBuf,url:&str,parent_hwnd:Op
     let path=executable_path();
     if !path.exists(){return Err(format!("Azecotron executable was not found at {}",path.display()))}
     if !(url.starts_with("https://")||url.starts_with("http://")||url=="about:blank"){return Err("Azecotron launch accepts only HTTP(S) URLs or about:blank.".into())}
+    if running(){return Err("Azecotron is already running for this Synth session.".into())}
     std::fs::create_dir_all(&profile_dir).map_err(|e|e.to_string())?;
-    if running(){return Err("An Azecotron runtime instance is already running for this Synth session.".into())}
+
     let mut child=Command::new(path)
         .arg(format!("--user-data-dir={}",profile_dir.display()))
         .arg("--no-first-run")
         .arg("--disable-default-apps")
-        .args(parent_hwnd.map(|h| vec![format!("--synth-parent-hwnd={h}")]).unwrap_or_default())
+        .args(parent_hwnd.map(|h|vec![format!("--synth-parent-hwnd={h}")]).unwrap_or_default())
         .arg(format!("--synth-tab-id={tab_id}"))
         .arg(format!("--synth-url={url}"))
         .stdout(Stdio::piped())
@@ -55,9 +56,9 @@ pub fn launch(app: tauri::AppHandle, profile_dir:PathBuf,url:&str,parent_hwnd:Op
 
     if let Some(stdout)=child.stdout.take(){
         let app_events=app.clone();
-        thread::spawn(move||{
+        std::thread::spawn(move||{
             let reader=BufReader::new(stdout);
-            for line in reader.lines().flatten(){
+            for line in reader.lines().map_while(Result::ok){
                 if let Some(json)=line.strip_prefix("SYNTH_EVENT "){
                     if let Ok(value)=serde_json::from_str::<serde_json::Value>(json){
                         let _=app_events.emit("azecotron://event",value);
@@ -67,12 +68,11 @@ pub fn launch(app: tauri::AppHandle, profile_dir:PathBuf,url:&str,parent_hwnd:Op
         });
     }
 
-    let app_exit=app.clone();
-    thread::spawn(move||{
+    std::thread::spawn(move||{
         let status=child.wait();
-        RUNNING.store(false,Ordering::Release);
+        RUNNING.store(false, Ordering::Release);
         let exit_code=status.ok().and_then(|s|s.code());
-        let _=app_exit.emit("azecotron://process-exited",serde_json::json!({"code":exit_code}));
+        let _=app.emit("azecotron://process-exited",serde_json::json!({"code":exit_code}));
     });
 
     Ok(())
