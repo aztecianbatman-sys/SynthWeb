@@ -28,7 +28,7 @@
       <div class="actions">
         <button id="bookmark" class="icon-btn" title="Bookmark" aria-label="Bookmark">☆</button>
         <button id="downloads" class="icon-btn" title="Downloads" aria-label="Downloads">↓</button>
-        <button id="palette" class="icon-btn" title="Command palette" aria-label="Command palette">⌘</button>
+        <button id="overview" class="icon-btn" title="Tab overview" aria-label="Tab overview">▦</button><button id="palette" class="icon-btn" title="Command palette" aria-label="Command palette">⌘</button>
         <button id="menu" class="icon-btn" title="Menu" aria-label="Menu">⋯</button>
       </div>
     </div>
@@ -44,7 +44,7 @@
         <input id="newtabSearch" aria-label="Search with Cortis or enter a URL" placeholder="Search with Cortis or enter a URL">
         <button aria-label="Search">→</button>
       </form>
-      <div id="shortcuts" class="shortcuts"></div><div id="recent" class="shortcuts" aria-label="Recent sites"></div>
+      <div id="shortcuts" class="shortcuts"></div><div id="recent" class="shortcuts" aria-label="Recent sites"></div><div class="search-modes" role="tablist" aria-label="Cortis search mode"><button class="search-mode active" data-mode="web">Web</button><button class="search-mode" data-mode="images">Images</button><button class="search-mode" data-mode="news">News</button><button class="search-mode" data-mode="videos">Videos</button><button class="search-mode" data-mode="maps">Maps</button></div>
       <div class="state-row">
         <span class="state-chip"><i id="runtimeDot" class="dot"></i><span id="runtimeText">Browser runtime</span></span>
         <span class="state-chip"><i class="dot cyan"></i>Cortis search</span>
@@ -54,6 +54,8 @@
   </main>
 
   <aside id="panel" class="panel hidden"></aside><div id="restore" class="restore hidden" role="dialog" aria-modal="true" aria-label="Restore previous session"><div class="restore-box"><div class="restore-kicker">SESSION RECOVERY</div><h2>Restore your previous session?</h2><p>Synth Browser detected that the last run did not exit cleanly. Your saved tab metadata is available.</p><div class="restore-actions"><button id="restoreYes" class="restore-primary">Restore session</button><button id="restoreNo" class="restore-secondary">Start fresh</button></div></div></div>
+
+  <div id="overviewPanel" class="overview hidden" role="dialog" aria-modal="true" aria-label="Tab overview"><div class="overview-box"><div class="overview-head"><input id="overviewSearch" placeholder="Search open tabs…" autocomplete="off"><button id="overviewClose" class="icon-btn" aria-label="Close tab overview">×</button></div><div id="overviewTabs" class="overview-tabs"></div></div></div>
 
   <div id="palettePanel" class="palette hidden">
     <div class="palette-box">
