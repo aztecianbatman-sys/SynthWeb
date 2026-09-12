@@ -1,4 +1,5 @@
 #include "azecotron/host/azecotron_runtime_host.h"
+#include "azecotron/host/azecotron_tab_observer.h"
 #include "build/build_config.h"
 #include "base/json/json_writer.h"
 #include "base/values.h"
@@ -66,7 +67,7 @@ bool AzecotronRuntimeHost::AdoptWebContents(
   primary_web_contents_ = std::move(web_contents);
   content::WebContents* raw = primary_web_contents_.get();
   raw->SetDelegate(this);
-  Observe(raw);
+  observers_.push_back(std::make_unique<AzecotronTabObserver>(raw, tab_id_, "primary"));
   AttachNativeView(raw);
 
   if (url.is_valid()) {
@@ -163,9 +164,8 @@ content::WebContents* AzecotronRuntimeHost::CreateCustomWebContents(
     return nullptr;
 
   child->SetDelegate(this);
-  Observe(child.get());
+  observers_.push_back(std::make_unique<AzecotronTabObserver>(child.get(), tab_id_, "popup"));
   AttachNativeView(child.get());
-  EmitEvent("new-window", child.get(), "opener_url", opener_url.spec());
   return child.release();
 }
 
@@ -195,51 +195,6 @@ void AzecotronRuntimeHost::AttachNativeView(content::WebContents* web_contents) 
 #else
   (void)web_contents;
 #endif
-}
-
-void AzecotronRuntimeHost::EmitEvent(
-    const char* type,
-    content::WebContents* source,
-    const std::string& extra_key,
-    const std::string& extra_value) const {
-  base::Value::Dict dict;
-  dict.Set("type", type);
-  dict.Set("url", source ? source->GetLastCommittedURL().spec() : "");
-  dict.Set("title", source ? base::UTF16ToUTF8(source->GetTitle()) : "");
-  if (!tab_id_.empty()) dict.Set("tab_id", tab_id_);
-  if (!extra_key.empty())
-    dict.Set(extra_key, extra_value);
-
-  std::string json;
-  base::JSONWriter::Write(dict, &json);
-  std::cout << "SYNTH_EVENT " << json << std::endl;
-}
-
-void AzecotronRuntimeHost::DidFinishNavigation(
-    content::NavigationHandle* navigation_handle) {
-  if (!navigation_handle || !navigation_handle->HasCommitted() ||
-      !navigation_handle->IsInPrimaryMainFrame()) {
-    return;
-  }
-  EmitEvent("navigation", web_contents(),
-            "same_document",
-            navigation_handle->IsSameDocument() ? "true" : "false");
-}
-
-void AzecotronRuntimeHost::DidStartLoading() {
-  EmitEvent("loading-start", web_contents());
-}
-
-void AzecotronRuntimeHost::DidStopLoading() {
-  EmitEvent("loading-stop", web_contents());
-}
-
-void AzecotronRuntimeHost::DidChangeVisibleSecurityState() {
-  if (!web_contents())
-    return;
-  EmitEvent("security", web_contents(), "secure",
-            web_contents()->GetLastCommittedURL().SchemeIsCryptographic()
-                ? "true" : "false");
 }
 
 }  // namespace synth_azecotron
