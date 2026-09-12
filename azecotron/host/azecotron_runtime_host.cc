@@ -1,11 +1,15 @@
 #include "azecotron/host/azecotron_runtime_host.h"
 #include "build/build_config.h"
+#include "base/json/json_writer.h"
+#include "base/values.h"
 
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/session_storage_namespace.h"
 #include "content/public/browser/web_contents.h"
 #include "base/strings/utf_string_conversions.h"
 #include "url/gurl.h"
+#include "content/public/browser/navigation_handle.h"
+#include <iostream>
 #include "base/command_line.h"
 
 #if BUILDFLAG(IS_WIN)
@@ -18,7 +22,16 @@ namespace synth_azecotron {
 
 AzecotronRuntimeHost::AzecotronRuntimeHost(
     content::BrowserContext* browser_context)
-    : browser_context_(browser_context) {}
+    : browser_context_(browser_context) {
+#if BUILDFLAG(IS_WIN)
+  const std::string parent =
+      base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("synth-parent-hwnd");
+  if (!parent.empty()) {
+    parent_hwnd_ = static_cast<uintptr_t>(
+        std::strtoull(parent.c_str(), nullptr, 10));
+  }
+#endif
+}
 
 AzecotronRuntimeHost::~AzecotronRuntimeHost() = default;
 
@@ -38,18 +51,7 @@ std::unique_ptr<content::WebContents> AzecotronRuntimeHost::CreateTab(
     contents->GetController().LoadURLWithParams(load);
   }
 #if BUILDFLAG(IS_WIN)
-  const std::string parent =
-      base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("synth-parent-hwnd");
-  if (!parent.empty()) {
-    HWND parent_hwnd = reinterpret_cast<HWND>(
-        static_cast<uintptr_t>(std::strtoull(parent.c_str(), nullptr, 10)));
-    if (parent_hwnd && contents->GetNativeView()) {
-      HWND child = contents->GetNativeView();
-      SetParent(child, parent_hwnd);
-      SetWindowPos(child, HWND_TOP, 0, 0, 1, 1,
-                   SWP_NOACTIVATE | SWP_SHOWWINDOW);
-    }
-  }
+  AttachNativeView(contents.get());
 #endif
   return contents;
 }
@@ -142,5 +144,68 @@ void AzecotronRuntimeHost::RendererUnresponsive(content::WebContents*) {}
 void AzecotronRuntimeHost::RendererResponsive(content::WebContents*) {}
 void AzecotronRuntimeHost::DidNavigateMainFramePostCommit(
     content::WebContents*) {}
+
+void AzecotronRuntimeHost::AttachNativeView(content::WebContents* web_contents) {
+#if BUILDFLAG(IS_WIN)
+  if (!web_contents || !parent_hwnd_ || !web_contents->GetNativeView())
+    return;
+
+  HWND parent = reinterpret_cast<HWND>(parent_hwnd_);
+  HWND child = web_contents->GetNativeView();
+  SetParent(child, parent);
+
+  RECT rect{};
+  GetClientRect(parent, &rect);
+  SetWindowPos(child, HWND_TOP, 0, 0, rect.right - rect.left,
+               rect.bottom - rect.top,
+               SWP_NOACTIVATE | SWP_SHOWWINDOW);
+#else
+  (void)web_contents;
+#endif
+}
+
+void AzecotronRuntimeHost::EmitEvent(
+    const char* type,
+    content::WebContents* source,
+    const std::string& extra_key,
+    const std::string& extra_value) const {
+  base::Value::Dict dict;
+  dict.Set("type", type);
+  dict.Set("url", source ? source->GetLastCommittedURL().spec() : "");
+  dict.Set("title", source ? base::UTF16ToUTF8(source->GetTitle()) : "");
+  if (!extra_key.empty())
+    dict.Set(extra_key, extra_value);
+
+  std::string json;
+  base::JSONWriter::Write(dict, &json);
+  std::cout << "SYNTH_EVENT " << json << std::endl;
+}
+
+void AzecotronRuntimeHost::DidFinishNavigation(
+    content::NavigationHandle* navigation_handle) {
+  if (!navigation_handle || !navigation_handle->HasCommitted() ||
+      !navigation_handle->IsInPrimaryMainFrame()) {
+    return;
+  }
+  EmitEvent("navigation", web_contents(),
+            "same_document",
+            navigation_handle->IsSameDocument() ? "true" : "false");
+}
+
+void AzecotronRuntimeHost::DidStartLoading() {
+  EmitEvent("loading-start", web_contents());
+}
+
+void AzecotronRuntimeHost::DidStopLoading() {
+  EmitEvent("loading-stop", web_contents());
+}
+
+void AzecotronRuntimeHost::DidChangeVisibleSecurityState() {
+  if (!web_contents())
+    return;
+  EmitEvent("security", web_contents(), "secure",
+            web_contents()->GetLastCommittedURL().SchemeIsCryptographic()
+                ? "true" : "false");
+}
 
 }  // namespace synth_azecotron
