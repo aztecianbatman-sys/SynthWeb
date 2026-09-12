@@ -1266,10 +1266,8 @@ fn set_zoom(app: tauri::AppHandle, state: State<AppState>, percent: f64) -> AppR
 fn open_devtools(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
     let id = state.active_id.lock().unwrap().clone();
     if let Some(view) = app.get_webview(&format!("page-{id}")) {
-        #[cfg(debug_assertions)]
-        { view.open_devtools(); return Ok(()); }
-        #[cfg(not(debug_assertions))]
-        { let _ = view; return Err(AppError::Message("Developer Tools are available in debug builds for v0.1.0.".into())); }
+        view.open_devtools();
+        return Ok(());
     }
     Err(AppError::Message("No active web page.".into()))
 }
