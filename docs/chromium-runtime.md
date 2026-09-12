@@ -4,80 +4,50 @@
 
 - Chromium: 152.0.7977.119
 - Git revision: e6333471674f4d3af9f386bfc2e5e4388333b734
-- Source: https://chromium.googlesource.com/chromium/src/+/refs/tags/152.0.7977.119
+- Source tag: 152.0.7977.119
 - Pin date: 2026-09-08
 
 Chromium is fetched with depot_tools at build time rather than vendored into
 SynthWeb.
 
-## Fork
+## Native runtime
 
-The Azecotron fork patch series currently contains:
+Synth Browser now supplies its own ContentMainDelegate, ContentBrowserClient,
+BrowserMainParts, and BrowserContext. The initial browsing page is created
+directly with content::WebContents and adopted by AzecotronRuntimeHost.
 
-1. 0001-azecotron-open-source-branding.patch
-   - changes the open-source Chromium product name and short product name to
-     Synth Browser.
+The former Content Shell BrowserContext and BrowserMainParts dependency has been
+removed from the Synth runtime source.
 
-No Chromium sandbox or security mitigation is intentionally disabled.
+The current native host is intentionally small. Download, permission, DevTools,
+and deeper browser services are being added through Synth-owned seams rather
+than importing Content Shell services.
 
-## Reproducible bootstrap
+## Build
 
 From Windows Command Prompt with depot_tools on PATH:
 
 scripts\bootstrap-azecotron.cmd
+scripts\build-azecotron-host.cmd
 
-This performs:
-- Chromium checkout
-- exact revision checkout
-- gclient dependency sync
-- patch validation with git apply --check
-- patch application
+The host build checks the pinned Chromium revision, installs the Synth-owned
+native source stack, generates GN files, and builds the Azecotron host target.
 
-Patch drift is a hard failure.
+## Verification
 
-## Release build
+The repository contains a manual self-hosted Windows workflow and runtime smoke
+test. A real Windows runner is still required before the binary can be marked
+verified.
 
-scripts\build-azecotron.cmd
+Acceptance requires:
+- native host compiles against pinned Chromium;
+- Synth window target is accepted;
+- real WebContents is created;
+- navigation works;
+- renderer/GPU processes launch normally;
+- native privacy throttles run;
+- permissions and downloads work;
+- DevTools works;
+- clean shutdown/recovery occurs.
 
-The GN configuration is an unbranded release build:
-- is_official_build=true
-- is_debug=false
-- is_chrome_branded=false
-- target_cpu="x64"
-- is_component_build=false
-- symbol_level=0
-- blink_symbol_level=0
-- v8_symbol_level=0
-
-Chromium's current Windows guidance recommends depot_tools/fetch/gclient,
-GN and Ninja/autoninja and notes that large builds benefit substantially from
-fast storage, many CPU cores, and substantial RAM.
-
-## CI
-
-.github/workflows/azecotron.yml defines a manual self-hosted-Windows job that:
-- checks the required depot_tools commands;
-- prepares the pinned fork;
-- builds chrome;
-- executes chrome.exe --version;
-- executes a headless about:blank DOM smoke test;
-- publishes a build manifest.
-
-A self-hosted Windows runner is intentionally required because Chromium's source
-and build footprint are much larger than an ordinary desktop app CI workload.
-
-## Integration status
-
-Synth Browser's current desktop shell continues to use WebView2. The Azecotron
-Chromium tree is now a real, pinned, patchable runtime source component with
-build automation. Replacing the live runtime still requires a native Chromium
-Content API embedding implementation and packaged Windows smoke testing.
-
-That integration must not be faked by drawing a Chromium-like surface or by
-disabling browser security.
-
-## Cortis provider integration
-
-The Azecotron bootstrap transforms Chromium's public prepopulated search-provider data so the existing Google-backed provider is branded **Cortis** with the `cortis` keyword. Search URLs remain Google's real HTTPS endpoints in this milestone; this is a branded provider integration, not a claim of owning or forking Google's proprietary search infrastructure.
-
-Cortis transformation is strict: the build fails when the expected Chromium Google-provider shape is absent, preventing a silent upstream-schema mismatch.
+No release claim is made before these tests pass.
