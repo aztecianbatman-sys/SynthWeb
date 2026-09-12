@@ -31,6 +31,7 @@ AzecotronRuntimeHost::AzecotronRuntimeHost(
         std::strtoull(parent.c_str(), nullptr, 10));
   }
 #endif
+  tab_id_ = base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("synth-tab-id");
 }
 
 AzecotronRuntimeHost::~AzecotronRuntimeHost() = default;
@@ -179,6 +180,7 @@ void AzecotronRuntimeHost::EmitEvent(
   dict.Set("type", type);
   dict.Set("url", source ? source->GetLastCommittedURL().spec() : "");
   dict.Set("title", source ? base::UTF16ToUTF8(source->GetTitle()) : "");
+  if (!tab_id_.empty()) dict.Set("tab_id", tab_id_);
   if (!extra_key.empty())
     dict.Set(extra_key, extra_value);
 
