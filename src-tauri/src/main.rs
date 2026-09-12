@@ -1340,9 +1340,18 @@ fn list_history(state: State<AppState>) -> AppResult<Vec<HistoryEntry>> {
 #[tauri::command]
 fn clear_browsing_data(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
     state.db.clear_history()?;
-    state.db.connect()?.execute("DELETE FROM query_history", [])?;
+    state.db.connect()?.execute_batch(
+        "DELETE FROM query_history;
+         DELETE FROM downloads;
+         DELETE FROM download_verification;
+         DELETE FROM site_permissions;
+         DELETE FROM permission_history;
+         DELETE FROM ai_history;"
+    )?;
     for tab in state.tabs.lock().unwrap().iter() {
-        if let Some(view) = app.get_webview(&format!("page-{}", tab.id)) { let _ = view.clear_all_browsing_data(); }
+        if let Some(view) = app.get_webview(&format!("page-{}", tab.id)) {
+            let _ = view.clear_all_browsing_data();
+        }
     }
     Ok(())
 }
