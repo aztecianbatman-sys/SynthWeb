@@ -237,3 +237,20 @@ The New Tab is now intentionally aligned to the approved Synth visual reference:
 - real values only; unsupported capabilities display explicit states instead of invented metrics.
 
 The generated UI reference is a design target, not a source of runtime facts. All browser counts and capability states shown by the dashboard are derived from actual Synth state or are explicitly marked NOT VERIFIED / NOT STARTED / PLATFORM LIMITED.
+
+
+## UI integration pass
+
+Implemented:
+- reference-style left Synth navigation rail with collapse/search;
+- live right-side Synth Shield capsule;
+- live tracker/cookie/permission site telemetry;
+- richer Privacy Shield panel with diagnostics and Shielded preset;
+- Extensions status panel with explicit Azecotron dependency;
+- Media & WebRTC status/policy panel;
+- Performance & Reliability verification panel;
+- Browser Tools panel for print, screenshot, save/archive, PDF, PiP, fullscreen, WebRTC and media controls;
+- truthful runtime/feature capability labels instead of hard-coded claims;
+- live native Azecotron tracker counter surfaced in the UI.
+
+Frontend syntax check: PASS. Windows native runtime and Chromium integration remain NOT VERIFIED until the real pinned Chromium build and smoke suite run.
