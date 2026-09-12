@@ -6,18 +6,20 @@
 #include "content/public/browser/devtools_manager_delegate.h"
 
 namespace synth_azecotron {
+namespace { SynthContentBrowserClient* g_instance = nullptr; }
 
-SynthContentBrowserClient::SynthContentBrowserClient() = default;
+SynthContentBrowserClient::SynthContentBrowserClient() { g_instance = this; }
 
-SynthContentBrowserClient::~SynthContentBrowserClient() = default;
+SynthContentBrowserClient::~SynthContentBrowserClient() { g_instance = nullptr; }
+
+SynthContentBrowserClient* SynthContentBrowserClient::Get() { return g_instance; }
 
 content::BrowserContext* SynthContentBrowserClient::GetBrowserContext() const {
   return browser_main_parts_ ? browser_main_parts_->browser_context() : nullptr;
 }
 
 std::unique_ptr<content::BrowserMainParts>
-SynthContentBrowserClient::CreateBrowserMainParts(
-    const content::MainFunctionParams& parameters) {
+SynthContentBrowserClient::CreateBrowserMainParts(bool) {
   auto parts = std::make_unique<SynthBrowserMainParts>();
   browser_main_parts_ = parts.get();
   return parts;
