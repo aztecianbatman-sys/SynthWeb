@@ -114,9 +114,10 @@ Tabs/navigation/omnibox: FUNCTIONAL IN SOURCE
 Synt Search delegation: FUNCTIONAL IN SOURCE
 Bookmarks/history/downloads: FUNCTIONAL IN SOURCE
 Workspaces/sessions/shelf: FUNCTIONAL IN SOURCE
-Privacy/security: PARTIALLY FUNCTIONAL
-Synth Assist: PARTIALLY FUNCTIONAL
+Privacy/security: FUNCTIONAL IN SOURCE for per-site permissions/cookies/site-data/checksum verification; tracker interception PLATFORM LIMITED on current host WebView
+Synth Assist: FUNCTIONAL IN SOURCE for provider presets, secure keys, model discovery, streaming-compatible providers, AI history, explicit page/selection context, and AI Search via OpenRouter
 Reader/Page Lens/Research: FUNCTIONAL IN SOURCE
+Developer Tools / power-user commands: FUNCTIONAL IN SOURCE where host runtime supports them
 Profiles: FUNCTIONAL IN SOURCE; Guest Mode: FUNCTIONAL IN SOURCE; native permission prompts: FUNCTIONAL IN SOURCE; full per-site permission center/extensions: NOT STARTED
 Azecotron Web Chromium fork source/build workflow: IMPLEMENTED IN SOURCE; Cortis provider transformation: IMPLEMENTED IN SOURCE; binary build: NOT VERIFIED
 Performance certification: NOT TESTED
@@ -128,3 +129,22 @@ Release acceptance: NOT YET MET
 Profiles use separate native profile roots for the SQLite browser database and Tauri webview data directory. Switching profiles relaunches the app into the selected profile so data boundaries are not faked. Guest Mode uses a unique temporary profile root and deletes it on exit.
 
 The current host webview runtime uses real Tauri/Wry permission handling. Sensitive permissions default to Ask through the native permission system; clipboard read, local fonts, and sensors default to Block. Browser policies can be changed in Settings. Full per-site management and Chromium-native permission delegation remain pending the Azecotron runtime integration.
+
+## Phase 7-9 implementation pass
+
+Implemented in this pass:
+- per-origin permission overrides and permission history
+- current-site cookie inspection and individual cookie deletion
+- current-site cookie/localStorage/sessionStorage/IndexedDB clearing
+- download SHA-256 verification and verification state
+- download open/reveal/remove-history actions
+- Find in Page match count, case-sensitive mode, whole-word mode
+- selection extraction for Search Selection / Ask Synth / Translate / Add to Notes
+- provider presets for Ollama, LM Studio, OpenAI, OpenRouter, Gemini, Anthropic, and custom OpenAI-compatible endpoints
+- OpenAI-compatible streaming transport and local AI history
+- provider-backed AI Search using OpenRouter online search mode
+- real host DevTools open/close/status commands
+- Copy URL and Copy Title + URL commands
+- TrackerEngine rule/allowlist/blocklist/counter architecture; current external-request interception remains platform-limited by the Tauri host-webview path
+
+Not yet verified: Rust compilation, Windows packaging, Azecotron native Content API integration, Chromium DevTools protocol integration, and full runtime smoke/performance tests.
