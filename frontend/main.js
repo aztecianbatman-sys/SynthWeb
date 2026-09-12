@@ -341,7 +341,9 @@ async function showSettings() {
   addToggle("search_history","Store search history");
   addToggle("quiet_mode","Quiet Mode");
   addSelect("default_zoom","Default zoom",[["75","75%"],["90","90%"],["100","100%"],["110","110%"],["125","125%"],["150","150%"]]);
-  const reset=document.createElement("button");reset.className="panel-action";reset.textContent="Reset settings";reset.onclick=async()=>{if(confirm("Reset Synth Browser settings?")){await invoke("reset_settings");state.settings={};await refresh();showSettings()}};grid.appendChild(reset);
+  const exportData=document.createElement("button");exportData.className="panel-action";exportData.textContent="Export my browser data";exportData.onclick=async()=>{try{const path=await invoke("export_data");toast("Exported: "+path)}catch(e){toast(e)}};grid.appendChild(exportData);
+  const diagnostics=document.createElement("button");diagnostics.className="panel-action";diagnostics.textContent="Export diagnostics";diagnostics.onclick=async()=>{try{const path=await invoke("export_diagnostics");toast("Diagnostics exported: "+path)}catch(e){toast(e)}};grid.appendChild(diagnostics);
+  const reset=document.createElement("button");reset.className="panel-action";reset.textContent="Reset browser data";reset.onclick=async()=>{if(!confirm("Reset local browser data, workspaces, sessions, notes and bookmarks?"))return;try{await invoke("reset_browser");state.settings={};await refresh();toast("Browser reset")}catch(e){toast(e)}};grid.appendChild(reset);reset.onclick=async()=>{if(confirm("Reset Synth Browser settings?")){await invoke("reset_settings");state.settings={};await refresh();showSettings()}};grid.appendChild(reset);
 
   search.oninput=()=>{
     const q=search.value.toLowerCase();
