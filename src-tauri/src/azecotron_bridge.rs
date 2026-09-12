@@ -10,7 +10,6 @@ pub struct AzecotronStatus {
 }
 
 pub fn executable_path() -> PathBuf {
-    let root = dirs_next::data_dir().unwrap_or_else(|| PathBuf::from(".")).join("SynthBrowser");
     let repo_root = std::env::var_os("SYNTHWEB_ROOT").map(PathBuf::from);
     let source_root = repo_root.unwrap_or_else(|| PathBuf::from("."));
     source_root.join("third_party").join("azecotron-chromium").join("src").join("out").join("Azecotron").join(if cfg!(windows) {"chrome.exe"} else {"chrome"})
