@@ -17,15 +17,12 @@ executable("azecotron_host") {
 
   deps = [
     "//build/win:default_exe_manifest",
-    "//content/shell:content_shell_lib",
-    "//content/shell",
     "//azecotron/host:azecotron_runtime_host",
     "//content/public/browser",
     "//sandbox",
   ]
 
   data_deps = [
-    "//content/shell:pak",
     "//tools/v8_context_snapshot:v8_context_snapshot",
   ]
 
