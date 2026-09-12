@@ -75,3 +75,9 @@ Content API embedding implementation and packaged Windows smoke testing.
 
 That integration must not be faked by drawing a Chromium-like surface or by
 disabling browser security.
+
+## Cortis provider integration
+
+The Azecotron bootstrap transforms Chromium's public prepopulated search-provider data so the existing Google-backed provider is branded **Cortis** with the `cortis` keyword. Search URLs remain Google's real HTTPS endpoints in this milestone; this is a branded provider integration, not a claim of owning or forking Google's proprietary search infrastructure.
+
+Cortis transformation is strict: the build fails when the expected Chromium Google-provider shape is absent, preventing a silent upstream-schema mismatch.
