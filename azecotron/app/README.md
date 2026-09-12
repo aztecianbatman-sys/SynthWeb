@@ -6,24 +6,27 @@ Browser.
 Startup flow:
 
 1. Chromium ContentMain initializes the browser/renderer/GPU process model.
-2. Chromium's ShellMainDelegate supplies the Content clients and browser
-   services.
-3. Content Shell creates a real BrowserContext and WebContents.
-4. The Synth startup callback takes that real WebContents.
-5. On Windows, its native view is reparented to the HWND supplied by Synth.
-6. The original Content Shell wrapper window is hidden.
-7. The WebContents remains owned by Chromium's browser process and continues
-   using Chromium's real multiprocess security model.
+2. SynthContentMainDelegate provides Synth-owned Content clients.
+3. SynthBrowserMainParts creates a SynthBrowserContext for the selected profile.
+4. Synth creates a real content::WebContents against that BrowserContext.
+5. AzecotronRuntimeHost adopts the WebContents and attaches its native view to
+   the HWND supplied by Synth on Windows.
+6. Chromium's normal multiprocess renderer/GPU/security model remains active.
 
-Launch switches consumed by this host:
+Launch switches:
 - --synth-parent-hwnd=<decimal HWND>
+- --synth-tab-id=<Synth tab id>
 - --synth-url=<http(s) URL or about:blank>
+- --user-data-dir=<profile runtime directory>
 
 No --no-sandbox or equivalent security-disabling switch is added by this host.
 
 Current milestone:
-- ContentMain bootstrap: implemented in source
-- real WebContents creation: implemented through Chromium Content Shell
-- native HWND attachment: implemented in source for Windows
-- production Synth event bridge: next
-- packaged Windows runtime: NOT VERIFIED
+- Synth ContentMain bootstrap: IMPLEMENTED IN SOURCE
+- Synth BrowserMainParts: IMPLEMENTED IN SOURCE
+- Synth BrowserContext: IMPLEMENTED IN SOURCE
+- real WebContents creation: IMPLEMENTED IN SOURCE
+- native HWND attachment: IMPLEMENTED IN SOURCE for Windows
+- native navigation/loading/security/renderer events: IMPLEMENTED IN SOURCE
+- Chromium network throttle integration: IMPLEMENTED IN SOURCE
+- Windows packaged runtime: NOT VERIFIED
