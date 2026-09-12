@@ -1,24 +1,46 @@
 #ifndef SYNTH_AZECOTRON_SYNTH_BROWSER_CONTEXT_H_
 #define SYNTH_AZECOTRON_SYNTH_BROWSER_CONTEXT_H_
 
+#include <memory>
+
 #include "base/files/file_path.h"
-#include "content/shell/browser/shell_browser_context.h"
+#include "content/public/browser/browser_context.h"
 
 namespace synth_azecotron {
 
-class SynthBrowserContext final : public content::ShellBrowserContext {
+class SynthBrowserContext final : public content::BrowserContext {
  public:
   SynthBrowserContext(bool off_the_record, const base::FilePath& path);
   SynthBrowserContext(const SynthBrowserContext&) = delete;
   SynthBrowserContext& operator=(const SynthBrowserContext&) = delete;
   ~SynthBrowserContext() override;
 
-  base::FilePath GetPath() override;
+  std::unique_ptr<content::ZoomLevelDelegate> CreateZoomLevelDelegate(
+      const base::FilePath& partition_path) override;
+  base::FilePath GetPath() const override;
+  bool IsOffTheRecord() override;
+  content::DownloadManagerDelegate* GetDownloadManagerDelegate() override;
+  content::BrowserPluginGuestManager* GetGuestManager() override;
+  storage::SpecialStoragePolicy* GetSpecialStoragePolicy() override;
+  content::PlatformNotificationService* GetPlatformNotificationService() override;
+  content::PushMessagingService* GetPushMessagingService() override;
+  content::StorageNotificationService* GetStorageNotificationService() override;
+  content::SSLHostStateDelegate* GetSSLHostStateDelegate() override;
+  content::PermissionControllerDelegate* GetPermissionControllerDelegate() override;
+  content::ReduceAcceptLanguageControllerDelegate*
+  GetReduceAcceptLanguageControllerDelegate() override;
+  content::ClientHintsControllerDelegate* GetClientHintsControllerDelegate()
+      override;
+  content::BackgroundFetchDelegate* GetBackgroundFetchDelegate() override;
+  content::BackgroundSyncController* GetBackgroundSyncController() override;
+  content::BrowsingDataRemoverDelegate*
+  GetBrowsingDataRemoverDelegate() override;
 
  private:
-  base::FilePath path_;
+  const bool off_the_record_;
+  const base::FilePath path_;
 };
 
 }  // namespace synth_azecotron
 
-#endif
+#endif  // SYNTH_AZECOTRON_SYNTH_BROWSER_CONTEXT_H_
