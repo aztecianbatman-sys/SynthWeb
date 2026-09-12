@@ -407,6 +407,38 @@ impl Db {
         Ok(())
     }
 
+    fn export_all(&self,path:&Path)->AppResult<()> {
+        let payload=serde_json::json!({
+            "bookmarks":self.list_bookmarks()?,
+            "history":self.list_history()?,
+            "workspaces":self.list_workspaces()?,
+            "sessions":self.list_sessions()?,
+            "readingShelf":self.list_shelf()?,
+            "notes":self.list_notes()?,
+            "researchBoards":self.list_boards()?,
+            "settings":self.all_settings()?
+        });
+        fs::write(path,serde_json::to_vec_pretty(&payload).map_err(|e|AppError::Message(e.to_string()))?)?;
+        Ok(())
+    }
+
+    fn reset_all(&self)->AppResult<()> {
+        let c=self.connect()?;
+        c.execute_batch("PRAGMA foreign_keys=ON;
+            DELETE FROM board_items; DELETE FROM research_boards; DELETE FROM notes;
+            DELETE FROM reading_shelf; DELETE FROM sessions; DELETE FROM query_history;
+            DELETE FROM history; DELETE FROM bookmarks; DELETE FROM downloads; DELETE FROM settings;
+            DELETE FROM workspaces;
+            INSERT INTO workspaces(name,icon,accent,position) VALUES('Default','square','#2ee6ff',0);")?;
+        Ok(())
+    }
+
+    fn size_bytes(&self)->u64 {
+        fs::metadata(&self.path).map(|m|m.len()).unwrap_or(0)
+    }
+
+
+
     fn add_shelf(&self,title:&str,url:&str)->AppResult<ShelfItem>{
         self.connect()?.execute(
             "INSERT INTO reading_shelf(title,url,tags,is_read,saved_at) VALUES(?1,?2,'',0,?3)
@@ -1057,6 +1089,48 @@ fn add_current_to_board(state: State<AppState>, board_id:i64)->AppResult<BoardIt
 fn list_board_items(state: State<AppState>, board_id:i64)->AppResult<Vec<BoardItem>>{state.db.list_board_items(board_id)}
 
 #[tauri::command]
+fn export_data(state: State<AppState>) -> AppResult<String> {
+    let dir=dirs_next::download_dir().unwrap_or_else(||PathBuf::from(".")).join("Synth Browser").join("exports");
+    fs::create_dir_all(&dir)?;
+    let path=dir.join(format!("synth-browser-export-{}.json",Db::now()));
+    state.db.export_all(&path)?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn export_diagnostics(state: State<AppState>) -> AppResult<String> {
+    let dir=dirs_next::download_dir().unwrap_or_else(||PathBuf::from(".")).join("Synth Browser").join("diagnostics");
+    fs::create_dir_all(&dir)?;
+    let path=dir.join(format!("synth-browser-diagnostics-{}.txt",Db::now()));
+    let (runtime,revision,azecotron)=runtime_status();
+    let tabs=state.tabs.lock().unwrap().len();
+    let workspaces=state.workspaces.lock().unwrap().len();
+    let text=format!(
+        "Synth Browser diagnostics\nversion: 0.1.0\nruntime: {runtime}\nruntime_revision: {revision}\nazecotron_status: {azecotron}\ntab_count: {tabs}\nworkspace_count: {workspaces}\ndatabase_bytes: {}\ntelemetry: not implemented\n",
+        state.db.size_bytes()
+    );
+    fs::write(&path,text)?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn reset_browser(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
+    state.db.reset_all()?;
+    let ids:Vec<String>=state.tabs.lock().unwrap().iter().map(|t|t.id.clone()).collect();
+    for id in ids { if let Some(v)=app.get_webview(&format!("page-{id}")){let _=v.close();} }
+    *state.tabs.lock().unwrap()=vec![Tab{
+        id:"tab-1".into(),title:"New Tab".into(),url:"synth://newtab".into(),
+        pinned:false,muted:false,private:false,loading:false,workspace:"Default".into(),has_webview:false
+    }];
+    *state.active_id.lock().unwrap()="tab-1".into();
+    *state.active_workspace.lock().unwrap()="Default".into();
+    *state.workspaces.lock().unwrap()=state.db.list_workspaces()?;
+    layout(&app,&state)?;
+    emit_snapshot(&app,&state);
+    Ok(())
+}
+
+#[tauri::command]
 fn get_settings(state: State<AppState>) -> AppResult<std::collections::HashMap<String,String>> {
     state.db.all_settings()
 }
@@ -1127,7 +1201,7 @@ fn main() {
             clear_browsing_data, runtime_info, list_query_history, list_workspaces, create_workspace,
             switch_workspace, rename_workspace, delete_workspace, reorder_tab,
             save_session, list_sessions, open_session, add_to_shelf, list_shelf,
-            toggle_shelf_read, remove_shelf, create_note, list_notes, delete_note, create_research_board, list_research_boards, delete_research_board, add_current_to_board, list_board_items, get_settings, set_setting, reset_settings
+            toggle_shelf_read, remove_shelf, export_data, export_diagnostics, reset_browser, create_note, list_notes, delete_note, create_research_board, list_research_boards, delete_research_board, add_current_to_board, list_board_items, get_settings, set_setting, reset_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running Synth Browser");
