@@ -765,6 +765,7 @@ fn create_page_webview<R: tauri::Runtime>(
     let app_favicon = app.clone();
     let app_download = app.clone();
     let db_path = state.db.path().to_path_buf();
+    let permission_db_path = state.db.path().to_path_buf();
     let download_dir = dirs_next::download_dir().unwrap_or_else(|| PathBuf::from(".")).join("Synth Browser");
     fs::create_dir_all(&download_dir)?;
 
@@ -776,18 +777,32 @@ fn create_page_webview<R: tauri::Runtime>(
         .incognito(private)
         .devtools(cfg!(debug_assertions))
         .zoom_hotkeys_enabled(true)
-        .on_permission_request(|_webview, kind| {
-            match kind {
-                PermissionKind::Camera
-                | PermissionKind::Microphone
-                | PermissionKind::Geolocation
-                | PermissionKind::Notifications
-                | PermissionKind::DisplayCapture => PermissionResponse::Prompt,
-                PermissionKind::ClipboardRead
-                | PermissionKind::LocalFonts
-                | PermissionKind::Sensors
-                | PermissionKind::OtherSensors => PermissionResponse::Deny,
-                _ => PermissionResponse::Default,
+        .on_permission_request(move |webview, kind| {
+            let setting = match kind {
+                PermissionKind::Camera => "permission_camera",
+                PermissionKind::Microphone => "permission_microphone",
+                PermissionKind::Geolocation => "permission_geolocation",
+                PermissionKind::Notifications => "permission_notifications",
+                PermissionKind::DisplayCapture => "permission_display_capture",
+                PermissionKind::ClipboardRead => "permission_clipboard",
+                PermissionKind::LocalFonts => "permission_local_fonts",
+                PermissionKind::Sensors | PermissionKind::OtherSensors => "permission_sensors",
+                _ => return PermissionResponse::Default,
+            };
+            let policy = Db::open(&permission_db_path)
+                .ok()
+                .and_then(|db| db.get_setting(setting).ok().flatten())
+                .unwrap_or_else(|| "prompt".into());
+            let _ = app.emit("browser://permission-request", serde_json::json!({
+                "tabId": tab_id,
+                "url": webview.url().ok().map(|u| u.to_string()),
+                "kind": setting,
+                "policy": policy
+            }));
+            match policy.as_str() {
+                "allow" => PermissionResponse::Allow,
+                "deny" => PermissionResponse::Deny,
+                _ => PermissionResponse::Prompt,
             }
         })
         .on_navigation(move |next| {
@@ -1679,6 +1694,7 @@ fn set_setting(state: State<AppState>, key: String, value: String) -> AppResult<
             let n=value.parse::<f64>().map_err(|_|AppError::Message("Invalid zoom.".into()))?;
             if !(50.0..=200.0).contains(&n) { return Err(AppError::Message("Zoom must be 50–200%.".into())); }
         }
+        "permission_camera"|"permission_microphone"|"permission_geolocation"|"permission_notifications"|"permission_display_capture"|"permission_clipboard"|"permission_local_fonts"|"permission_sensors" if !matches!(value.as_str(),"allow"|"deny"|"prompt") => return Err(AppError::Message("Permission policy must be allow, deny, or prompt.".into())),
         "ai_provider"|"ai_model"|"ai_endpoint" => if value.len()>2000 { return Err(AppError::Message("AI setting is too long.".into())); },
         "homepage" if value.len()>2000 => return Err(AppError::Message("Homepage is too long.".into())),
         _ => return Err(AppError::Message("Unknown setting.".into())),
