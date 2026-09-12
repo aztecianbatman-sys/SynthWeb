@@ -964,142 +964,80 @@ async function showSettings() {
 async function showAssist() {
   const body = basePanel("Synth Assist");
   const info = await invoke("ai_status");
-  body.innerHTML =
-    '<div class="panel-row">Status <strong>' + (info.enabled ? "Enabled" : "Disabled") + '</strong></div>' +
-    '<div class="panel-row">Provider <strong>' + esc(info.provider) + '</strong></div>' +
-    '<div class="setting-label">Endpoint</div>';
-  const endpoint = document.createElement("input");
-  endpoint.className = "setting-control";
-  endpoint.value = info.endpoint;
-  endpoint.onchange = async () => {
-    try { await invoke("set_setting", { key: "ai_endpoint", value: endpoint.value }); toast("AI endpoint saved"); }
-    catch (error) { toast(error); }
-  };
-  body.appendChild(endpoint);
+  body.innerHTML="";
+  const status=document.createElement("div");status.className="panel-row";status.innerHTML='Status <strong>'+ (info.enabled?"Enabled":"Disabled") +'</strong>';body.appendChild(status);
 
-  const label = document.createElement("div");
-  label.className = "setting-label";
-  label.textContent = "Model";
-  body.appendChild(label);
-  const model = document.createElement("input");
-  model.className = "setting-control";
-  model.value = info.model;
-  model.placeholder = "e.g. llama3.2";
-  model.onchange = async () => {
-    try { await invoke("set_setting", { key: "ai_model", value: model.value }); toast("AI model saved"); }
-    catch (error) { toast(error); }
-  };
-  body.appendChild(model);
-
-  const enabled = document.createElement("label");
-  enabled.className = "setting-toggle";
-  const enabledText = document.createElement("span");
-  enabledText.textContent = "Enable Synth Assist";
-  const enabledInput = document.createElement("input");
-  enabledInput.type = "checkbox";
-  enabledInput.checked = info.enabled;
-  enabledInput.onchange = async () => {
-    await invoke("set_setting", { key: "ai_enabled", value: String(enabledInput.checked) });
-    await showAssist();
-  };
-  enabled.append(enabledText, enabledInput);
-
-  const page = document.createElement("label");
-  page.className = "setting-toggle";
-  const pageText = document.createElement("span");
-  pageText.textContent = "Allow page context on request";
-  const pageInput = document.createElement("input");
-  pageInput.type = "checkbox";
-  pageInput.checked = state.settings.ai_page_context === "true";
-  pageInput.onchange = async () => {
-    await invoke("set_setting", { key: "ai_page_context", value: String(pageInput.checked) });
-    state.settings.ai_page_context = String(pageInput.checked);
-  };
-  page.append(pageText, pageInput);
-
-  const selection = document.createElement("label");
-  selection.className = "setting-toggle";
-  const selectionText = document.createElement("span");
-  selectionText.textContent = "Allow selection context on request";
-  const selectionInput = document.createElement("input");
-  selectionInput.type = "checkbox";
-  selectionInput.checked = state.settings.ai_selection_context === "true";
-  selectionInput.onchange = async () => {
-    await invoke("set_setting", { key: "ai_selection_context", value: String(selectionInput.checked) });
-    state.settings.ai_selection_context = String(selectionInput.checked);
-  };
-  selection.append(selectionText, selectionInput);
-
-  body.append(enabled, page, selection);
-
-  const credential = document.createElement("div");
-  credential.className = "panel-row";
-  credential.innerHTML = 'Credential <strong>' + (info.keyStored ? "Stored in OS secure storage" : "Not stored") + '</strong>';
-  body.appendChild(credential);
-
-  const key = document.createElement("input");
-  key.type = "password";
-  key.className = "setting-control";
-  key.placeholder = info.keyStored ? "Replace secure API key" : "Store API key securely";
-  body.appendChild(key);
-
-  const saveKey = document.createElement("button");
-  saveKey.className = "panel-action";
-  saveKey.textContent = "Save API key";
-  saveKey.onclick = async () => {
-    if (!key.value) return;
-    try {
-      await invoke("set_ai_key", { provider: info.provider, key: key.value });
-      key.value = "";
-      toast("API key stored securely");
+  const presets=await invoke("ai_presets");
+  const providerLabel=document.createElement("div");providerLabel.className="setting-label";providerLabel.textContent="Provider";body.appendChild(providerLabel);
+  const provider=document.createElement("select");provider.className="setting-control";
+  presets.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.name;provider.appendChild(o)});
+  provider.value=info.provider==="openai-compatible"?"custom":info.provider;
+  if(![...provider.options].some(o=>o.value===provider.value))provider.value="custom";
+  provider.onchange=async()=>{
+    const selected=presets.find(p=>p.id===provider.value);if(!selected)return;
+    try{
+      await invoke("set_setting",{key:"ai_provider",value:selected.id});
+      await invoke("set_setting",{key:"ai_endpoint",value:selected.endpoint});
+      await invoke("set_setting",{key:"ai_model",value:""});
       await showAssist();
-    } catch (error) { toast(error); }
+    }catch(e){toast(e)}
   };
-  body.appendChild(saveKey);
+  body.appendChild(provider);
 
-  const clearKey = document.createElement("button");
-  clearKey.className = "panel-action";
-  clearKey.textContent = "Clear API key";
-  clearKey.onclick = async () => {
-    try { await invoke("clear_ai_key", { provider: info.provider }); toast("API key removed"); await showAssist(); }
-    catch (error) { toast(error); }
-  };
-  body.appendChild(clearKey);
+  const endpointLabel=document.createElement("div");endpointLabel.className="setting-label";endpointLabel.textContent="Endpoint";body.appendChild(endpointLabel);
+  const endpoint=document.createElement("input");endpoint.className="setting-control";endpoint.value=info.endpoint;endpoint.onchange=async()=>{try{await invoke("set_setting",{key:"ai_endpoint",value:endpoint.value});toast("AI endpoint saved")}catch(e){toast(e)}};body.appendChild(endpoint);
 
-  const models = document.createElement("button");
-  models.className = "panel-action";
-  models.textContent = "Load available models";
-  models.onclick = async () => {
-    try {
-      const list = await invoke("list_ai_models");
-      toast(list.length ? "Models: " + list.slice(0, 4).join(", ") : "Provider returned no models");
-    } catch (error) { toast(error); }
-  };
-  body.appendChild(models);
+  const modelLabel=document.createElement("div");modelLabel.className="setting-label";modelLabel.textContent="Model";body.appendChild(modelLabel);
+  const model=document.createElement("input");model.className="setting-control";model.value=info.model;model.placeholder="Model id";model.onchange=async()=>{try{await invoke("set_setting",{key:"ai_model",value:model.value});toast("AI model saved")}catch(e){toast(e)}};body.appendChild(model);
 
-  const ask = document.createElement("button");
-  ask.className = "panel-action";
-  ask.textContent = "Ask about current page";
-  ask.onclick = async () => {
-    try { await invoke("request_page_context"); toast("Page context requested…"); }
-    catch (error) { toast(error); }
-  };
-  body.appendChild(ask);
+  const enabled=document.createElement("label");enabled.className="setting-toggle";
+  const enabledText=document.createElement("span");enabledText.textContent="Enable Synth Assist";
+  const enabledInput=document.createElement("input");enabledInput.type="checkbox";enabledInput.checked=info.enabled;
+  enabledInput.onchange=async()=>{await invoke("set_setting",{key:"ai_enabled",value:String(enabledInput.checked)});showAssist()};
+  enabled.append(enabledText,enabledInput);body.appendChild(enabled);
 
-  const explain = document.createElement("button");
-  explain.className = "panel-action";
-  explain.textContent = "Explain current selection";
-  explain.onclick = async () => {
-    try { await invoke("request_selection_context"); toast("Selection context requested…"); }
-    catch (error) { toast(error); }
-  };
-  body.appendChild(explain);
+  const page=document.createElement("label");page.className="setting-toggle";
+  const pageText=document.createElement("span");pageText.textContent="Allow page context on request";
+  const pageInput=document.createElement("input");pageInput.type="checkbox";pageInput.checked=state.settings.ai_page_context==="true";
+  pageInput.onchange=async()=>{await invoke("set_setting",{key:"ai_page_context",value:String(pageInput.checked)});state.settings.ai_page_context=String(pageInput.checked)};
+  page.append(pageText,pageInput);body.appendChild(page);
 
-  const note = document.createElement("div");
-  note.className = "panel-row";
-  note.textContent = "Page or selection text is sent only after you explicitly request context.";
-  body.appendChild(note);
+  const selection=document.createElement("label");selection.className="setting-toggle";
+  const selectionText=document.createElement("span");selectionText.textContent="Allow selection context on request";
+  const selectionInput=document.createElement("input");selectionInput.type="checkbox";selectionInput.checked=state.settings.ai_selection_context==="true";
+  selectionInput.onchange=async()=>{await invoke("set_setting",{key:"ai_selection_context",value:String(selectionInput.checked)});state.settings.ai_selection_context=String(selectionInput.checked)};
+  selection.append(selectionText,selectionInput);body.appendChild(selection);
+
+  const credential=document.createElement("div");credential.className="panel-row";credential.innerHTML='Credential <strong>'+(info.keyStored?"Stored in OS secure storage":"Not stored")+'</strong>';body.appendChild(credential);
+  const key=document.createElement("input");key.type="password";key.className="setting-control";key.placeholder=info.keyStored?"Replace secure API key":"Store API key securely";body.appendChild(key);
+  const saveKey=document.createElement("button");saveKey.className="panel-action";saveKey.textContent="Save API key";
+  saveKey.onclick=async()=>{if(!key.value)return;try{await invoke("set_ai_key",{provider:info.provider,key:key.value});key.value="";toast("API key stored securely");await showAssist()}catch(e){toast(e)}};body.appendChild(saveKey);
+  const clearKey=document.createElement("button");clearKey.className="panel-action";clearKey.textContent="Clear API key";
+  clearKey.onclick=async()=>{try{await invoke("clear_ai_key",{provider:info.provider});toast("API key removed");await showAssist()}catch(e){toast(e)}};body.appendChild(clearKey);
+
+  const load=document.createElement("button");load.className="panel-action";load.textContent="Load available models";
+  load.onclick=async()=>{try{const list=await invoke("list_ai_models");if(!list.length){toast("Provider returned no models.");return}model.value=list[0];await invoke("set_setting",{key:"ai_model",value:list[0]});toast("Loaded "+list.length+" models")}catch(e){toast(e)}};body.appendChild(load);
+
+  const pageAsk=document.createElement("button");pageAsk.className="panel-action";pageAsk.textContent="Ask about current page";pageAsk.onclick=async()=>{try{await invoke("request_page_context");toast("Page context requested…")}catch(e){toast(e)}};body.appendChild(pageAsk);
+  const selectionAsk=document.createElement("button");selectionAsk.className="panel-action";selectionAsk.textContent="Explain current selection";selectionAsk.onclick=async()=>{try{await invoke("request_selection_context");toast("Selection context requested…")}catch(e){toast(e)}};body.appendChild(selectionAsk);
+
+  const aiSearch=document.createElement("button");aiSearch.className="panel-action";aiSearch.textContent="AI Search this query";
+  aiSearch.onclick=async()=>{const q=prompt("AI Search query");if(!q)return;try{const answer=await invoke("synth_ai_search",{query:q});showAiAnswer(answer,"AI Search")}catch(e){toast(e)}};body.appendChild(aiSearch);
+
+  const history=document.createElement("button");history.className="panel-action";history.textContent="AI history";
+  history.onclick=showAiHistory;body.appendChild(history);
+
+  const note=document.createElement("div");note.className="panel-row";note.textContent="Page or selection text is sent only after you explicitly request context.";body.appendChild(note);
 }
+
+async function showAiHistory(){
+  const body=basePanel("AI History");
+  const rows=await invoke("list_ai_history");
+  if(!rows.length){body.innerHTML='<div class="panel-row">No AI history yet.</div>';return}
+  rows.forEach(x=>{const row=document.createElement("div");row.className="reading-row";const info=document.createElement("div");info.className="reading-info";info.innerHTML='<div class="reading-title">'+esc(x.question)+'</div><div class="reading-url">'+esc(x.provider)+' · '+esc(x.model)+'</div><div class="reading-url">'+esc(x.answer.slice(0,140))+'</div>';const del=document.createElement("button");del.className="mini-action";del.textContent="View";del.onclick=()=>showAiAnswer(x.answer,x.question);row.append(info,del);body.appendChild(row)});
+  const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear AI history";clear.onclick=async()=>{if(confirm("Clear all local AI history?")){await invoke("clear_ai_history");showAiHistory()}};body.appendChild(clear);
+}
+
 
 function showAiAnswer(answer, title) {
   const body = basePanel("Synth Assist");
@@ -1398,6 +1336,12 @@ listen("browser://https-upgrade", (event) => {
 listen("browser://navigation-blocked", () => {
   toast("HTTP was blocked by HTTPS-only mode.");
 });
+
+let activeAiStream="";
+listen("ai://stream-start",()=>{activeAiStream="";showAiAnswer("","Synth Assist")});
+listen("ai://stream-token",(event)=>{activeAiStream+=String(event.payload?.token||"");const out=$("panelBody")?.querySelector(".ai-stream-output");if(out)out.textContent=activeAiStream});
+listen("ai://stream-end",(event)=>{activeAiStream=String(event.payload?.answer||activeAiStream);const out=$("panelBody")?.querySelector(".ai-stream-output");if(out)out.textContent=activeAiStream});
+listen("ai://stream-error",(event)=>toast(event.payload?.error||"AI streaming failed."));
 
 listen("ai://page-context", async (event) => {
   const context = String(event.payload?.text || "").trim();
