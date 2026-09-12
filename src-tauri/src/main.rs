@@ -307,12 +307,6 @@ impl Db {
         serde_json::from_str(&data).map_err(|e|AppError::Message(e.to_string()))
     }
 
-    fn get_setting(&self,key:&str)->AppResult<Option<String>>{
-        let c=self.connect()?;
-        let value=c.query_row("SELECT value FROM settings WHERE key=?1",[key],|r|r.get(0)).optional()?;
-        Ok(value)
-    }
-
     fn set_setting(&self,key:&str,value:&str)->AppResult<()>{
         if key.len()>100 || value.len()>20000 { return Err(AppError::Message("Invalid setting value.".into())); }
         self.connect()?.execute(
@@ -414,6 +408,11 @@ impl AppState {
 }
 
 use search::{classify, SearchDecision};
+
+fn use_runtime_boundary() {
+    fn accepts_runtime<T: crate::browser_runtime::BrowserRuntime>() {}
+    accepts_runtime::<crate::browser_runtime::TauriWebviewRuntime>();
+}
 
 fn runtime_status() -> (&'static str, &'static str, &'static str) {
     #[cfg(target_os = "windows")]
@@ -972,6 +971,7 @@ fn main() {
     tauri::Builder::default()
         .manage(state)
         .setup(|app| {
+            use_runtime_boundary();
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&quit])?;
             app.set_menu(menu)?;
