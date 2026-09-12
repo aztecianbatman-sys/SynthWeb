@@ -1,0 +1,13 @@
+source_set("azecotron_runtime_host") {
+  sources = [
+    "azecotron_runtime_host.cc",
+    "azecotron_runtime_host.h",
+  ]
+
+  deps = [
+    "//content",
+    "//content/public/browser",
+    "//ui/base",
+    "//url",
+  ]
+}
