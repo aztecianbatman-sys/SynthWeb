@@ -38,3 +38,5 @@ NOT STARTED:
 
 BLOCKED:
 - bundled Chromium fork integration until a reproducible fork/build/security pipeline is established
+
+CI verification is being run from a pull-request branch before merging to main.
