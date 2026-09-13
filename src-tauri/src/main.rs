@@ -2641,7 +2641,7 @@ fn reset_browser(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()>
     for id in ids { if let Some(v)=app.get_webview(&format!("page-{id}")){let _=v.close();} }
     *state.tabs.lock().unwrap()=vec![Tab{
         id:"tab-1".into(),title:"New Tab".into(),url:"synth://newtab".into(),
-        pinned:false,muted:false,private:false,loading:false,workspace:"Default".into(),has_webview:false
+        pinned:false,muted:false,favicon:None,private:false,loading:false,workspace:"Default".into(),has_webview:false
     }];
     *state.active_id.lock().unwrap()="tab-1".into();
     *state.active_workspace.lock().unwrap()="Default".into();
