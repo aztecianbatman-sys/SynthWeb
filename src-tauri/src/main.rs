@@ -3066,7 +3066,8 @@ async fn launch_azecotron(app: tauri::AppHandle, window: tauri::WebviewWindow, s
     });
     let target_hwnd=native_host::target(window).ok().map(|x|x.hwnd);
     let profile_root=profile_dir(&state.profile.id).join("azecotron");
-    azecotron_bridge::launch(app,profile_root,&target,target_hwnd,&tab_id).map_err(AppError::Message)
+    let policy_path=Some(azecotron_bridge::write_privacy_policy(&profile_root,&state.db.all_settings()?).map_err(AppError::Message)?);
+    azecotron_bridge::launch(app,profile_root,&target,target_hwnd,&tab_id,policy_path).map_err(AppError::Message)
 }
 
 #[tauri::command]
