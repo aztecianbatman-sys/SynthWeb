@@ -2646,6 +2646,22 @@ fn export_diagnostics(state: State<AppState>) -> AppResult<String> {
 }
 
 #[tauri::command]
+fn verify_update_manifest(manifest:Vec<u8>,signature:Vec<u8>,public_key:Vec<u8>)->AppResult<serde_json::Value>{
+    use ed25519_dalek::{Signature,Verifier,VerifyingKey};
+    let key:[u8;32]=public_key.try_into().map_err(|_|AppError::Message("Ed25519 public key must be 32 bytes.".into()))?;
+    let sig_bytes:[u8;64]=signature.try_into().map_err(|_|AppError::Message("Ed25519 signature must be 64 bytes.".into()))?;
+    let vk=VerifyingKey::from_bytes(&key).map_err(|e|AppError::Message(format!("Invalid signing key: {e}")))?;
+    let sig=Signature::from_bytes(&sig_bytes);
+    vk.verify(&manifest,&sig).map_err(|_|AppError::Message("Update manifest signature verification failed.".into()))?;
+    let value:serde_json::Value=serde_json::from_slice(&manifest).map_err(|e|AppError::Message(format!("Invalid update manifest JSON: {e}")))?;
+    let version=value.get("version").and_then(|v|v.as_str()).unwrap_or_default();
+    let channel=value.get("channel").and_then(|v|v.as_str()).unwrap_or("stable");
+    let sha256=value.get("sha256").and_then(|v|v.as_str()).unwrap_or_default();
+    if version.is_empty()||sha256.len()!=64{return Err(AppError::Message("Signed manifest is missing version or SHA-256.".into()))}
+    Ok(serde_json::json!({"verified":true,"version":version,"channel":channel,"sha256":sha256}))
+}
+
+#[tauri::command]
 fn reset_browser(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
     state.db.reset_all()?;
     let ids:Vec<String>=state.tabs.lock().unwrap().iter().map(|t|t.id.clone()).collect();
@@ -3183,7 +3199,7 @@ fn main() {
             restore_previous_session, dismiss_restore, export_data, export_diagnostics,
             reset_browser, ai_status, set_ai_key, clear_ai_key, list_ai_models, list_ai_model_info, ai_presets, list_ai_threads, create_ai_thread, list_ai_messages, add_ai_message, send_ai_thread_message, delete_ai_thread, list_ai_history, clear_ai_history, synth_assist, synth_assist_stream, synth_ai_search, request_page_context, request_selection_context, page_lens, reader_mode, create_note, list_notes, delete_note, create_research_board,
             list_research_boards, delete_research_board, add_current_to_board, list_board_items, export_board_citations,
-            complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings,
+            complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings, verify_update_manifest,
             azecotron_host_target, azecotron_status, launch_azecotron
         ])
         .build(tauri::generate_context!())
