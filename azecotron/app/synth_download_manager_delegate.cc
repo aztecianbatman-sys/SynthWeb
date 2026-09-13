@@ -1,6 +1,7 @@
 #include "azecotron/app/synth_download_manager_delegate.h"
 
 #include "base/files/file_util.h"
+#include "build/build_config.h"
 #include "base/strings/string_util.h"
 #include "components/download/public/common/download_item.h"
 #include "components/download/public/common/download_target_info.h"
@@ -30,25 +31,14 @@ void SynthDownloadManagerDelegate::GetNextId(
 
 base::FilePath SynthDownloadManagerDelegate::SanitizeFilename(
     const base::FilePath& suggested) const {
-  base::FilePath name=suggested.BaseName();
-#if BUILDFLAG(IS_WIN)
-  constexpr auto kSeparators = FILE_PATH_LITERAL("<>:\"/\\\\|?*");
-#else
-  constexpr auto kSeparators = FILE_PATH_LITERAL("/");
-#endif
-  std::u16string value=name.value();
-  for (char16_t& ch:value) {
-    if (std::u16string_view(kSeparators).find(ch)!=std::u16string_view::npos ||
-        ch<0x20) {
-      ch=u'_';
-    }
+  base::FilePath name = suggested.BaseName();
+  if (name.empty() || name.value() == FILE_PATH_LITERAL(".") ||
+      name.value() == FILE_PATH_LITERAL("..")) {
+    return base::FilePath(FILE_PATH_LITERAL("download"));
   }
-  while (!value.empty() && (value.back()==u'.' || value.back()==u' '))
-    value.pop_back();
-  if(value.empty()) value=u"download";
-  if(value==u"." || value==u"..") value=u"download";
-  return base::FilePath(value);
+  return name;
 }
+
 
 bool SynthDownloadManagerDelegate::DetermineDownloadTarget(
     download::DownloadItem* item,
