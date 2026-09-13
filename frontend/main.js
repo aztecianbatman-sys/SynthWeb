@@ -744,7 +744,7 @@ async function showSettings(){
 
   const profile=section("Profile","Manage isolated local browser identities.");
   const profOpen=document.createElement("button");profOpen.className="panel-action";profOpen.textContent="Open Profiles";profOpen.onclick=showProfiles;profile.appendChild(profOpen);
-  const profIntegrity=document.createElement("button");profIntegrity.className="panel-action";profIntegrity.textContent="Verify profile integrity";profIntegrity.onclick=async()=>{try{const x=await invoke("profile_integrity");toast(x.database_present?"Profile database verified":"Profile database missing")}catch(e){toast(e)}};profile.appendChild(profIntegrity);
+  const profIntegrity=document.createElement("button");profIntegrity.className="panel-action";profIntegrity.textContent="Verify profile integrity";profIntegrity.onclick=async()=>{try{const x=await invoke("profile_integrity");const y=await invoke("verify_profile_integrity",{expectedDbSha256:x.database_sha256});toast(y.verified?"Integrity verified":"Integrity check failed")}catch(e){toast(e)}};profile.appendChild(profIntegrity);
   const profExport=document.createElement("button");profExport.className="panel-action";profExport.textContent="Export active profile";profExport.onclick=async()=>{try{toast("Exported: "+await invoke("export_profile"))}catch(e){toast(e)}};profile.appendChild(profExport);
 
   const data=section("Data","Erase only what you choose.");
