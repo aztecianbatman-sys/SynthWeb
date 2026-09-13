@@ -67,7 +67,6 @@ pub fn backup_current(executable:&Path,backup_dir:&Path)->Result<PathBuf,String>
     Ok(backup)
 }
 
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PendingUpdate {
     pub staged_path: String,
@@ -118,4 +117,15 @@ pub fn prepare_verified_swap(executable:&Path,staged:&Path,version:&str,sha256:&
     if !actual.eq_ignore_ascii_case(sha256){return Err("Staged update checksum mismatch.".into());}
     let backup=backup_current(executable,&root.join("backup"))?;
     Ok(PendingUpdate{staged_path:staged.to_string_lossy().to_string(),backup_path:backup.to_string_lossy().to_string(),version:version.to_string(),sha256:sha256.to_string()})
+}
+
+pub fn rollback(backup:&Path, executable:&Path)->Result<(),String>{
+    if !backup.is_file(){return Err("Updater rollback backup is missing.".into());}
+    if backup==executable{return Err("Rollback source and destination are identical.".into());}
+    let temp=executable.with_extension("rollback.tmp");
+    std::fs::copy(backup,&temp).map_err(|e|format!("Could not stage rollback: {e}"))?;
+    let digest=sha256_file(&temp)?;
+    if digest.is_empty(){let _=std::fs::remove_file(&temp);return Err("Rollback verification failed.".into());}
+    std::fs::rename(&temp,executable).map_err(|e|format!("Could not replace executable for rollback: {e}"))?;
+    Ok(())
 }
