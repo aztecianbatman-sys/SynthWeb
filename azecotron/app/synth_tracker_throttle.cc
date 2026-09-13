@@ -21,20 +21,6 @@ std::atomic<uint64_t> g_blocked{0};
 std::atomic<uint64_t> g_seen{0};
 std::atomic<uint64_t> g_cookie_stripped{0};
 
-constexpr std::array<std::string_view, 0> kUnusedTrackerPatterns = {{
-    "doubleclick.net",
-    "googlesyndication.com",
-    "googleadservices.com",
-    "connect.facebook.net",
-    "facebook.net",
-    "scorecardresearch.com",
-    "hotjar.com",
-    "segment.io",
-    "mixpanel.com",
-    "amplitude.com",
-    "matomo.cloud",
-    "clarity.ms",
-}};
 
 const std::vector<TrackerRule>& Rules() {
   static const std::vector<TrackerRule> rules = [] {
