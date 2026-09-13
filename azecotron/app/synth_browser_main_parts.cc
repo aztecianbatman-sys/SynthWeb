@@ -62,8 +62,9 @@ int SynthBrowserMainParts::PreMainMessageLoopRun() {
 }
 
 void SynthBrowserMainParts::PostMainMessageLoopRun() {
-  browser_context_.reset();
+  runtime_host_.reset();
   off_the_record_browser_context_.reset();
+  browser_context_.reset();
 }
 
 }  // namespace synth_azecotron
