@@ -6,6 +6,8 @@ mod native_host;
 mod azecotron_bridge;
 mod tracker;
 mod services;
+mod accessibility;
+mod localization;
 
 mod ai;
 mod browser_runtime;
