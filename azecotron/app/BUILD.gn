@@ -13,6 +13,8 @@ executable("azecotron_host") {
     "synth_tracker_throttle.h",
     "synth_permission_controller_delegate.cc",
     "synth_permission_controller_delegate.h",
+    "synth_download_manager_delegate.cc",
+    "synth_download_manager_delegate.h",
   ]
 
   deps = [
