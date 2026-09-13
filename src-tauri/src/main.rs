@@ -257,20 +257,22 @@ fn copy_dir_recursive(from:&Path, to:&Path)->AppResult<()> {
     Ok(())
 }
 
-fn parse_start_profile() -> (String,bool) {
+fn parse_start_profile() -> (String,bool,String) {
     let mut profile="default".to_string();
     let mut guest=false;
+    let mut workspace="Default".to_string();
     let args:Vec<String>=std::env::args().collect();
     let mut i=0;
     while i<args.len() {
         match args[i].as_str() {
             "--profile" if i+1<args.len() => { if validate_profile_id(&args[i+1]) { profile=args[i+1].clone(); } i+=1; }
             "--guest" => guest=true,
+            "--workspace" if i+1<args.len() => { workspace=args[i+1].clone(); i+=1; },
             _ => {}
         }
         i+=1;
     }
-    (profile,guest)
+    (profile,guest,workspace)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1575,6 +1577,19 @@ fn create_browser_window(app: tauri::AppHandle)->AppResult<String>{
       .build()
       .map_err(|e|AppError::Message(e.to_string()))?;
     Ok(id)
+}
+
+#[tauri::command]
+fn open_workspace_in_window(state: State<AppState>, workspace:String)->AppResult<()>{
+    if !state.workspaces.lock().unwrap().iter().any(|w|w.name==workspace){
+        return Err(AppError::Message("Workspace not found.".into()));
+    }
+    let exe=std::env::current_exe().map_err(|e|AppError::Message(e.to_string()))?;
+    std::process::Command::new(exe)
+        .arg("--profile").arg(&state.profile.id)
+        .arg("--workspace").arg(&workspace)
+        .spawn().map_err(|e|AppError::Message(e.to_string()))?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -3350,7 +3365,7 @@ fn runtime_info() -> serde_json::Value {
 
 fn main() {
     let profiles=load_profiles().expect("unable to initialize Synth Browser profile registry");
-    let (profile_id,guest)=parse_start_profile();
+    let (profile_id,guest,start_workspace)=parse_start_profile();
     let selected=profiles.iter().find(|p|p.id==profile_id).cloned().unwrap_or_else(||profiles[0].clone());
     let selected=if guest { Profile{id:"guest".into(),name:"Guest".into(),guest:true} } else { selected };
     let selected=if guest {
@@ -3358,6 +3373,9 @@ fn main() {
     } else { selected };
     let db = Db::new(&selected.id).expect("unable to initialize Synth Browser database");
     let state = AppState::new(db, selected, profiles, guest);
+    if state.workspaces.lock().unwrap().iter().any(|w| w.name==start_workspace) {
+        *state.active_workspace.lock().unwrap()=start_workspace.clone();
+    }
 
     let app = tauri::Builder::default()
         .manage(state)
@@ -3383,7 +3401,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            create_browser_window, get_snapshot, navigate, search_with_mode, site_info, page_source, find_in_page, get_selection, list_profiles, switch_profile, create_profile, delete_profile, new_tab, activate_tab, close_tab, reopen_closed_tab,
+            create_browser_window, open_workspace_in_window, get_snapshot, navigate, search_with_mode, site_info, page_source, find_in_page, get_selection, list_profiles, switch_profile, create_profile, delete_profile, new_tab, activate_tab, close_tab, reopen_closed_tab,
             discard_tab, discard_inactive_tabs, restore_tab, open_session_lazy, reload, reload_without_cache, stop_or_reload, print_page, set_zoom, back, forward, open_devtools, close_devtools, devtools_status,
             add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
             list_downloads, remove_download_history, open_download, reveal_download, verify_download,
