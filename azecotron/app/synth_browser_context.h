@@ -5,6 +5,7 @@
 
 #include "base/files/file_path.h"
 #include "content/public/browser/browser_context.h"
+#include "content/public/browser/resource_context.h"
 #include "azecotron/app/synth_download_manager_delegate.h"
 #include "azecotron/app/synth_permission_controller_delegate.h"
 
@@ -20,6 +21,7 @@ class SynthBrowserContext final : public content::BrowserContext {
   std::unique_ptr<content::ZoomLevelDelegate> CreateZoomLevelDelegate(const base::FilePath& partition_path) override;
   base::FilePath GetPath() const override;
   bool IsOffTheRecord() override;
+  content::ResourceContext* GetResourceContext() override;
   content::DownloadManagerDelegate* GetDownloadManagerDelegate() override;
   content::BrowserPluginGuestManager* GetGuestManager() override;
   storage::SpecialStoragePolicy* GetSpecialStoragePolicy() override;
@@ -37,6 +39,7 @@ class SynthBrowserContext final : public content::BrowserContext {
  private:
   const bool off_the_record_;
   const base::FilePath path_;
+  std::unique_ptr<content::ResourceContext> resource_context_;
   std::unique_ptr<SynthDownloadManagerDelegate> download_delegate_;
   std::unique_ptr<SynthPermissionControllerDelegate> permission_delegate_;
 };
