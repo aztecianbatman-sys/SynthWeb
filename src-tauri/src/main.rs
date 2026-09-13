@@ -2767,6 +2767,28 @@ fn update_rollback_backup()->AppResult<String>{
 }
 
 #[tauri::command]
+fn schedule_verified_update(state: State<AppState>, staged_path:String, version:String, sha256:String)->AppResult<String>{
+    let staged=PathBuf::from(&staged_path);
+    let current=std::env::current_exe()?;
+    let root=app_root().join("updates");
+    let pending=updater::prepare_verified_swap(&current,&staged,&version,&sha256,&root).map_err(AppError::Message)?;
+    let path=updater::write_pending(&root,&pending).map_err(AppError::Message)?;
+    state.db.set_setting("update_pending","true")?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn pending_update()->AppResult<Option<updater::PendingUpdate>>{
+    updater::read_pending(&app_root().join("updates")).map_err(AppError::Message)
+}
+
+#[tauri::command]
+fn clear_pending_update(state: State<AppState>)->AppResult<()>{
+    updater::clear_pending(&app_root().join("updates")).map_err(AppError::Message)?;
+    state.db.set_setting("update_pending","false")
+}
+
+#[tauri::command]
 fn update_status()->serde_json::Value{
     serde_json::json!({
       "updater":"SIGNED MANIFEST VERIFICATION READY",
@@ -3376,7 +3398,7 @@ fn main() {
             restore_previous_session, dismiss_restore, export_data, export_diagnostics,
             reset_browser, ai_status, set_ai_key, clear_ai_key, list_ai_models, list_ai_model_info, ai_presets, list_ai_threads, create_ai_thread, list_ai_messages, add_ai_message, send_ai_thread_message, delete_ai_thread, list_ai_history, clear_ai_history, synth_assist, synth_assist_stream, synth_ai_search, request_page_context, request_selection_context, page_lens, reader_mode, create_note, list_notes, delete_note, create_research_board,
             list_research_boards, delete_research_board, add_current_to_board, list_board_items, export_board_citations,
-            complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings, verify_update_manifest, update_status, updater_staging_path, fetch_update_manifest, stage_verified_update, update_rollback_backup,
+            complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings, verify_update_manifest, update_status, updater_staging_path, fetch_update_manifest, stage_verified_update, schedule_verified_update, pending_update, clear_pending_update, update_rollback_backup,
             azecotron_host_target, azecotron_status, launch_azecotron
         ])
         .build(tauri::generate_context!())
