@@ -3031,6 +3031,46 @@ fn request_selection_context(app: tauri::AppHandle, state: State<AppState>)->App
 
 
 #[tauri::command]
+fn media_control(app: tauri::AppHandle, state: State<AppState>, action:String)->AppResult<()>{
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let script=match action.as_str(){
+      "play"=>"(()=>{document.querySelectorAll('video,audio').forEach(x=>{if(x.paused)x.play().catch(()=>{});})})()",
+      "pause"=>"(()=>{document.querySelectorAll('video,audio').forEach(x=>x.pause())})()",
+      "mute"=>"(()=>{document.querySelectorAll('video,audio').forEach(x=>x.muted=true)})()",
+      "unmute"=>"(()=>{document.querySelectorAll('video,audio').forEach(x=>x.muted=false)})()",
+      _=>return Err(AppError::Message("Unknown media action.".into()))
+    };
+    view.eval(script).map_err(|e|AppError::Message(e.to_string()))
+}
+
+#[tauri::command]
+fn request_pip(app: tauri::AppHandle, state: State<AppState>)->AppResult<()>{
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    view.eval(r#"(()=>{const v=document.querySelector('video');if(!v)return false;if(document.pictureInPictureElement)return document.exitPictureInPicture().then(()=>true).catch(()=>false);return v.requestPictureInPicture?v.requestPictureInPicture().then(()=>true).catch(()=>false):false})()"#).map_err(|e|AppError::Message(e.to_string()))
+}
+
+#[tauri::command]
+fn request_fullscreen(app: tauri::AppHandle, state: State<AppState>)->AppResult<()>{
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    view.eval(r#"(()=>{if(document.fullscreenElement)return document.exitFullscreen().then(()=>true).catch(()=>false);return document.documentElement.requestFullscreen?document.documentElement.requestFullscreen().then(()=>true).catch(()=>false):false})()"#).map_err(|e|AppError::Message(e.to_string()))
+}
+
+#[tauri::command]
+fn hardware_acceleration_status(app: tauri::AppHandle, state: State<AppState>)->AppResult<serde_json::Value>{
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let script=r#"JSON.stringify({userAgent:navigator.userAgent,gpu:navigator.gpu?true:false,webdriver:navigator.webdriver===true,hardwareConcurrency:navigator.hardwareConcurrency||0,deviceMemory:navigator.deviceMemory||null})"#;
+    let (tx,rx)=std::sync::mpsc::channel();
+    view.eval_with_callback(script,move|raw|{let _=tx.send(raw);}).map_err(|e|AppError::Message(e.to_string()))?;
+    let raw=rx.recv().map_err(|e|AppError::Message(e.to_string()))?;
+    let value:serde_json::Value=serde_json::from_str(&raw).unwrap_or_default();
+    Ok(serde_json::json!({"runtime":"host-webview","reported":value,"gpu_api":value.get("gpu").and_then(|x|x.as_bool()).unwrap_or(false),"verification":"runtime-specific hardware acceleration test still required"}))
+}
+
+#[tauri::command]
 fn page_source(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
     let id=state.active_id.lock().unwrap().clone();
     let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
@@ -3328,7 +3368,7 @@ fn main() {
             list_permission_history, list_current_site_cookies, delete_current_site_cookie, site_storage, delete_site_storage_item, clear_current_site_data,
             list_site_permissions, set_site_permission, reset_site_permissions,
             tracker_status, privacy_audit, set_tracker_policy,
-            capture_screenshot, print_page_to_pdf, save_page_html, clear_data_category, list_extensions, install_extension, set_extension_enabled, remove_extension, extension_runtime_status, rename_profile, export_profile, import_profile, profile_integrity, verify_profile_integrity, delete_session,
+            capture_screenshot, print_page_to_pdf, save_page_html, media_control, request_pip, request_fullscreen, hardware_acceleration_status, clear_data_category, list_extensions, install_extension, set_extension_enabled, remove_extension, extension_runtime_status, rename_profile, export_profile, import_profile, profile_integrity, verify_profile_integrity, delete_session,
             process_diagnostics, record_performance_sample, list_performance_samples, clear_performance_samples, diagnostics_snapshot, devtools_cdp,
             create_command_chain, list_command_chains, delete_command_chain, list_query_history, list_workspaces, create_workspace, switch_workspace,
             rename_workspace, delete_workspace, reorder_tab, move_tab_to_workspace, toggle_pin, close_other_tabs, close_tabs_right, duplicate_workspace, save_session, list_sessions,
