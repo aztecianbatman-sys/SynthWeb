@@ -205,6 +205,7 @@ function renderFeatureDashboard(){
     try{
       if(action==="assist")return showAssist();
       if(action==="privacy")return showPrivacy();
+      if(action==="data")return showDataControls();
       if(action==="profiles")return showProfiles();
       if(action==="palette")return $("palette").click();
       if(action==="overview")return openOverview();
@@ -212,6 +213,7 @@ function renderFeatureDashboard(){
       if(action==="library")return showBookmarks();
       if(action==="workspaces")return showSessions();
       if(action==="runtime"||action==="azecotron")return showRuntime();
+      if(action==="performance")return showPerformance();
       if(action==="performance")return showPerformance();
       if(action==="permissions")return showMedia();
       if(action==="threads")return showAiThreads();
@@ -1316,7 +1318,32 @@ async function showWindows(){
   const current=document.createElement("div");current.className="panel-row";current.innerHTML='Current window <strong>Main</strong>';body.appendChild(current);
 }
 
+async async function showDataControls(){
+  const body=basePanel("Data Controls");
+  body.innerHTML='<div class="security-hero"><div class="security-orb">◫</div><div><div class="panel-title">Local browser data</div><strong>Profile scoped</strong><div class="reading-url">Choose exactly what Synth should remove.</div></div></div>';
+  const categories=[
+    ["history","Browsing + Cortis search history","Removes navigation and query history."],
+    ["downloads","Download records","Removes local download metadata and checksum records."],
+    ["permissions","Permission history","Resets stored per-origin permission decisions."],
+    ["ai","Synth Assist history","Removes stored AI history; active providers are untouched."],
+    ["sessions","Saved sessions","Removes saved session snapshots."],
+    ["shelf","Reading Shelf","Removes saved reading items."],
+    ["notes","Notes + research boards","Removes local notes and research boards."],
+    ["site_data","Current-site storage","Clears cookies/cache/site data through the active host where supported."],
+    ["all","Everything except bookmarks","Performs the broad local-data reset."]
+  ];
+  categories.forEach(([id,title,desc])=>{
+    const row=document.createElement("div");row.className="tool-row";
+    const info=document.createElement("div");info.className="tool-copy";info.innerHTML='<strong>'+esc(title)+'</strong><span>'+esc(desc)+'</span>';
+    const action=document.createElement("button");action.className="mini-action"+(id==="all"?" danger":"");action.textContent=id==="all"?"Reset":"Clear";
+    action.onclick=async()=>{if(!confirm("Clear "+title.toLowerCase()+"?"))return;try{await invoke("clear_data_category",{category:id});await refresh();toast(title+" cleared");showDataControls()}catch(e){toast(e)}};
+    row.append(info,action);body.appendChild(row);
+  });
+  const note=document.createElement("div");note.className="panel-row";note.textContent="Bookmarks and installed profile identity are preserved by the category controls.";body.appendChild(note);
+}
+
 async function showBrowserTools(){
+
   const body=basePanel("Browser Tools");
   const tools=[
     ["Print current page","Real Chromium/Tauri print command",async()=>invoke("print_page"),"Available"],
@@ -1378,24 +1405,23 @@ async function showMedia(){
 
 async function showPerformance(){
   const body=basePanel("Performance & Reliability");
-  try{
-    const [info,az,samples]=await Promise.all([
-      invoke("runtime_info"),
-      invoke("azecotron_status"),
-      invoke("list_performance_samples",{limit:20})
-    ]);
-    const latest=samples[0];
-    body.innerHTML='<div class="security-hero"><div class="security-orb">ϟ</div><div><div class="panel-title">Runtime health</div><strong>'+esc(az.running?"Azecotron running":info.runtime)+'</strong><div class="reading-url">'+esc(az.available?"Native runtime available":"Fallback runtime")+'</div></div></div>'+
-      '<div class="perf-grid"><div><span>Memory</span><b>'+(latest?formatBytes(latest.memory_bytes):"—")+'</b></div><div><span>CPU time</span><b>'+(latest?String(latest.cpu_time_ms)+" ms":"—")+'</b></div><div><span>Tabs</span><b>'+(latest?String(latest.tab_count):String(state.tabs.length))+'</b></div><div><span>Samples</span><b>'+String(samples.length)+'</b></div></div>';
-    const sample=document.createElement("button");sample.className="panel-action";sample.textContent="Record live sample";sample.onclick=async()=>{try{await invoke("record_performance_sample");toast("Performance sample recorded");showPerformance()}catch(e){toast(e)}};body.appendChild(sample);
-    const benchmark=document.createElement("button");benchmark.className="panel-action";benchmark.textContent="Run tab benchmark snapshot";benchmark.onclick=async()=>{try{await invoke("record_performance_sample");toast("Snapshot recorded for "+state.tabs.length+" tabs");showPerformance()}catch(e){toast(e)}};body.appendChild(benchmark);
-    const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear performance samples";clear.onclick=async()=>{if(confirm("Clear saved performance samples?")){await invoke("clear_performance_samples");showPerformance()}};body.appendChild(clear);
-    const rows=document.createElement("div");rows.className="performance-history";
-    samples.slice(0,12).forEach(x=>{const r=document.createElement("div");r.className="tool-row";r.innerHTML='<div class="tool-copy"><strong>'+formatBytes(x.memory_bytes)+' · '+x.tab_count+' tabs</strong><span>'+String(x.cpu_time_ms)+' ms CPU · '+new Date((x.sampled_at||0)*1000).toLocaleString()+'</span></div><div class="tool-state">'+(x.azecotron_running?"Azecotron":"Fallback")+'</div>';rows.appendChild(r)});
-    body.appendChild(rows);
-    const note=document.createElement("div");note.className="panel-row";note.textContent="This records the current process only. Startup, long-session, GPU and 10/50/100/200-tab certification still require controlled Windows test runs.";body.appendChild(note);
-  }catch(e){body.innerHTML='<div class="panel-row">Performance diagnostics unavailable: '+esc(e)+'</div>'}
+  (async()=>{
+    try{
+      const [info,az,samples]=await Promise.all([invoke("runtime_info"),invoke("azecotron_status"),invoke("list_performance_samples",{limit:50})]);
+      const latest=samples[0];
+      body.innerHTML='<div class="security-hero"><div class="security-orb">ϟ</div><div><div class="panel-title">Runtime health</div><strong>'+esc(az.running?"Azecotron running":info.runtime)+'</strong><div class="reading-url">'+esc(az.available?"Native runtime available":"Fallback runtime")+'</div></div></div>'+
+        '<div class="perf-grid"><div><span>Memory</span><b>'+(latest?formatBytes(latest.memory_bytes):"—")+'</b></div><div><span>CPU time</span><b>'+(latest?String(latest.cpu_time_ms)+" ms":"—")+'</b></div><div><span>Tabs</span><b>'+(latest?String(latest.tab_count):String(state.tabs.length))+'</b></div><div><span>Samples</span><b>'+String(samples.length)+'</b></div></div>';
+      const sample=document.createElement("button");sample.className="panel-action";sample.textContent="Record live sample";sample.onclick=async()=>{try{await invoke("record_performance_sample");toast("Performance sample recorded");showPerformance()}catch(e){toast(e)}};body.appendChild(sample);
+      const benchmarks=document.createElement("div");benchmarks.className="performance-gates";
+      [["Startup","Needs controlled cold-start runner"],["10 tabs","Measure startup + steady-state memory"],["50 tabs","Measure memory/CPU"],["100 tabs","Measure memory/CPU"],["200 tabs","Stress test"],["1 hour","Long-session growth"],["4 hours","Long-session growth"],["GPU","Verify process and acceleration"],["Crash recovery","Kill/relaunch runtime"],["Profile isolation","Cross-profile leak test"],["Tracker blocking","Network block verification"]].forEach(([name,desc])=>{
+        const row=document.createElement("div");row.className="tool-row";row.innerHTML='<div class="tool-copy"><strong>'+esc(name)+'</strong><span>'+esc(desc)+'</span></div><div class="tool-state">NOT VERIFIED</div>';benchmarks.appendChild(row);
+      });body.appendChild(benchmarks);
+      const diag=document.createElement("button");diag.className="panel-action";diag.textContent="Export diagnostics";diag.onclick=async()=>{try{const x=await invoke("export_diagnostics");toast("Diagnostics exported to "+x.path)}catch(e){toast(e)}};body.appendChild(diag);
+      const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear performance samples";clear.onclick=async()=>{if(confirm("Clear saved performance samples?")){await invoke("clear_performance_samples");showPerformance()}};body.appendChild(clear);
+    }catch(e){body.innerHTML='<div class="panel-row">Performance diagnostics unavailable: '+esc(e)+'</div>'}
+  })();
 }
+
 
 async function showCookies(){
   const body=basePanel("Cookies & Site Storage");
