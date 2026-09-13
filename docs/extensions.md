@@ -1,15 +1,26 @@
 # Extensions
 
-Status: DESIGNED / NOT STARTED.
+Status: IMPLEMENTED IN SOURCE / NATIVE RUNTIME NOT VERIFIED.
 
-The browser should architect for Chromium extension compatibility where legally and technically feasible, but must not claim Chrome Web Store compatibility until the runtime and extension model have been tested.
-
-Required future manager:
-- installed extensions
+Implemented:
+- unpacked extension installation
+- manifest parsing
+- extension metadata persistence
 - enable/disable
-- permissions
-- details
 - remove
-- update where supported
+- profile-scoped extension storage
+- extension permissions surfaced in the manager UI
+- explicit Chrome Web Store compatibility disclosure
 
-Extension code must not receive unrestricted native privileges.
+Pending native-runtime verification:
+- Chromium extension process/runtime integration
+- content scripts
+- service workers
+- isolated extension worlds
+- extension storage APIs
+- extension permission prompts
+- update lifecycle
+- Chrome Web Store compatibility
+- extension security regression tests
+
+Extension code must never receive unrestricted native privileges.
