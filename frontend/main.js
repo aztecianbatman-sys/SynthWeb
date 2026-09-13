@@ -61,6 +61,7 @@ function applySettings() {
   document.body.classList.toggle("reduced-motion", state.settings.reduce_motion === "true");
   document.body.classList.toggle("high-contrast", state.settings.high_contrast === "true");
   document.documentElement.lang = state.settings.language || "en";
+  if(window.applySynthLanguage)window.applySynthLanguage();
 
 }
 
