@@ -3342,7 +3342,10 @@ fn azecotron_host_target(window: tauri::WebviewWindow)->AppResult<native_host::H
 }
 
 #[tauri::command]
-fn azecotron_status()->azecotron_bridge::AzecotronStatus{azecotron_bridge::status()}
+fn azecotron_status(app: tauri::AppHandle)->azecotron_bridge::AzecotronStatus{
+    let bundled=app.path().resolve("azecotron/azecotron_host.exe",BaseDirectory::Resource).ok().filter(|p|p.exists());
+    azecotron_bridge::status_with_override(bundled)
+}
 
 #[tauri::command]
 async fn launch_azecotron(app: tauri::AppHandle, window: tauri::WebviewWindow, state: State<AppState>, url:Option<String>)->AppResult<()>{
