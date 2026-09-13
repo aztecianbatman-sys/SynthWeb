@@ -149,6 +149,18 @@ struct BoardItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct ExtensionInfo {
+    id: String,
+    name: String,
+    version: String,
+    description: String,
+    path: String,
+    enabled: bool,
+    permissions: Vec<String>,
+    installed_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Profile {
     id: String,
     name: String,
@@ -342,6 +354,16 @@ impl Db {
              CREATE TABLE IF NOT EXISTS settings(
                key TEXT PRIMARY KEY,
                value TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS extensions(
+               id TEXT PRIMARY KEY,
+               name TEXT NOT NULL,
+               version TEXT NOT NULL,
+               description TEXT NOT NULL DEFAULT '',
+               path TEXT NOT NULL UNIQUE,
+               enabled INTEGER NOT NULL DEFAULT 1,
+               permissions TEXT NOT NULL DEFAULT '[]',
+               installed_at INTEGER NOT NULL
              );
              CREATE TABLE IF NOT EXISTS ai_history(
                id INTEGER PRIMARY KEY,
@@ -696,6 +718,42 @@ impl Db {
         serde_json::from_str(&data).map_err(|e|AppError::Message(e.to_string()))
     }
 
+    fn list_extensions(&self)->AppResult<Vec<ExtensionInfo>>{
+        let c=self.connect()?;
+        let mut s=c.prepare("SELECT id,name,version,description,path,enabled,permissions,installed_at FROM extensions ORDER BY name")?;
+        let rows=s.query_map([],|r|{
+            let permissions:String=r.get(6)?;
+            Ok(ExtensionInfo{
+                id:r.get(0)?,name:r.get(1)?,version:r.get(2)?,description:r.get(3)?,
+                path:r.get(4)?,enabled:r.get::<_,i64>(5)?!=0,
+                permissions:serde_json::from_str(&permissions).unwrap_or_default(),
+                installed_at:r.get(7)?
+            })
+        })?;
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
+    }
+
+    fn upsert_extension(&self,e:&ExtensionInfo)->AppResult<()>{
+        let permissions=serde_json::to_string(&e.permissions).map_err(|x|AppError::Message(x.to_string()))?;
+        self.connect()?.execute(
+          "INSERT INTO extensions(id,name,version,description,path,enabled,permissions,installed_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)
+           ON CONFLICT(id) DO UPDATE SET name=excluded.name,version=excluded.version,description=excluded.description,path=excluded.path,enabled=excluded.enabled,permissions=excluded.permissions",
+          rusqlite::params![e.id,e.name,e.version,e.description,e.path,e.enabled as i64,permissions,e.installed_at]
+        )?;
+        Ok(())
+    }
+
+    fn set_extension_enabled(&self,id:&str,enabled:bool)->AppResult<()>{
+        self.connect()?.execute("UPDATE extensions SET enabled=?1 WHERE id=?2",rusqlite::params![enabled as i64,id])?;
+        Ok(())
+    }
+
+    fn remove_extension(&self,id:&str)->AppResult<Option<String>>{
+        let path:Option<String>=self.connect()?.query_row("SELECT path FROM extensions WHERE id=?1",[id],|r|r.get(0)).optional()?;
+        self.connect()?.execute("DELETE FROM extensions WHERE id=?1",[id])?;
+        Ok(path)
+    }
+
     fn add_ai_history(&self,provider:&str,model:&str,question:&str,answer:&str)->AppResult<()>{
         if question.len()>10000||answer.len()>200000{return Err(AppError::Message("AI history item is too large.".into()))}
         self.connect()?.execute("INSERT INTO ai_history(provider,model,question,answer,created_at) VALUES(?1,?2,?3,?4,?5)",rusqlite::params![provider,model,question,answer,Self::now()])?;
@@ -1041,6 +1099,8 @@ fn create_page_webview<R: tauri::Runtime>(
     let builder = WebviewBuilder::new(label.clone(), WebviewUrl::External(url.clone()))
         .data_directory(data_dir)
         .general_autofill_enabled(autofill)
+        .browser_extensions_enabled(cfg!(target_os = "windows"))
+        .extensions_path(&profile_dir(&state.profile.id).join("extensions"))
         .focused(false)
         .incognito(private)
         .devtools(cfg!(debug_assertions))
@@ -1551,6 +1611,60 @@ fn clear_browsing_data(app: tauri::AppHandle, state: State<AppState>) -> AppResu
     Ok(())
 }
 
+
+#[tauri::command]
+fn list_extensions(state: State<AppState>)->AppResult<Vec<ExtensionInfo>>{ state.db.list_extensions() }
+
+fn validate_extension_id(id:&str)->bool{
+    !id.is_empty()&&id.len()<=128&&id.chars().all(|c|c.is_ascii_alphanumeric()||matches!(c,'-'|'_'|'.'))
+}
+
+#[tauri::command]
+fn install_extension(state: State<AppState>, source:String)->AppResult<ExtensionInfo>{
+    let src=PathBuf::from(source);
+    if !src.is_dir(){return Err(AppError::Message("Select an unpacked Chrome extension directory.".into()))}
+    let manifest_path=src.join("manifest.json");
+    if !manifest_path.is_file(){return Err(AppError::Message("manifest.json not found.".into()))}
+    let manifest:serde_json::Value=serde_json::from_slice(&fs::read(&manifest_path)?).map_err(|e|AppError::Message(format!("Invalid manifest: {e}")))?;
+    let name=manifest.get("name").and_then(|v|v.as_str()).unwrap_or("Unnamed extension").to_string();
+    let version=manifest.get("version").and_then(|v|v.as_str()).unwrap_or("0").to_string();
+    let description=manifest.get("description").and_then(|v|v.as_str()).unwrap_or("").to_string();
+    let permissions=manifest.get("permissions").and_then(|v|v.as_array()).map(|a|a.iter().filter_map(|v|v.as_str().map(str::to_string)).collect()).unwrap_or_default();
+    let id=manifest.get("key").and_then(|v|v.as_str()).map(|k|{let mut h=Sha256::new();h.update(k.as_bytes());format!("{:x}",h.finalize())}).unwrap_or_else(||format!("local-{}",uuid_fragment(&name)));
+    if !validate_extension_id(&id){return Err(AppError::Message("Invalid extension id.".into()))}
+    let root=profile_dir(&state.profile.id).join("extensions");
+    fs::create_dir_all(&root)?;
+    let dest=root.join(&id);
+    if dest.exists(){fs::remove_dir_all(&dest)?}
+    copy_dir_recursive(&src,&dest)?;
+    let info=ExtensionInfo{id,name,version,description,path:dest.to_string_lossy().to_string(),enabled:true,permissions,installed_at:Db::now()};
+    state.db.upsert_extension(&info)?;
+    Ok(info)
+}
+
+#[tauri::command]
+fn set_extension_enabled(state: State<AppState>, id:String, enabled:bool)->AppResult<()>{
+    state.db.set_extension_enabled(&id,enabled)
+}
+
+#[tauri::command]
+fn remove_extension(state: State<AppState>, id:String)->AppResult<()>{
+    if let Some(path)=state.db.remove_extension(&id)?{
+        let root=profile_dir(&state.profile.id).join("extensions");
+        let p=PathBuf::from(path);
+        if p.starts_with(&root)&&p.exists(){fs::remove_dir_all(p)?}
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn extension_runtime_status()->serde_json::Value{
+    serde_json::json!({
+      "webview2_windows":"SUPPORTED VIA UNPACKED EXTENSIONS",
+      "azecotron":"PENDING NATIVE CHROMIUM EXTENSION SERVICES",
+      "chrome_web_store":"NOT CERTIFIED"
+    })
+}
 
 #[tauri::command]
 fn clear_data_category(app: tauri::AppHandle, state: State<AppState>, category:String)->AppResult<()>{
@@ -2564,7 +2678,7 @@ fn main() {
             list_permission_history, list_current_site_cookies, delete_current_site_cookie, clear_current_site_data,
             list_site_permissions, set_site_permission, reset_site_permissions,
             tracker_status, privacy_audit, set_tracker_policy,
-            clear_data_category, rename_profile, export_profile, import_profile, delete_session,
+            clear_data_category, list_extensions, install_extension, set_extension_enabled, remove_extension, extension_runtime_status, rename_profile, export_profile, import_profile, delete_session,
             list_query_history, list_workspaces, create_workspace, switch_workspace,
             rename_workspace, delete_workspace, reorder_tab, move_tab_to_workspace, toggle_pin, close_other_tabs, close_tabs_right, duplicate_workspace, save_session, list_sessions,
             open_session, add_to_shelf, list_shelf, toggle_shelf_read, remove_shelf,
