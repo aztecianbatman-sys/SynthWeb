@@ -2513,6 +2513,37 @@ fn add_current_to_board(state: State<AppState>, board_id:i64)->AppResult<BoardIt
 fn list_board_items(state: State<AppState>, board_id:i64)->AppResult<Vec<BoardItem>>{state.db.list_board_items(board_id)}
 
 #[tauri::command]
+fn export_board_citations(state: State<AppState>, board_id:i64, format:String)->AppResult<String>{
+    if !matches!(format.as_str(),"markdown"|"bibtex"){return Err(AppError::Message("Citation format must be markdown or bibtex.".into()));}
+    let items=state.db.list_board_items(board_id)?;
+    let dir=dirs_next::download_dir().unwrap_or_else(||PathBuf::from(".")).join("Synth Browser").join("exports");
+    fs::create_dir_all(&dir)?;
+    let safe_id=board_id.to_string();
+    let path=dir.join(format!("research-board-{safe_id}-citations.{}",if format=="markdown"{"md"}else{"bib"}));
+    if format=="markdown" {
+        let mut out=String::from("# Synth Research Board Citations\n\n");
+        for (i,item) in items.iter().enumerate() {
+            let url=item.url.as_deref().unwrap_or("");
+            let title=if item.title.trim().is_empty(){"Untitled"}else{item.title.as_str()};
+            out.push_str(&format!("{}. [{}]({})",i+1,title,url));
+            if let Some(q)=item.quote.as_deref().filter(|x|!x.trim().is_empty()){out.push_str(&format!(" — “{}”",q.replace('\n'," "))); }
+            out.push_str("\n\n");
+        }
+        fs::write(&path,out.as_bytes())?;
+    } else {
+        let mut out=String::new();
+        for (i,item) in items.iter().enumerate() {
+            let key=format!("synth{}{}",i+1,Db::now());
+            let title=item.title.replace(['{','}'],"");
+            let url=item.url.as_deref().unwrap_or("").replace(['{','}'],"");
+            out.push_str(&format!("@misc{{{},\n  title = {{{}}},\n  url = {{{}}}\n}}\n\n",key,title,url));
+        }
+        fs::write(&path,out.as_bytes())?;
+    }
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 fn export_data(state: State<AppState>) -> AppResult<String> {
     let dir=dirs_next::download_dir().unwrap_or_else(||PathBuf::from(".")).join("Synth Browser").join("exports");
     fs::create_dir_all(&dir)?;
@@ -3140,7 +3171,7 @@ fn main() {
             open_session, add_to_shelf, list_shelf, toggle_shelf_read, remove_shelf,
             restore_previous_session, dismiss_restore, export_data, export_diagnostics,
             reset_browser, ai_status, set_ai_key, clear_ai_key, list_ai_models, list_ai_model_info, ai_presets, list_ai_threads, create_ai_thread, list_ai_messages, add_ai_message, send_ai_thread_message, delete_ai_thread, list_ai_history, clear_ai_history, synth_assist, synth_assist_stream, synth_ai_search, request_page_context, request_selection_context, page_lens, reader_mode, create_note, list_notes, delete_note, create_research_board,
-            list_research_boards, delete_research_board, add_current_to_board, list_board_items,
+            list_research_boards, delete_research_board, add_current_to_board, list_board_items, export_board_citations,
             complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings,
             azecotron_host_target, azecotron_status, launch_azecotron
         ])
