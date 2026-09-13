@@ -6,10 +6,14 @@ on:
 permissions:
   contents: read
 
+env:
+  CI: true
+  RUST_BACKTRACE: "1"
+
 jobs:
   build-installer:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -19,35 +23,59 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable-x86_64-pc-windows-msvc
-          components: rustfmt, clippy
 
       - name: Install Tauri CLI
         shell: pwsh
         run: cargo install tauri-cli --version 2.11.5 --locked
 
-      - name: Verify runner capacity
+      - name: Runner diagnostics
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          Write-Host "OS: $([Environment]::OSVersion.VersionString)"
+          rustc --version
+          cargo --version
+          node --version
+          git --version
           $free = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
           Write-Host "Free C: drive space: $free GB"
-          if ($free -lt 10) {
-            throw "Not enough free disk space for the Tauri installer build."
-          }
+          if ($free -lt 10) { throw "Insufficient free disk space." }
 
-      - name: Build fallback installer
+      - name: Frontend syntax
+        shell: cmd
+        run: node --check frontend\main.js
+
+      - name: Cargo metadata
+        shell: pwsh
+        run: cargo metadata --manifest-path src-tauri\Cargo.toml --format-version 1 --no-deps
+
+      - name: Compile Rust release binary
         shell: pwsh
         run: |
-          & "$PWD\scripts\build-installer.ps1" -SkipAzecotronRuntime
+          $ErrorActionPreference = "Continue"
+          cargo build --manifest-path src-tauri\Cargo.toml --release 2>&1 | Tee-Object build-rust.log
+          $code = $LASTEXITCODE
+          Get-Content build-rust.log
+          if ($code -ne 0) { exit $code }
 
-      - name: Verify installer artifacts
+      - name: Build NSIS installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          & "$PWD\scripts\build-installer.ps1" -SkipAzecotronRuntime 2>&1 | Tee-Object build-installer.log
+          $code = $LASTEXITCODE
+          Get-Content build-installer.log
+          if ($code -ne 0) { exit $code }
+
+      - name: Verify installer
         shell: pwsh
         run: |
           $artifacts = Get-ChildItem release -File -Include *.exe
           if (-not $artifacts) {
-            throw "No .exe or .msi installer was produced."
+            throw "No NSIS installer was produced."
           }
-          $artifacts | ForEach-Object {
-            Write-Host "$($_.Name) $($_.Length) bytes"
+          foreach ($item in $artifacts) {
+            Write-Host "$($item.Name) $($item.Length) bytes SHA256=$((Get-FileHash $item.FullName -Algorithm SHA256).Hash)"
           }
 
       - name: Upload installer
@@ -56,4 +84,15 @@ jobs:
           name: synth-browser-windows-installer
           if-no-files-found: error
           path: release/*
+          retention-days: 14
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synth-browser-build-logs
+          if-no-files-found: ignore
+          path: |
+            build-rust.log
+            build-installer.log
           retention-days: 14
