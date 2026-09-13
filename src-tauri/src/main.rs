@@ -426,6 +426,13 @@ impl Db {
                ('permission_clipboard','deny'),
                ('permission_local_fonts','deny'),
                ('permission_sensors','deny'),
+               ('permission_midi','deny'),
+               ('permission_usb','deny'),
+               ('permission_bluetooth','deny'),
+               ('permission_downloads','prompt'),
+               ('permission_popups','deny'),
+               ('permission_autoplay','deny'),
+               ('first_party_isolation','true'),
                ('default_zoom','100'),
                ('autofill','false');"
         )?;
@@ -2147,7 +2154,8 @@ fn set_setting(state: State<AppState>, key: String, value: String) -> AppResult<
             let n=value.parse::<f64>().map_err(|_|AppError::Message("Invalid zoom.".into()))?;
             if !(50.0..=200.0).contains(&n) { return Err(AppError::Message("Zoom must be 50–200%.".into())); }
         }
-        "permission_camera"|"permission_microphone"|"permission_geolocation"|"permission_notifications"|"permission_display_capture"|"permission_clipboard"|"permission_local_fonts"|"permission_sensors" if !matches!(value.as_str(),"allow"|"deny"|"prompt") => return Err(AppError::Message("Permission policy must be allow, deny, or prompt.".into())),
+        "permission_camera"|"permission_microphone"|"permission_geolocation"|"permission_notifications"|"permission_display_capture"|"permission_clipboard"|"permission_local_fonts"|"permission_sensors"|"permission_midi"|"permission_usb"|"permission_bluetooth"|"permission_downloads"|"permission_popups"|"permission_autoplay" if !matches!(value.as_str(),"allow"|"deny"|"prompt") => return Err(AppError::Message("Permission policy must be allow, deny, or prompt.".into())),
+        "first_party_isolation" => if !matches!(value.as_str(),"true"|"false") { return Err(AppError::Message("First-party isolation must be true or false.".into())); },
         "ai_provider"|"ai_model"|"ai_endpoint" => if value.len()>2000 { return Err(AppError::Message("AI setting is too long.".into())); },
         "homepage" if value.len()>2000 => return Err(AppError::Message("Homepage is too long.".into())),
         _ => return Err(AppError::Message("Unknown setting.".into())),
@@ -2173,6 +2181,38 @@ async fn site_info(app: tauri::AppHandle, state: State<AppState>)->AppResult<ser
         "secure":url.scheme()=="https",
         "cookieCount":cookies.len(),
         "private":state.tabs.lock().unwrap().iter().find(|t|t.id==id).map(|t|t.private).unwrap_or(false)
+    }))
+}
+
+#[tauri::command]
+fn privacy_audit(state: State<AppState>)->AppResult<serde_json::Value>{
+    let get=|k:&str| state.db.get_setting(k).ok().flatten();
+    let checks=[
+      ("HTTPS-only",get("https_only").as_deref()==Some("true")),
+      ("Search history disabled",get("search_history").as_deref()==Some("false")),
+      ("AI disabled",get("ai_enabled").as_deref()!=Some("true")),
+      ("Autofill disabled",get("autofill").as_deref()!=Some("true")),
+      ("Camera asks",get("permission_camera").as_deref()==Some("prompt")),
+      ("Microphone asks",get("permission_microphone").as_deref()==Some("prompt")),
+      ("Location asks",get("permission_geolocation").as_deref()==Some("prompt")),
+      ("Notifications ask",get("permission_notifications").as_deref()==Some("prompt")),
+      ("Clipboard blocked",get("permission_clipboard").as_deref()==Some("deny")),
+      ("Sensors blocked",get("permission_sensors").as_deref()==Some("deny")),
+      ("Popups blocked",get("permission_popups").as_deref()==Some("deny"))
+    ];
+    let passed=checks.iter().filter(|(_,ok)|*ok).count();
+    let total=checks.len();
+    let strict=passed==total;
+    Ok(serde_json::json!({
+      "strict":strict,
+      "passed":passed,
+      "total":total,
+      "score":format!("{}/{}",passed,total),
+      "checks":checks.iter().map(|(name,ok)|serde_json::json!({"name":name,"passed":ok})).collect::<Vec<_>>(),
+      "notes":[
+        "Network tracker interception is available only when the native Azecotron runtime is active.",
+        "Fingerprinting defenses require Chromium runtime-specific services."
+      ]
     }))
 }
 
@@ -2266,7 +2306,7 @@ fn main() {
             list_downloads, remove_download_history, open_download, reveal_download, verify_download,
             list_permission_history, list_current_site_cookies, delete_current_site_cookie, clear_current_site_data,
             list_site_permissions, set_site_permission, reset_site_permissions,
-            tracker_status, set_tracker_policy,
+            tracker_status, privacy_audit, set_tracker_policy,
             list_query_history, list_workspaces, create_workspace, switch_workspace,
             rename_workspace, delete_workspace, reorder_tab, move_tab_to_workspace, toggle_pin, close_other_tabs, close_tabs_right, duplicate_workspace, save_session, list_sessions,
             open_session, add_to_shelf, list_shelf, toggle_shelf_read, remove_shelf,
