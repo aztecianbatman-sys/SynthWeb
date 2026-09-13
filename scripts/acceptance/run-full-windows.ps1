@@ -36,7 +36,10 @@ Run-Step 'Performance collection' { & "$root\scripts\acceptance\performance-runt
 if (-not $SkipPackage) {
   Run-Step 'Stage Azecotron and build installers' { & "$root\scripts\build-installer.ps1" -SkipChromiumBuild -SkipHostBuild }
   Run-Step 'Release gate' { & "$root\scripts\acceptance\release-gate.ps1" }
-  Run-Step 'Package install/upgrade/uninstall checks' { & "$root\scripts\acceptance\packaging-runtime.ps1" }
+  Run-Step 'Package artifact manifest' { & "$root\scripts\acceptance\package-artifacts.ps1" }
+  if ($env:SYNTH_SIGNING_CERT_THUMBPRINT) {
+    Run-Step 'Authenticode signing' { & "$root\scripts\sign-release.ps1" -CertificateThumbprint $env:SYNTH_SIGNING_CERT_THUMBPRINT }
+  }
 }
 
 Write-Host "`nFULL WINDOWS ACCEPTANCE: PASS" -ForegroundColor Green
