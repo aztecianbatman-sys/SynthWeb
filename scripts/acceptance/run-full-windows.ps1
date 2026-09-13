@@ -28,11 +28,15 @@ if (-not $SkipChromiumBuild) {
 
 Run-Step 'Native runtime smoke' { & "$root\scripts\acceptance\native-runtime-smoke.ps1" }
 Run-Step 'Privacy integration' { & "$root\scripts\acceptance\privacy-runtime.ps1" }
+Run-Step 'Profiles isolation' { & "$root\scripts\acceptance\profiles-runtime.ps1" }
+Run-Step 'DevTools integration' { & "$root\scripts\acceptance\devtools-runtime.ps1" }
+Run-Step 'Media/WebRTC integration' { & "$root\scripts\acceptance\media-runtime.ps1" }
 Run-Step 'Performance collection' { & "$root\scripts\acceptance\performance-runtime.ps1" -TabCounts $TabCounts -DurationsMinutes $DurationsMinutes }
 
 if (-not $SkipPackage) {
   Run-Step 'Stage Azecotron and build installers' { & "$root\scripts\build-installer.ps1" -SkipChromiumBuild -SkipHostBuild }
   Run-Step 'Release gate' { & "$root\scripts\acceptance\release-gate.ps1" }
+  Run-Step 'Package install/upgrade/uninstall checks' { & "$root\scripts\acceptance\packaging-runtime.ps1" }
 }
 
 Write-Host "`nFULL WINDOWS ACCEPTANCE: PASS" -ForegroundColor Green
