@@ -1,0 +1,2 @@
+# Placeholder keeps the optional Azecotron resource directory present for fallback builds.
+# Native release builds replace this directory with the verified Azecotron runtime.
