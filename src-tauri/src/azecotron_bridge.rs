@@ -33,33 +33,37 @@ pub fn status() -> AzecotronStatus {
     AzecotronStatus{executable:path.display().to_string(),available:path.exists(),version,runtime:"Azecotron Web / Chromium Content API".into()}
 }
 
-pub fn write_privacy_policy(profile_dir:&PathBuf, settings:&std::collections::HashMap<String,String>)->Result<PathBuf,String>{
-    let dir=profile_dir.join("AzecotronProfile");
-    std::fs::create_dir_all(&dir).map_err(|e|e.to_string())?;
-    let keys=["https_only","tracker_enabled","first_party_isolation","autofill","search_history","ai_enabled","permission_camera","permission_microphone","permission_geolocation","permission_notifications","permission_display_capture","permission_clipboard","permission_local_fonts","permission_sensors","permission_midi","permission_usb","permission_bluetooth","permission_downloads","permission_popups","permission_autoplay"];
-    let mut map=serde_json::Map::new();
-    for key in keys { map.insert(key.into(),serde_json::Value::String(settings.get(key).cloned().unwrap_or_default())); }
-    let path=dir.join("synth-policy.json");
-    std::fs::write(&path,serde_json::to_vec_pretty(&serde_json::Value::Object(map)).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
-    Ok(path)
-}
-
 pub fn write_privacy_policy(
     profile_dir: &PathBuf,
     settings: &std::collections::HashMap<String, String>,
-) -> Result<String, String> {
-    std::fs::create_dir_all(profile_dir).map_err(|e|e.to_string())?;
-    let path=profile_dir.join("synth-permissions.json");
-    let mut policy=serde_json::Map::new();
-    for (key,value) in settings {
-        if key.starts_with("permission_") {
-            policy.insert(key.clone(),serde_json::Value::String(value.clone()));
-        }
+) -> Result<PathBuf, String> {
+    let dir=profile_dir.join("AzecotronProfile");
+    std::fs::create_dir_all(&dir).map_err(|e|e.to_string())?;
+
+    let keys=[
+      "https_only","tracker_enabled","first_party_isolation","autofill",
+      "search_history","ai_enabled",
+      "permission_camera","permission_microphone","permission_geolocation",
+      "permission_notifications","permission_display_capture",
+      "permission_clipboard","permission_local_fonts","permission_sensors",
+      "permission_midi","permission_usb","permission_bluetooth",
+      "permission_downloads","permission_popups","permission_autoplay"
+    ];
+
+    let mut map=serde_json::Map::new();
+    for key in keys {
+        map.insert(key.into(),serde_json::Value::String(
+            settings.get(key).cloned().unwrap_or_default()
+        ));
     }
-    let text=serde_json::to_vec_pretty(&serde_json::Value::Object(policy))
-        .map_err(|e|e.to_string())?;
-    std::fs::write(&path,text).map_err(|e|e.to_string())?;
-    Ok(path.to_string_lossy().to_string())
+
+    let path=dir.join("synth-policy.json");
+    std::fs::write(
+        &path,
+        serde_json::to_vec_pretty(&serde_json::Value::Object(map))
+            .map_err(|e|e.to_string())?
+    ).map_err(|e|e.to_string())?;
+    Ok(path)
 }
 
 pub fn launch(app: tauri::AppHandle, profile_dir:PathBuf,url:&str,parent_hwnd:Option<u64>,tab_id:&str,policy_path:Option<PathBuf>)->Result<(),String>{
