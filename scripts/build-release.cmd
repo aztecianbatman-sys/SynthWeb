@@ -2,7 +2,8 @@
 setlocal EnableExtensions
 set "ROOT=%~dp0.."
 
-call "%~dp0setup-windows.cmd"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0setup-windows-build.ps1"
+if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 
 call "%~dp0acceptance-source-audit.cmd"
@@ -41,6 +42,11 @@ pushd "%ROOT%\src-tauri"
 cargo tauri build
 if errorlevel 1 exit /b 1
 popd
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0acceptance\release-gate.ps1"
+if errorlevel 1 exit /b 1
+
+if not exist "%ROOT%\src-tauri\target\release\bundle" (echo ERROR: release bundle directory missing. & exit /b 1)
 
 echo RELEASE BUILD: PASS
 echo Package output is under src-tauri\target\release\bundle
