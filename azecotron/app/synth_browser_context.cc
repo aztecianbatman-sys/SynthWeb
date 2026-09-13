@@ -5,7 +5,7 @@ namespace synth_azecotron {
 SynthBrowserContext::SynthBrowserContext(
     bool off_the_record,
     const base::FilePath& path)
-    : off_the_record_(off_the_record), path_(path) {}
+    : off_the_record_(off_the_record), path_(path), permission_delegate_(std::make_unique<SynthPermissionControllerDelegate>(path.AppendASCII("synth-policy.json"))) {}
 
 SynthBrowserContext::~SynthBrowserContext() {
   ShutdownStoragePartitions();
@@ -62,7 +62,7 @@ SynthBrowserContext::GetSSLHostStateDelegate() {
 
 content::PermissionControllerDelegate*
 SynthBrowserContext::GetPermissionControllerDelegate() {
-  return nullptr;
+  return permission_delegate_.get();
 }
 
 content::ReduceAcceptLanguageControllerDelegate*
