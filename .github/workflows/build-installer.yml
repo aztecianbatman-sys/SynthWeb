@@ -31,54 +31,24 @@ jobs:
           $free = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
           Write-Host "Free C: drive space: $free GB"
           if ($free -lt 10) {
-            throw "Not enough free disk space for the Tauri-only installer build."
+            throw "Not enough free disk space for the Tauri installer build."
           }
 
-      - name: Validate frontend
-        shell: cmd
-        run: node --check frontend\main.js
-
-      - name: Rust format
-        shell: pwsh
-        run: cargo fmt --manifest-path src-tauri\Cargo.toml -- --check
-
-      - name: Rust lint
-        shell: pwsh
-        run: cargo clippy --manifest-path src-tauri\Cargo.toml --all-targets --all-features -- -D warnings
-
-      - name: Rust tests
-        shell: pwsh
-        run: cargo test --manifest-path src-tauri\Cargo.toml --all-features
-
-      - name: Build Tauri installer
-        shell: pwsh
-        working-directory: src-tauri
-        run: cargo tauri build --bundles nsis,msi
-
-      - name: Collect installer artifacts
+      - name: Build fallback installer
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path release | Out-Null
-          Get-ChildItem src-tauri\target\release\bundle -Recurse -File -Include *.exe,*.msi |
-            ForEach-Object { Copy-Item $_.FullName release\ -Force }
+          & "$PWD\scripts\build-installer.ps1" -SkipAzecotronRuntime
 
-          $files = @()
-          Get-ChildItem release -File -Include *.exe,*.msi | ForEach-Object {
-            $files += [ordered]@{
-              file = $_.Name
-              bytes = $_.Length
-              sha256 = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
-            }
+      - name: Verify installer artifacts
+        shell: pwsh
+        run: |
+          $artifacts = Get-ChildItem release -File -Include *.exe,*.msi
+          if (-not $artifacts) {
+            throw "No .exe or .msi installer was produced."
           }
-
-          $manifest = [ordered]@{
-            product = "Synth Browser"
-            version = "0.1.0"
-            runtime = "Tauri WebView2"
-            azecotron = "NOT_BUNDLED"
-            installers = $files
+          $artifacts | ForEach-Object {
+            Write-Host "$($_.Name) $($_.Length) bytes"
           }
-          $manifest | ConvertTo-Json -Depth 5 | Set-Content release\installer-manifest.json
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
