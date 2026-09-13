@@ -102,6 +102,11 @@ pub async fn list_models(endpoint:&str,provider:&str)->Result<Vec<String>,String
     out.sort();out.dedup();Ok(out)
 }
 
+pub async fn list_model_info(endpoint:&str,provider:&str)->Result<Vec<ModelInfo>,String>{
+    let ids=list_models(endpoint,provider).await?;
+    Ok(ids.iter().map(|id|infer_model_info(id)).collect())
+}
+
 fn validate_inputs(model:&str,context:&str,question:&str)->Result<(),String>{
     if model.trim().is_empty(){return Err("No AI model is configured.".into())}
     if context.len()>80_000{return Err("Selected context is too large.".into())}
