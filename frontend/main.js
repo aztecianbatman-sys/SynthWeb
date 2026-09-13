@@ -1038,6 +1038,16 @@ async function showBoards() {
     view.className = "mini-action";
     view.textContent = "View";
     view.onclick = async () => showBoardItems(board.name, board.id);
+    const citeMd = document.createElement("button");
+    citeMd.className = "mini-action";
+    citeMd.textContent = "MD";
+    citeMd.title = "Export Markdown citations";
+    citeMd.onclick = async () => { try { const path = await invoke("export_board_citations", { boardId: board.id, format: "markdown" }); toast("Citations exported to " + path); } catch (error) { toast(error); } };
+    const citeBib = document.createElement("button");
+    citeBib.className = "mini-action";
+    citeBib.textContent = "Bib";
+    citeBib.title = "Export BibTeX citations";
+    citeBib.onclick = async () => { try { const path = await invoke("export_board_citations", { boardId: board.id, format: "bibtex" }); toast("BibTeX exported to " + path); } catch (error) { toast(error); } };
     const del = document.createElement("button");
     del.className = "mini-action";
     del.textContent = "×";
@@ -1046,7 +1056,7 @@ async function showBoards() {
       try { await invoke("delete_research_board", { id: board.id }); await showBoards(); }
       catch (error) { toast(error); }
     };
-    row.append(add, view, del);
+    row.append(add, view, citeMd, citeBib, del);
     body.appendChild(row);
   });
   if (!rows.length) body.innerHTML += '<div class="panel-row">No research boards yet.</div>';
