@@ -951,11 +951,11 @@ impl Db {
 
     fn export_all(&self,path:&Path)->AppResult<()> {
         let payload=serde_json::json!({
-            "bookmarks":self.list_bookmarks()?,
+            "bookmarks":self.list_bookmarks(None)?,
             "history":self.list_history()?,
             "workspaces":self.list_workspaces()?,
             "sessions":self.list_sessions()?,
-            "readingShelf":self.list_shelf()?,
+            "readingShelf":self.list_shelf(None)?,
             "notes":self.list_notes()?,
             "researchBoards":self.list_boards()?,
             "settings":self.all_settings()?
@@ -1139,6 +1139,12 @@ fn snapshot(state: &AppState) -> Snapshot {
     Snapshot {
         tabs: state.tabs.lock().unwrap().clone(),
         active_id: state.active_id.lock().unwrap().clone(),
+        active_workspace: state.active_workspace.lock().unwrap().clone(),
+        workspaces: state.workspaces.lock().unwrap().clone(),
+        restore_available: *state.restore_available.lock().unwrap(),
+        profile: state.profile.clone(),
+        profiles: state.profiles.clone(),
+        guest: state.guest,
         runtime_name: runtime_name.into(),
         runtime_revision: runtime_revision.into(),
         azecotron_status: azecotron_status.into(),
@@ -2678,7 +2684,10 @@ fn privacy_preset(state: State<AppState>)->AppResult<()>{
       ("tracker_enabled","true"),("permission_camera","prompt"),("permission_microphone","prompt"),
       ("permission_geolocation","prompt"),("permission_notifications","prompt"),
       ("permission_display_capture","prompt"),("permission_clipboard","deny"),
-      ("permission_local_fonts","deny"),("permission_sensors","deny"),("quiet_mode","true")
+      ("permission_local_fonts","deny"),("permission_sensors","deny"),
+      ("permission_midi","deny"),("permission_usb","deny"),("permission_bluetooth","deny"),
+      ("permission_downloads","prompt"),("permission_popups","deny"),("permission_autoplay","deny"),
+      ("first_party_isolation","true"),("autofill","false"),("quiet_mode","true")
     ];
     for (k,v) in values { state.db.set_setting(k,v)?; }
     Ok(())
@@ -2695,7 +2704,7 @@ fn set_setting(state: State<AppState>, key: String, value: String) -> AppResult<
         "theme" if matches!(value.as_str(),"dark"|"light"|"system") => {}
         "accent" if matches!(value.as_str(),"cyan"|"violet"|"blue"|"green") => {}
         "density" if matches!(value.as_str(),"compact"|"comfortable") => {}
-        "show_clock"|"show_greeting"|"show_shortcuts"|"show_recent"|"search_history"|"quiet_mode"|"https_only"|"ai_enabled"|"ai_page_context"|"ai_selection_context" =>
+        "show_clock"|"show_greeting"|"show_shortcuts"|"show_recent"|"search_history"|"quiet_mode"|"https_only"|"ai_enabled"|"ai_page_context"|"ai_selection_context"|"tracker_enabled"|"autofill" =>
             if !matches!(value.as_str(),"true"|"false") { return Err(AppError::Message("Invalid boolean setting.".into())); },
         "default_zoom" => {
             let n=value.parse::<f64>().map_err(|_|AppError::Message("Invalid zoom.".into()))?;
