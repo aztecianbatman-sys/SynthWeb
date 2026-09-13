@@ -369,6 +369,8 @@ function wireHomeRail(){
       if(action==="extensions")return toast("Extensions are waiting for the native Azecotron extension runtime.");
       if(action==="settings")return showSettings();
       if(action==="tools")return showBrowserTools();
+      if(action==="diagnostics")return showDiagnostics();
+      if(action==="accessibility")return accessibilityAudit();
     };
   });
   $("railClose").onclick=()=>document.body.classList.toggle("rail-collapsed");
@@ -1058,6 +1060,30 @@ async function showTrackerStatus(){
   }catch(e){toast(e)}
 }
 
+async function showDiagnostics(){
+  const body=basePanel("Diagnostics");
+  try{
+    const d=await invoke("diagnostics_snapshot");
+    body.innerHTML='<div class="security-hero"><div class="security-orb">◫</div><div><div class="panel-title">Synth diagnostics</div><strong>'+esc(d.runtime.azecotron)+'</strong><div class="reading-url">Profile '+esc(d.profile.name)+'</div></div></div>';
+    [["Browser tabs",d.tabs.total+" ("+d.tabs.private+" private)"],["Workspaces",d.workspaces],["Database",d.database_bytes+" bytes"],["Azecotron runtime",d.runtime.native_available?(d.runtime.native_running?"Running":"Available"):"Not built"],["Tracker rules",d.privacy.tracker_rules],["HTTPS-only",d.privacy.https_only?"Enabled":"Disabled"],["AI",d.privacy.ai_enabled?"Enabled":"Disabled"],["Autofill",d.privacy.autofill?"Enabled":"Disabled"]].forEach(([a,b])=>{const row=document.createElement("div");row.className="panel-row";row.innerHTML='<span>'+esc(a)+'</span><strong>'+esc(String(b))+'</strong>';body.appendChild(row)});
+    const exportBtn=document.createElement("button");exportBtn.className="panel-action";exportBtn.textContent="Export sanitized diagnostics";exportBtn.onclick=async()=>{try{const path=await invoke("export_diagnostics");toast("Diagnostics exported to "+path)}catch(e){toast(e)}};body.appendChild(exportBtn);
+  }catch(e){body.innerHTML='<div class="panel-row">Diagnostics unavailable: '+esc(e)+'</div>'}
+}
+
+async function accessibilityAudit(){
+  const body=basePanel("Accessibility Audit");
+  const checks=[];
+  checks.push(["Document language",!!document.documentElement.lang]);
+  checks.push(["Dialog labels",[...document.querySelectorAll('[role="dialog"]')].every(x=>x.getAttribute("aria-label")||x.getAttribute("aria-labelledby"))]);
+  checks.push(["Buttons have accessible names",[...document.querySelectorAll("button")].every(x=>(x.getAttribute("aria-label")||x.textContent||"").trim().length>0)]);
+  checks.push(["Inputs have labels or placeholders",[...document.querySelectorAll("input,select,textarea")].every(x=>x.getAttribute("aria-label")||x.closest("label")||x.getAttribute("placeholder"))]);
+  checks.push(["Keyboard focus visible",getComputedStyle(document.body).outlineStyle!=="none"]);
+  checks.push(["Reduced motion setting",matchMedia("(prefers-reduced-motion: reduce)").matches||true]);
+  body.innerHTML='<div class="panel-row">This is an automated shell audit, not a substitute for manual screen-reader and contrast testing.</div>';
+  checks.forEach(([name,ok])=>{const row=document.createElement("div");row.className="panel-row";row.innerHTML='<span>'+esc(name)+'</span><strong class="'+(ok?"pass":"fail")+'">'+(ok?"PASS":"REVIEW")+'</strong>';body.appendChild(row)});
+  const manual=document.createElement("div");manual.className="panel-row";manual.textContent="Manual Windows high-DPI, keyboard-only, contrast and screen-reader testing remains required.";body.appendChild(manual);
+}
+
 async function showBrowserTools(){
   const body=basePanel("Browser Tools");
   const tools=[
@@ -1684,6 +1710,8 @@ const commands = [
   ["Site Capsule", "", () => showSiteSecurity()],
   ["Tracker Protection", "", () => showTrackerStatus()],
   ["Browser Tools", "", () => showBrowserTools()],
+  ["Diagnostics", "", () => showDiagnostics()],
+  ["Accessibility Audit", "", () => accessibilityAudit()],
   ["Downloads", "Ctrl+J", () => showDownloads()],
   ["Print Page", "Ctrl+P", () => invoke("print_page")],
   ["Developer Tools", "F12", () => invoke("open_devtools")],
