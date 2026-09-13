@@ -489,7 +489,8 @@ impl Db {
              CREATE TABLE IF NOT EXISTS session_state(
                id INTEGER PRIMARY KEY CHECK(id=1),
                clean_exit INTEGER NOT NULL DEFAULT 1,
-               data TEXT
+               data TEXT,
+               crash_count INTEGER NOT NULL DEFAULT 0
              );
              INSERT INTO session_state(id,clean_exit,data)
              SELECT 1,1,NULL
@@ -996,8 +997,15 @@ impl Db {
     fn prepare_launch(&self)->AppResult<bool> {
         let c=self.connect()?;
         let clean:i64=c.query_row("SELECT clean_exit FROM session_state WHERE id=1",[],|r|r.get(0))?;
+        if clean==0 {
+            c.execute("UPDATE session_state SET crash_count=crash_count+1 WHERE id=1",[])?;
+        }
         c.execute("UPDATE session_state SET clean_exit=0 WHERE id=1",[])?;
         Ok(clean==0)
+    }
+
+    fn crash_count(&self)->AppResult<i64>{
+        self.connect()?.query_row("SELECT crash_count FROM session_state WHERE id=1",[],|r|r.get(0)).map_err(AppError::from)
     }
 
     fn save_restore_state(&self,state:&RestoreState)->AppResult<()> {
@@ -2607,6 +2615,7 @@ fn diagnostics_snapshot(state: State<AppState>)->AppResult<serde_json::Value>{
       "profile":profile,
       "tabs":{"total":tab_count,"private":private_tabs},
       "workspaces":workspace_count,
+      "crashes":state.db.crash_count()?,
       "database_bytes":state.db.size_bytes(),
       "runtime":{
         "host":runtime_status().0,
