@@ -3032,11 +3032,18 @@ async fn launch_azecotron(app: tauri::AppHandle, window: tauri::WebviewWindow, s
 
 #[tauri::command]
 fn runtime_info() -> serde_json::Value {
-    let (runtime_name, runtime_revision, azecotron_status) = runtime_status();
+    let (runtime_name, runtime_revision, _) = runtime_status();
+    let az = azecotron_bridge::status();
     serde_json::json!({
         "runtime": runtime_name,
         "revision": runtime_revision,
-        "azecotronWeb": {"name":"Azecotron Web","status":azecotron_status},
+        "azecotronWeb": {
+          "name":"Azecotron Web",
+          "status":if az.available {if azecotron_bridge::running() {"RUNNING"} else {"AVAILABLE"}} else {"NOT BUILT"},
+          "version":az.version,
+          "executable":az.executable
+        },
+        "fallback":"Tauri WebView2",
         "search": {"name":"Cortis","status":"FUNCTIONAL","mode":"Google web-search delegation"}
     })
 }
