@@ -30,7 +30,7 @@ class SynthContentBrowserClient final : public content::ContentBrowserClient {
 
   static SynthContentBrowserClient* Get();
   content::BrowserContext* GetBrowserContext() const;
-  SynthBrowserMainParts* browser_main_parts() const { return browser_main_parts_.get(); }
+  SynthBrowserMainParts* browser_main_parts() const { return browser_main_parts_; }
 
  private:
   std::unique_ptr<content::BrowserMainParts> CreateBrowserMainParts(
@@ -39,8 +39,7 @@ class SynthContentBrowserClient final : public content::ContentBrowserClient {
   std::unique_ptr<content::WebContentsViewDelegate> GetWebContentsViewDelegate(
       content::WebContents* web_contents) override;
 
-  std::unique_ptr<content::DevToolsManagerDelegate>
-  CreateDevToolsManagerDelegate() override;
+  content::DevToolsManagerDelegate* GetDevToolsManagerDelegate() override;
 
   std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
   CreateURLLoaderThrottles(
@@ -53,7 +52,6 @@ class SynthContentBrowserClient final : public content::ContentBrowserClient {
 
   raw_ptr<SynthBrowserMainParts> browser_main_parts_ = nullptr;
   std::unique_ptr<SynthDevToolsManagerDelegate> devtools_delegate_;
-  std::unique_ptr<SynthDevToolsDelegate> devtools_delegate_;
 };
 
 }  // namespace synth_azecotron
