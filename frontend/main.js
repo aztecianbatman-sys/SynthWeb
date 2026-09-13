@@ -1447,6 +1447,24 @@ async function showAssist() {
   const note=document.createElement("div");note.className="panel-row";note.textContent="Synth never sends page or selection text unless you explicitly request that context.";body.appendChild(note);
 }
 
+async function showAiThread(thread){
+  const body=basePanel(thread.title);
+  const messages=await invoke("list_ai_messages",{threadId:thread.id});
+  body.innerHTML='<div class="thread-meta">'+esc(thread.provider)+' · '+esc(thread.model||"model not selected")+' · local thread</div>';
+  const list=document.createElement("div");list.className="thread-messages";
+  messages.forEach(m=>{
+    const row=document.createElement("div");row.className="thread-message "+m.role;
+    row.innerHTML='<span class="thread-role">'+esc(m.role==="assistant"?"Synth":"You")+'</span><div>'+esc(m.content)+'</div>';
+    list.appendChild(row);
+  });
+  body.appendChild(list);
+  const form=document.createElement("div");form.className="thread-compose";
+  const input=document.createElement("textarea");input.className="thread-input";input.placeholder="Message Synth…";input.rows=3;
+  const send=document.createElement("button");send.className="panel-action";send.textContent="Send";
+  send.onclick=async()=>{const content=input.value.trim();if(!content)return;send.disabled=true;try{await invoke("send_ai_thread_message",{threadId:thread.id,content});await showAiThread(thread)}catch(e){toast(e)}finally{send.disabled=false}};
+  input.onkeydown=(e)=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send.click()}};
+  form.append(input,send);body.appendChild(form);
+}
 async function showAiThreads(){
   const body=basePanel("Context Threads");
   let threads=[];
@@ -1457,7 +1475,7 @@ async function showAiThreads(){
     const row=document.createElement("div");row.className="profile-row";
     const avatar=document.createElement("span");avatar.className="profile-avatar small";avatar.textContent="✦";
     const info=document.createElement("div");info.className="profile-copy";info.innerHTML='<strong>'+esc(t.title)+'</strong><span>'+esc(t.provider)+' · '+esc(t.model||"model not selected")+'</span>';
-    const open=document.createElement("button");open.className="mini-action";open.textContent="Open";open.onclick=async()=>{try{const msgs=await invoke("list_ai_messages",{threadId:t.id});showAiAnswer(msgs.map(m=>(m.role==="assistant"?"Synth: ":"You: ")+m.content).join("\\n\\n"),t.title)}catch(e){toast(e)}};
+    const open=document.createElement("button");open.className="mini-action";open.textContent="Open";open.onclick=()=>showAiThread(t);
     const del=document.createElement("button");del.className="mini-action danger";del.textContent="Delete";del.onclick=async()=>{if(confirm("Delete this thread?")){try{await invoke("delete_ai_thread",{threadId:t.id});showAiThreads()}catch(e){toast(e)}}};
     row.append(avatar,info,open,del);list.appendChild(row);
   });
@@ -1465,6 +1483,7 @@ async function showAiThreads(){
   const create=document.createElement("button");create.className="panel-action";create.textContent="+ New Context Thread";create.onclick=async()=>{const title=prompt("Thread name");if(!title)return;try{await invoke("create_ai_thread",{title});toast("Thread created");showAiThreads()}catch(e){toast(e)}};body.appendChild(create);
   const legacy=document.createElement("button");legacy.className="panel-action";legacy.textContent="Open AI history";legacy.onclick=showAiHistory;body.appendChild(legacy);
 }
+
 
 async function showCommandChains(){
   const body=basePanel("Command Chains");
