@@ -803,6 +803,9 @@ async function showSettings(){
   const diagnostics=document.createElement("button");diagnostics.className="panel-action";diagnostics.textContent="Diagnostics";diagnostics.onclick=showDiagnostics;dev.appendChild(diagnostics);
   const access=document.createElement("button");access.className="panel-action";access.textContent="Accessibility audit";access.onclick=accessibilityAudit;dev.appendChild(access);
 
+  const updates=section("Updates","Release updates require cryptographically verified manifests.");
+  const updateButton=document.createElement("button");updateButton.className="panel-action";updateButton.textContent="View update security status";updateButton.onclick=async()=>{try{const x=await invoke("update_status");const b=basePanel("Update Security");b.innerHTML='<div class="panel-row">Manifest verification <strong>'+esc(x.updater)+'</strong></div><div class="panel-row">Signature <strong>'+esc(x.signature)+'</strong></div><div class="panel-row">Transport <strong>'+esc(x.transport)+'</strong></div><div class="panel-row">Rollback <strong>'+esc(x.rollback)+'</strong></div><div class="panel-row">'+esc(x.note)+'</div>'}catch(e){toast(e)}};updates.appendChild(updateButton);
+
   const runtime=section("Runtime","See exactly which browser engine is active.");
   const runtimeOpen=document.createElement("button");runtimeOpen.className="panel-action";runtimeOpen.textContent="Runtime status";runtimeOpen.onclick=showRuntime;runtime.appendChild(runtimeOpen);
 
