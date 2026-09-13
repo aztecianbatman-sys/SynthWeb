@@ -18,6 +18,8 @@ const state = {
 
 const $ = (id) => document.getElementById(id);
 
+function formatBytes(value){const n=Number(value)||0;if(n<1024)return n+" B";if(n<1048576)return Math.round(n/1024)+" KB";return (n/1048576).toFixed(n<10485760?1:0)+" MB"}
+
 function activeTab() {
   return state.tabs.find((tab) => tab.id === state.activeId);
 }
@@ -921,7 +923,7 @@ async function showSessions() {
     };
     const wrap=document.createElement("div");wrap.className="tool-row";
     const info=document.createElement("div");info.className="tool-copy";info.innerHTML='<strong>'+esc(session.name)+'</strong><span>Saved session</span>';
-    const open=document.createElement("button");open.className="mini-action";open.textContent="Open";open.onclick=button.onclick;
+    const open=document.createElement("button");open.className="mini-action";open.textContent="Load";open.onclick=button.onclick;
     const del=document.createElement("button");del.className="mini-action danger";del.textContent="Delete";del.onclick=async()=>{if(confirm("Delete saved session?")){try{await invoke("delete_session",{id:session.id});showSessions()}catch(e){toast(e)}}};
     wrap.append(info,open,del);body.appendChild(wrap);
   });
