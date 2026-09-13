@@ -31,8 +31,11 @@ jobs:
 
       - name: Build Azecotron
         shell: cmd
-        run: call scripts\build-azecotron.cmd
+        run: |
+          call scripts\build-azecotron.cmd
+          if errorlevel 1 exit /b 1
           call scripts\build-azecotron-host.cmd
+          if errorlevel 1 exit /b 1
 
       - name: Smoke test Chromium runtime
         shell: cmd
