@@ -3361,9 +3361,10 @@ async fn launch_azecotron(app: tauri::AppHandle, window: tauri::WebviewWindow, s
 }
 
 #[tauri::command]
-fn runtime_info() -> serde_json::Value {
+fn runtime_info(app: tauri::AppHandle) -> serde_json::Value {
     let (runtime_name, runtime_revision, _) = runtime_status();
-    let az = azecotron_bridge::status();
+    let bundled=app.path().resolve("azecotron/azecotron_host.exe",BaseDirectory::Resource).ok().filter(|p|p.exists());
+    let az = azecotron_bridge::status_with_override(bundled);
     serde_json::json!({
         "runtime": runtime_name,
         "revision": runtime_revision,
