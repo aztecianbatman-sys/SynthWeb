@@ -29,11 +29,14 @@ if errorlevel 1 exit /b 1
 call "%~dp0build-azecotron-host.cmd"
 if errorlevel 1 exit /b 1
 
+set "OUT=%ROOT%\third_party\azecotron-chromium\src\out\Azecotron"
+if not exist "%OUT%\chrome.exe" (echo ERROR: Chromium chrome.exe missing after build. & exit /b 1)
+if not exist "%OUT%\azecotron_host.exe" (echo ERROR: Synth native Azecotron host missing after build. & exit /b 1)
+
 if exist "%ROOT%\src-tauri\resources\azecotron" rmdir /S /Q "%ROOT%\src-tauri\resources\azecotron"
 mkdir "%ROOT%\src-tauri\resources\azecotron"
-xcopy /E /I /Y "%ROOT%\third_party\azecotron-chromium\src\out\Azecotron\*" "%ROOT%\src-tauri\resources\azecotron\" >nul
+for %%F in ("chrome.exe" "azecotron_host.exe") do copy /Y "%OUT%\%%~F" "%ROOT%\src-tauri\resources\azecotron\%%~F" >nul
 if errorlevel 1 exit /b 1
-if not exist "%ROOT%\src-tauri\resources\azecotron\azecotron_host.exe" (echo ERROR: Native Azecotron host missing after build. & exit /b 1)
 
 echo === Synth Browser package ===
 pushd "%ROOT%\src-tauri"
