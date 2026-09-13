@@ -758,6 +758,12 @@ async function showSettings(){
     row.append(copy,input);parent.appendChild(row);
   };
 
+  const accessibility=section("Accessibility","Adjust presentation without changing security.");
+  select(accessibility,"language","Language",[["en","English"],["hi","Hindi"],["es","Spanish"],["fr","French"],["de","German"],["ja","Japanese"]]);
+  select(accessibility,"text_scale","Text scale",[["80","80%"],["90","90%"],["100","100%"],["110","110%"],["125","125%"],["150","150%"],["180","180%"]]);
+  toggle(accessibility,"reduce_motion","Reduce motion","Minimize nonessential animation.");
+  toggle(accessibility,"high_contrast","High contrast","Increase separation between UI surfaces.");
+
   const appearance=section("Appearance","Personalize Synth without changing browser security.");
   select(appearance,"theme","Theme",[["dark","Dark"],["light","Light"],["system","System"]]);
   select(appearance,"accent","Accent",[["cyan","Cyan"],["violet","Violet"],["blue","Blue"],["green","Green"]]);
