@@ -10,6 +10,8 @@ executable("azecotron_host") {
     "synth_content_main_delegate.cc",
     "synth_content_main_delegate.h",
     "synth_tracker_throttle.cc",
+    "synth_devtools_delegate.cc",
+    "synth_devtools_delegate.h",
     "synth_tracker_throttle.h",
     "synth_devtools_manager_delegate.cc",
     "synth_devtools_manager_delegate.h",
