@@ -254,3 +254,17 @@ Implemented:
 - live native Azecotron tracker counter surfaced in the UI.
 
 Frontend syntax check: PASS. Windows native runtime and Chromium integration remain NOT VERIFIED until the real pinned Chromium build and smoke suite run.
+
+
+## Feature integration pass - privacy profiles assist
+
+Implemented in the reference UI:
+- Privacy Shield posture audit with a real enforceable-policy score and per-check status.
+- Expanded per-site permission surface: camera, microphone, location, notifications, display capture, clipboard, local fonts, sensors, MIDI, USB, Bluetooth, downloads, popups, autoplay.
+- Profiles redesigned as isolated profile cards with active-profile, guest, and data-isolation information.
+- Synth Assist redesigned as a provider/model manager with provider testing, model discovery, secure credential actions, context opt-in controls, AI Search, and local history.
+- Browser Tools consolidated into one status surface for print, screenshot, save/archive, PDF, PiP, fullscreen, WebRTC, and media control capabilities.
+- Shielded preset now covers the expanded sensitive-permission baseline plus first-party-isolation policy and disabled autofill/search/AI defaults.
+- Reference New Tab remains live-data driven and uses explicit NOT VERIFIED / NOT STARTED / PLATFORM LIMITED states.
+
+Native Chromium service integration remains pending Windows verification for production download manager, permission delegate, DevTools manager, media/device services, and full runtime smoke tests.
