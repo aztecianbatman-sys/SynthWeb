@@ -15,6 +15,7 @@ const SAFE_METHODS: &[&str] = &[
     "Network.enable",
     "Network.disable",
     "Network.getResponseBody",
+    "Page.getResourceTree",
     "Security.enable",
     "Security.disable",
     "Page.getNavigationHistory",
