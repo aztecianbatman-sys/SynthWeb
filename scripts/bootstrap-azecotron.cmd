@@ -71,30 +71,52 @@ if errorlevel 1 (
   exit /b 1
 )
 
+set "PATCH_STAMP=%ROOT%\third_party\azecotron-chromium\.synth-azecotron-patched"
+
 echo Verifying Azecotron patch series...
+set "PATCH_OK=1"
 for %%P in ("%ROOT%\chromium\patches\*.patch") do (
-  echo Checking %%~nxP
-  git apply --check "%%~fP"
+  git apply --check "%%~fP" >nul 2>&1
   if errorlevel 1 (
-    echo ERROR: Patch drift detected in %%~nxP
-    echo Build aborted.
-    popd
-    exit /b 1
+    git apply --reverse --check "%%~fP" >nul 2>&1
+    if errorlevel 1 set "PATCH_OK=0"
   )
 )
 
-for %%P in ("%ROOT%\chromium\patches\*.patch") do (
-  echo Applying %%~nxP
-  git apply "%%~fP"
-  if errorlevel 1 (
-    echo ERROR: Failed applying %%~nxP
+if "!PATCH_OK!"=="0" (
+  echo ERROR: one or more Azecotron patches are neither clean nor already applied.
+  popd
+  exit /b 1
+)
+
+if exist "%PATCH_STAMP%" (
+  echo Existing Azecotron patch stamp found; verifying applied state...
+  for /f "usebackq tokens=*" %%R in ("%PATCH_STAMP%") do set "STAMP_REV=%%R"
+  if /i not "!STAMP_REV!"=="%AZECOTRON_REVISION%" (
+    echo ERROR: patch stamp revision mismatch.
     popd
     exit /b 1
   )
+) else (
+  echo Applying Azecotron patch series...
+  for %%P in ("%ROOT%\chromium\patches\*.patch") do (
+    git apply --check "%%~fP" >nul 2>&1
+    if not errorlevel 1 (
+      git apply "%%~fP"
+      if errorlevel 1 (
+        echo ERROR: Failed applying %%~nxP
+        popd
+        exit /b 1
+      )
+    ) else (
+      echo %%~nxP is already applied.
+    )
+  )
+  >"%PATCH_STAMP%" echo %AZECOTRON_REVISION%
 )
 
 echo Applying Cortis provider transformation...
-py -3 "%ROOT%\scripts\apply-cortis-provider.py"
+python "%ROOT%\scripts\apply-cortis-provider.py"
 if errorlevel 1 (
   echo ERROR: Cortis provider transformation failed.
   popd
