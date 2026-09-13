@@ -1145,6 +1145,7 @@ struct AppState {
     guest: bool,
     next_id: AtomicU64,
     db: Db,
+    discarded_tabs: Arc<Mutex<std::collections::HashSet<String>>>,
 }
 
 impl AppState {
@@ -1166,6 +1167,7 @@ impl AppState {
             closed: Arc::new(Mutex::new(VecDeque::new())),
             next_id: AtomicU64::new(2),
             db,
+            discarded_tabs: Arc::new(Mutex::new(std::collections::HashSet::new())),
         }
     }
     fn next_tab_id(&self) -> String {
@@ -1659,6 +1661,8 @@ fn activate_tab(app: tauri::AppHandle, state: State<AppState>, tab_id: String) -
         return Err(AppError::Message("tab not found".into()));
     }
     *state.active_id.lock().unwrap() = tab_id;
+    let should_restore=state.tabs.lock().unwrap().iter().find(|t|t.id==tab_id).map(|t|!t.has_webview && t.url!="synth://newtab").unwrap_or(false);
+    if should_restore { let _=restore_tab(app.clone(),state.clone(),tab_id.clone()); }
     layout(&app, &state)?;
     emit_snapshot(&app, &state);
     Ok(())
@@ -1710,6 +1714,82 @@ async fn reopen_closed_tab(app: tauri::AppHandle, state: State<AppState>) -> App
     layout(&app, &state)?;
     emit_snapshot(&app, &state);
     Ok(())
+}
+
+#[tauri::command]
+fn discard_tab(app: tauri::AppHandle, state: State<AppState>, tab_id:String)->AppResult<()> {
+    if *state.active_id.lock().unwrap()==tab_id {
+        return Err(AppError::Message("The active tab cannot be discarded.".into()));
+    }
+    if let Some(view)=app.get_webview(&format!("page-{tab_id}")) {
+        view.hide().map_err(|e|AppError::Message(e.to_string()))?;
+        view.close().map_err(|e|AppError::Message(e.to_string()))?;
+    }
+    if let Some(tab)=state.tabs.lock().unwrap().iter_mut().find(|t|t.id==tab_id) {
+        tab.has_webview=false;
+        tab.loading=false;
+        state.discarded_tabs.lock().unwrap().insert(tab_id);
+        Ok(())
+    } else { Err(AppError::Message("tab not found".into())) }
+}
+
+#[tauri::command]
+fn discard_inactive_tabs(app: tauri::AppHandle, state: State<AppState>, max_live:usize)->AppResult<usize> {
+    let active=state.active_id.lock().unwrap().clone();
+    let mut live:Vec<String>=state.tabs.lock().unwrap().iter().filter(|t|t.has_webview&&t.id!=active).map(|t|t.id.clone()).collect();
+    if max_live>=live.len(){return Ok(0)}
+    let discard_count=live.len()-max_live;
+    live.truncate(discard_count);
+    let mut count=0usize;
+    for id in live {
+        if let Some(view)=app.get_webview(&format!("page-{id}")) { let _=view.close(); }
+        if let Some(tab)=state.tabs.lock().unwrap().iter_mut().find(|t|t.id==id) {
+            tab.has_webview=false;
+            tab.loading=false;
+            state.discarded_tabs.lock().unwrap().insert(id);
+            count+=1;
+        }
+    }
+    layout(&app,&state)?;
+    emit_snapshot(&app,&state);
+    Ok(count)
+}
+
+#[tauri::command]
+fn restore_tab(app: tauri::AppHandle, state: State<AppState>, tab_id:String)->AppResult<()> {
+    let tab=state.tabs.lock().unwrap().iter().find(|t|t.id==tab_id).cloned().ok_or_else(||AppError::Message("tab not found".into()))?;
+    if tab.has_webview || tab.url=="synth://newtab" { return Ok(()) }
+    let url=Url::parse(&tab.url).map_err(|e|AppError::Message(e.to_string()))?;
+    create_page_webview(&app,&state,&tab_id,&url,tab.private)?;
+    if let Some(view)=app.get_webview(&format!("page-{tab_id}")) { view.navigate(url).map_err(|e|AppError::Message(e.to_string()))?; }
+    if let Some(tab)=state.tabs.lock().unwrap().iter_mut().find(|t|t.id==tab_id) { tab.has_webview=true;tab.loading=true; }
+    state.discarded_tabs.lock().unwrap().remove(&tab_id);
+    layout(&app,&state)?;
+    emit_snapshot(&app,&state);
+    Ok(())
+}
+
+#[tauri::command]
+fn open_session_lazy(app: tauri::AppHandle, state: State<AppState>, id:i64)->AppResult<serde_json::Value>{
+    let summary=state.db.session_summary(id)?.ok_or_else(||AppError::Message("Saved session not found.".into()))?;
+    let saved=state.db.load_session(id)?;
+    let old_ids:Vec<String>=state.tabs.lock().unwrap().iter().map(|t|t.id.clone()).collect();
+    for oid in old_ids { if let Some(v)=app.get_webview(&format!("page-{oid}")){let _=v.close();} }
+    state.tabs.lock().unwrap().clear();
+    let mut first_live=None;
+    for mut tab in saved {
+        tab.id=state.next_tab_id();
+        tab.workspace=state.active_workspace.lock().unwrap().clone();
+        tab.has_webview=false;
+        let id=tab.id.clone();
+        if first_live.is_none() && !tab.private && tab.url!="synth://newtab" { first_live=Some(id.clone()); }
+        state.tabs.lock().unwrap().push(tab);
+    }
+    if let Some(id)=first_live.clone(){ *state.active_id.lock().unwrap()=id.clone(); let _=restore_tab(app.clone(),state.clone(),id); }
+    else if let Some(tab)=state.tabs.lock().unwrap().first(){*state.active_id.lock().unwrap()=tab.id.clone();}
+    layout(&app,&state)?;
+    emit_snapshot(&app,&state);
+    Ok(serde_json::json!({"name":summary.name,"tab_count":summary.tab_count,"loaded_tab":first_live,"lazy":true}))
 }
 
 #[tauri::command]
@@ -3242,7 +3322,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             create_browser_window, get_snapshot, navigate, search_with_mode, site_info, page_source, find_in_page, get_selection, list_profiles, switch_profile, create_profile, delete_profile, new_tab, activate_tab, close_tab, reopen_closed_tab,
-            reload, reload_without_cache, stop_or_reload, print_page, set_zoom, back, forward, open_devtools, close_devtools, devtools_status,
+            discard_tab, discard_inactive_tabs, restore_tab, open_session_lazy, reload, reload_without_cache, stop_or_reload, print_page, set_zoom, back, forward, open_devtools, close_devtools, devtools_status,
             add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
             list_downloads, remove_download_history, open_download, reveal_download, verify_download,
             list_permission_history, list_current_site_cookies, delete_current_site_cookie, site_storage, delete_site_storage_item, clear_current_site_data,
