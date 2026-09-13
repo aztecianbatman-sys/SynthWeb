@@ -1,3 +1,4 @@
+mod updater;
 mod webview_cdp;
 mod process_diagnostics;
 mod webview_capture;
@@ -2646,6 +2647,36 @@ fn export_diagnostics(state: State<AppState>) -> AppResult<String> {
 }
 
 #[tauri::command]
+fn updater_staging_path()->AppResult<String>{
+    let dir=app_root().join("updates").join("staging");
+    fs::create_dir_all(&dir)?;
+    Ok(dir.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+async fn fetch_update_manifest(url:String, public_key:Vec<u8>)->AppResult<serde_json::Value>{
+    let manifest=updater::fetch_manifest(&url,&public_key).await.map_err(AppError::Message)?;
+    Ok(serde_json::to_value(manifest).map_err(|e|AppError::Message(e.to_string()))?)
+}
+
+#[tauri::command]
+async fn stage_verified_update(url:String, public_key:Vec<u8>, manifest:serde_json::Value)->AppResult<String>{
+    let expected:updater::UpdateManifest=serde_json::from_value(manifest).map_err(|e|AppError::Message(e.to_string()))?;
+    if expected.url!=url { return Err(AppError::Message("Update URL does not match the verified manifest.".into())); }
+    let verified=updater::fetch_manifest(&url,&public_key).await.map_err(AppError::Message)?;
+    if verified.version!=expected.version || verified.sha256!=expected.sha256 { return Err(AppError::Message("Update manifest changed between verification and download.".into())); }
+    let path=updater::stage_update(&verified,&app_root().join("updates").join("staging")).await.map_err(AppError::Message)?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn update_rollback_backup()->AppResult<String>{
+    let exe=std::env::current_exe()?;
+    let path=updater::backup_current(&exe,&app_root().join("updates").join("backup")).map_err(AppError::Message)?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 fn update_status()->serde_json::Value{
     serde_json::json!({
       "updater":"SIGNED MANIFEST VERIFICATION READY",
@@ -3214,7 +3245,7 @@ fn main() {
             restore_previous_session, dismiss_restore, export_data, export_diagnostics,
             reset_browser, ai_status, set_ai_key, clear_ai_key, list_ai_models, list_ai_model_info, ai_presets, list_ai_threads, create_ai_thread, list_ai_messages, add_ai_message, send_ai_thread_message, delete_ai_thread, list_ai_history, clear_ai_history, synth_assist, synth_assist_stream, synth_ai_search, request_page_context, request_selection_context, page_lens, reader_mode, create_note, list_notes, delete_note, create_research_board,
             list_research_boards, delete_research_board, add_current_to_board, list_board_items, export_board_citations,
-            complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings, verify_update_manifest, update_status,
+            complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings, verify_update_manifest, update_status, updater_staging_path, fetch_update_manifest, stage_verified_update, update_rollback_backup,
             azecotron_host_target, azecotron_status, launch_azecotron
         ])
         .build(tauri::generate_context!())
