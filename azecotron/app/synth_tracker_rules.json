@@ -1,0 +1,18 @@
+{
+  "format": "synth-shield-rules-v1",
+  "version": 1,
+  "rules": [
+    {"pattern":"doubleclick.net","category":"advertising","enabled":true},
+    {"pattern":"googlesyndication.com","category":"advertising","enabled":true},
+    {"pattern":"googleadservices.com","category":"advertising","enabled":true},
+    {"pattern":"connect.facebook.net","category":"tracking","enabled":true},
+    {"pattern":"facebook.net","category":"tracking","enabled":true},
+    {"pattern":"scorecardresearch.com","category":"analytics","enabled":true},
+    {"pattern":"hotjar.com","category":"analytics","enabled":true},
+    {"pattern":"segment.io","category":"analytics","enabled":true},
+    {"pattern":"mixpanel.com","category":"analytics","enabled":true},
+    {"pattern":"amplitude.com","category":"analytics","enabled":true},
+    {"pattern":"matomo.cloud","category":"analytics","enabled":true},
+    {"pattern":"clarity.ms","category":"analytics","enabled":true}
+  ]
+}
