@@ -286,6 +286,13 @@ struct CookieInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct SiteStorageInfo {
+    local_storage_keys: Vec<String>,
+    indexed_db_names: Vec<String>,
+    session_storage_keys: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct SitePermission {
     origin: String,
     kind: String,
@@ -2182,6 +2189,38 @@ fn list_permission_history(state: State<AppState>, origin:Option<String>)->AppRe
 }
 
 #[tauri::command]
+fn site_storage(app: tauri::AppHandle, state: State<AppState>)->AppResult<serde_json::Value>{
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let script=r#"(()=>Promise.all([
+      Promise.resolve(Array.from({length:localStorage.length},(_,i)=>localStorage.key(i)).filter(Boolean)),
+      Promise.resolve(Array.from({length:sessionStorage.length},(_,i)=>sessionStorage.key(i)).filter(Boolean)),
+      indexedDB?.databases?indexedDB.databases().then(xs=>xs.map(x=>x.name).filter(Boolean)):Promise.resolve([])
+    ]).then(([local,session,ids])=>JSON.stringify({localStorageKeys:local,sessionStorageKeys:session,indexedDbNames:ids})))()"#;
+    let (tx,rx)=std::sync::mpsc::channel();
+    view.eval_with_callback(script,move|raw|{let _=tx.send(raw);}).map_err(|e|AppError::Message(e.to_string()))?;
+    let raw=rx.recv().map_err(|e|AppError::Message(e.to_string()))?;
+    let payload:serde_json::Value=serde_json::from_str(&raw).unwrap_or_default();
+    Ok(payload)
+}
+
+#[tauri::command]
+fn delete_site_storage_item(app: tauri::AppHandle, state: State<AppState>, kind:String, name:String)->AppResult<()>{
+    if name.len()>500{return Err(AppError::Message("Storage key/name is too long.".into()))}
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let name_json=serde_json::to_string(&name).map_err(|e|AppError::Message(e.to_string()))?;
+    let script=match kind.as_str(){
+      "localStorage"=>format!("localStorage.removeItem({name_json});"),
+      "sessionStorage"=>format!("sessionStorage.removeItem({name_json});"),
+      "indexedDB"=>format!("indexedDB.deleteDatabase({name_json});"),
+      _=>return Err(AppError::Message("Unknown storage category.".into()))
+    };
+    view.eval(&script).map_err(|e|AppError::Message(e.to_string()))?;
+    Ok(())
+}
+
+#[tauri::command]
 async fn list_current_site_cookies(app: tauri::AppHandle, state: State<AppState>)->AppResult<Vec<CookieInfo>>{
     let id=state.active_id.lock().unwrap().clone();
     let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
@@ -2906,7 +2945,7 @@ fn main() {
             reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools, close_devtools, devtools_status,
             add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
             list_downloads, remove_download_history, open_download, reveal_download, verify_download,
-            list_permission_history, list_current_site_cookies, delete_current_site_cookie, clear_current_site_data,
+            list_permission_history, list_current_site_cookies, delete_current_site_cookie, site_storage, delete_site_storage_item, clear_current_site_data,
             list_site_permissions, set_site_permission, reset_site_permissions,
             tracker_status, privacy_audit, set_tracker_policy,
             capture_screenshot, print_page_to_pdf, save_page_html, clear_data_category, list_extensions, install_extension, set_extension_enabled, remove_extension, extension_runtime_status, rename_profile, export_profile, import_profile, delete_session,
