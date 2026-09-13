@@ -64,7 +64,7 @@ jobs:
       - name: Validate release metadata
         shell: pwsh
         run: |
-          $required = @('README.md','LICENSE','NOTICE','docs/status.md')
+          $required = @('README.md','LICENSE','NOTICE.md','docs/status.md')
           foreach ($file in $required) {
             if (-not (Test-Path $file)) { throw "Missing release file: $file" }
           }
