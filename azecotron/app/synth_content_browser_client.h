@@ -19,7 +19,7 @@ namespace content { class MainFunctionParams; }
 namespace synth_azecotron {
 
 class SynthBrowserMainParts;
-class SynthDevToolsDelegate;
+class SynthDevToolsManagerDelegate;
 
 class SynthContentBrowserClient final : public content::ContentBrowserClient {
  public:
@@ -52,6 +52,7 @@ class SynthContentBrowserClient final : public content::ContentBrowserClient {
       std::optional<int64_t> navigation_id) override;
 
   raw_ptr<SynthBrowserMainParts> browser_main_parts_ = nullptr;
+  std::unique_ptr<SynthDevToolsManagerDelegate> devtools_delegate_;
   std::unique_ptr<SynthDevToolsDelegate> devtools_delegate_;
 };
 
