@@ -1,3 +1,4 @@
+mod webview_cdp;
 mod process_diagnostics;
 mod webview_capture;
 mod native_host;
@@ -1668,6 +1669,13 @@ fn print_page_to_pdf(app: tauri::AppHandle, state: State<AppState>)->AppResult<S
     let path=dir.join(format!("page-{}.pdf",Db::now()));
     webview_capture::print_pdf(&view,path.clone()).map_err(AppError::Message)?;
     Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn devtools_cdp(app: tauri::AppHandle, state: State<AppState>, method:String, params:String)->AppResult<String>{
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    webview_cdp::call(&view,&method,&params).map_err(AppError::Message)
 }
 
 #[tauri::command]
