@@ -210,6 +210,8 @@ function renderFeatureDashboard(){
       if(action==="runtime"||action==="azecotron")return showRuntime();
       if(action==="performance")return showPerformance();
       if(action==="permissions")return showMedia();
+      if(action==="threads")return showAiThreads();
+      if(action==="chains")return showCommandChains();
       if(action==="extensions")return showExtensions();
     }catch(e){toast(e)}
   });
@@ -1427,8 +1429,53 @@ async function showAssist() {
   const pageAsk=document.createElement("button");pageAsk.className="panel-action";pageAsk.textContent="Ask about current page";pageAsk.onclick=async()=>{try{await invoke("request_page_context");toast("Page context requested…")}catch(e){toast(e)}};body.appendChild(pageAsk);
   const selectionAsk=document.createElement("button");selectionAsk.className="panel-action";selectionAsk.textContent="Explain current selection";selectionAsk.onclick=async()=>{try{await invoke("request_selection_context");toast("Selection context requested…")}catch(e){toast(e)}};body.appendChild(selectionAsk);
   const aiSearch=document.createElement("button");aiSearch.className="panel-action";aiSearch.textContent="AI Search this query";aiSearch.onclick=async()=>{const q=prompt("AI Search query");if(!q)return;try{const answer=await invoke("synth_ai_search",{query:q});showAiAnswer(answer,"AI Search")}catch(e){toast(e)}};body.appendChild(aiSearch);
+  const thread=document.createElement("button");thread.className="panel-action";thread.textContent="Context Threads";thread.onclick=showAiThreads;body.appendChild(thread);
   const history=document.createElement("button");history.className="panel-action";history.textContent="AI history";history.onclick=showAiHistory;body.appendChild(history);
   const note=document.createElement("div");note.className="panel-row";note.textContent="Synth never sends page or selection text unless you explicitly request that context.";body.appendChild(note);
+}
+
+async function showAiThreads(){
+  const body=basePanel("Context Threads");
+  let threads=[];
+  try{threads=await invoke("list_ai_threads")}catch(e){body.innerHTML='<div class="panel-row">'+esc(e)+'</div>';return}
+  body.innerHTML='<div class="panel-row">Threads keep conversations grouped locally by provider/model. Page context remains opt-in.</div>';
+  const list=document.createElement("div");list.className="profile-list";
+  threads.forEach(t=>{
+    const row=document.createElement("div");row.className="profile-row";
+    const avatar=document.createElement("span");avatar.className="profile-avatar small";avatar.textContent="✦";
+    const info=document.createElement("div");info.className="profile-copy";info.innerHTML='<strong>'+esc(t.title)+'</strong><span>'+esc(t.provider)+' · '+esc(t.model||"model not selected")+'</span>';
+    const open=document.createElement("button");open.className="mini-action";open.textContent="Open";open.onclick=async()=>{try{const msgs=await invoke("list_ai_messages",{threadId:t.id});showAiAnswer(msgs.map(m=>(m.role==="assistant"?"Synth: ":"You: ")+m.content).join("\\n\\n"),t.title)}catch(e){toast(e)}};
+    const del=document.createElement("button");del.className="mini-action danger";del.textContent="Delete";del.onclick=async()=>{if(confirm("Delete this thread?")){try{await invoke("delete_ai_thread",{threadId:t.id});showAiThreads()}catch(e){toast(e)}}};
+    row.append(avatar,info,open,del);list.appendChild(row);
+  });
+  body.appendChild(list);
+  const create=document.createElement("button");create.className="panel-action";create.textContent="+ New Context Thread";create.onclick=async()=>{const title=prompt("Thread name");if(!title)return;try{await invoke("create_ai_thread",{title});toast("Thread created");showAiThreads()}catch(e){toast(e)}};body.appendChild(create);
+  const legacy=document.createElement("button");legacy.className="panel-action";legacy.textContent="Open AI history";legacy.onclick=showAiHistory;body.appendChild(legacy);
+}
+
+async function showCommandChains(){
+  const body=basePanel("Command Chains");
+  const allowed=[
+    ["new_tab","New tab"],["reload","Reload"],["back","Back"],["forward","Forward"],
+    ["open_devtools","Open DevTools"],["add_bookmark","Add bookmark"],["add_to_shelf","Add to Reading Shelf"],
+    ["reader_mode","Reader Mode"],["page_lens","Page Lens"],["clear_history","Clear history"],["copy_url","Copy URL"]
+  ];
+  const chains=await invoke("list_command_chains");
+  body.innerHTML='<div class="panel-row">Chains can only invoke Synth browser actions. No shell, PowerShell, filesystem or arbitrary command execution is permitted.</div>';
+  chains.forEach(chain=>{
+    const row=document.createElement("div");row.className="tool-row";
+    const copy=document.createElement("div");copy.className="tool-copy";copy.innerHTML='<strong>'+esc(chain.name)+'</strong><span>'+esc(chain.steps.join(" → "))+'</span>';
+    const del=document.createElement("button");del.className="mini-action danger";del.textContent="Delete";del.onclick=async()=>{await invoke("delete_command_chain",{id:chain.id});showCommandChains()};
+    row.append(copy,del);body.appendChild(row);
+  });
+  const create=document.createElement("button");create.className="panel-action";create.textContent="+ Build command chain";create.onclick=async()=>{
+    const name=prompt("Chain name");if(!name)return;
+    const chosen=prompt("Steps (comma-separated):\\n"+allowed.map(x=>x[0]+" = "+x[1]).join("\\n"),"reload,copy_url");
+    if(!chosen)return;
+    const steps=chosen.split(",").map(x=>x.trim()).filter(Boolean);
+    try{await invoke("create_command_chain",{name,steps});toast("Command chain saved");showCommandChains()}catch(e){toast(e)}
+  };body.appendChild(create);
+  const note=document.createElement("div");note.className="panel-row";note.textContent="Execution UI is intentionally limited to the safe browser action registry.";body.appendChild(note);
 }
 
 async function showAiHistory(){
