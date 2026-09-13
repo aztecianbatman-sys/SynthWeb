@@ -1,4 +1,6 @@
 #include "azecotron/app/synth_browser_context.h"
+#include "azecotron/app/synth_download_manager_delegate.h"
+#include "azecotron/app/synth_permission_controller_delegate.h"
 
 namespace synth_azecotron {
 
@@ -9,6 +11,9 @@ SynthBrowserContext::SynthBrowserContext(
 
 SynthBrowserContext::~SynthBrowserContext() {
   ShutdownStoragePartitions();
+  permission_delegate_.reset();
+  download_delegate_->Shutdown();
+  download_delegate_.reset();
 }
 
 std::unique_ptr<content::ZoomLevelDelegate>
