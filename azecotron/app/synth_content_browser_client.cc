@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "azecotron/app/synth_browser_main_parts.h"
+#include "azecotron/app/synth_devtools_delegate.h"
 #include "azecotron/app/synth_tracker_throttle.h"
 #include "azecotron/app/synth_devtools_manager_delegate.h"
 #include "content/public/browser/browser_main_parts.h"
