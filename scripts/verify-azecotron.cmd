@@ -25,11 +25,14 @@ if /i not "!CURRENT_REV!"=="%AZECOTRON_REVISION%" (
 )
 
 for %%P in ("%ROOT%\chromium\patches\*.patch") do (
-  git apply --check "%%~fP"
+  git apply --check "%%~fP" >nul 2>&1
   if errorlevel 1 (
-    echo ERROR: patch %%~nxP does not apply cleanly.
-    popd
-    exit /b 1
+    git apply --reverse --check "%%~fP" >nul 2>&1
+    if errorlevel 1 (
+      echo ERROR: patch %%~nxP is neither clean nor already applied.
+      popd
+      exit /b 1
+    )
   )
 )
 
