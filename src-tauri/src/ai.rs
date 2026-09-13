@@ -102,6 +102,41 @@ pub async fn list_models(endpoint:&str,provider:&str)->Result<Vec<String>,String
     out.sort();out.dedup();Ok(out)
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ModelInfo {
+    pub id: String,
+    pub family: String,
+    pub context_window: Option<u64>,
+    pub supports_streaming: bool,
+    pub supports_vision: bool,
+    pub supports_tools: bool,
+    pub source: String,
+}
+
+fn infer_model_info(id:&str)->ModelInfo {
+    let lower=id.to_ascii_lowercase();
+    let family=if lower.contains("gemini"){"Gemini"}
+      else if lower.contains("claude")||lower.contains("anthropic"){"Claude"}
+      else if lower.contains("gpt"){"GPT"}
+      else if lower.contains("llama"){"Llama"}
+      else if lower.contains("qwen"){"Qwen"}
+      else if lower.contains("mistral"){"Mistral"}
+      else {"Unknown"};
+    let context_window=if lower.contains("1m")||lower.contains("1000000"){Some(1_000_000)}
+      else if lower.contains("128k")||lower.contains("131k"){Some(131_072)}
+      else if lower.contains("64k"){Some(65_536)}
+      else {None};
+    ModelInfo {
+        id:id.to_string(),
+        family:family.to_string(),
+        context_window,
+        supports_streaming:true,
+        supports_vision:lower.contains("vision")||lower.contains("vl")||lower.contains("gemini")||lower.contains("gpt-4o")||lower.contains("claude-3"),
+        supports_tools:lower.contains("gpt-4")||lower.contains("gpt-5")||lower.contains("claude-3")||lower.contains("gemini")||lower.contains("qwen"),
+        source:"inferred from model identifier; provider metadata not exposed by every API".into(),
+    }
+}
+
 pub async fn list_model_info(endpoint:&str,provider:&str)->Result<Vec<ModelInfo>,String>{
     let ids=list_models(endpoint,provider).await?;
     Ok(ids.iter().map(|id|infer_model_info(id)).collect())
