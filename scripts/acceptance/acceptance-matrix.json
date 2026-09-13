@@ -1,0 +1,82 @@
+{
+  "product": "Synth Browser",
+  "chromium": {
+    "version": "152.0.7977.119",
+    "revision": "e6333471674f4d3af9f386bfc2e5e4388333b734"
+  },
+  "must_pass_on_windows": {
+    "native_runtime": [
+      "ContentMain boots",
+      "Synth BrowserContext creates",
+      "real WebContents creates",
+      "WebContents native view attaches to Synth HWND",
+      "renderer process starts",
+      "GPU process starts",
+      "Chromium sandbox remains enabled",
+      "HTTP/HTTPS navigation works",
+      "back forward reload stop work",
+      "multi-tab lifecycle works",
+      "popup lifecycle works",
+      "clean shutdown works",
+      "restart works",
+      "renderer crash recovery works"
+    ],
+    "privacy": [
+      "tracker throttle blocks known test resource",
+      "blocked-request counter increments from real requests",
+      "strict cookie isolation blocks cross-origin cookie transmission",
+      "first-party isolation behavior verified",
+      "HTTPS-only behavior verified",
+      "per-origin permission persistence verified",
+      "download safety and checksum verification verified"
+    ],
+    "devtools": [
+      "DevToolsAgentHost discovered",
+      "Inspect Element targets correct WebContents",
+      "Elements works",
+      "Console works",
+      "Network works",
+      "Sources works",
+      "Application/Storage works",
+      "dock and detach behavior verified"
+    ],
+    "media": [
+      "camera permission and device selection",
+      "microphone permission and device selection",
+      "screen capture permission",
+      "WebRTC connection",
+      "fullscreen",
+      "picture-in-picture",
+      "media controls"
+    ],
+    "profiles": [
+      "profile A cookies do not appear in profile B",
+      "profile A storage does not appear in profile B",
+      "profile A permissions do not appear in profile B",
+      "profile A sessions do not appear in profile B",
+      "Guest data is removed after exit"
+    ],
+    "performance": [
+      "startup measured",
+      "10 tab benchmark",
+      "50 tab benchmark",
+      "100 tab benchmark",
+      "200 tab benchmark",
+      "1 hour stability",
+      "4 hour stability",
+      "memory growth measured",
+      "GPU acceleration verified",
+      "crash recovery measured"
+    ],
+    "packaging": [
+      "signed installer",
+      "fresh install",
+      "upgrade",
+      "uninstall",
+      "verified update",
+      "rollback"
+    ]
+  },
+  "source_status": "IMPLEMENTED_IN_SOURCE",
+  "binary_status": "NOT_VERIFIED"
+}
