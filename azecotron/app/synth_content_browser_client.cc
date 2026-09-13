@@ -4,6 +4,7 @@
 
 #include "azecotron/app/synth_browser_main_parts.h"
 #include "azecotron/app/synth_tracker_throttle.h"
+#include "azecotron/app/synth_devtools_manager_delegate.h"
 #include "content/public/browser/browser_main_parts.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/devtools_manager_delegate.h"
@@ -44,7 +45,7 @@ SynthContentBrowserClient::GetWebContentsViewDelegate(
 
 std::unique_ptr<content::DevToolsManagerDelegate>
 SynthContentBrowserClient::CreateDevToolsManagerDelegate() {
-  return nullptr;
+  return std::make_unique<SynthDevToolsManagerDelegate>();
 }
 
 std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
