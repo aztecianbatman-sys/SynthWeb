@@ -56,7 +56,12 @@ function applySettings() {
     blue: "#5da9ff",
     green: "#4ade80"
   };
-  document.documentElement.style.setProperty("--cyan", accentMap[accent] || accentMap.cyan);
+  document.documentElement.style.setProperty("--cyan", accentMap[accent] || accentMap.cyan);  const scale = Number(state.settings.text_scale || "100") / 100;
+  document.documentElement.style.setProperty("--synth-text-scale", String(scale));
+  document.body.classList.toggle("reduced-motion", state.settings.reduce_motion === "true");
+  document.body.classList.toggle("high-contrast", state.settings.high_contrast === "true");
+  document.documentElement.lang = state.settings.language || "en";
+
 }
 
 function renderTabs() {
