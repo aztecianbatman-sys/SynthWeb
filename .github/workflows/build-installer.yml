@@ -42,7 +42,7 @@ jobs:
       - name: Verify installer artifacts
         shell: pwsh
         run: |
-          $artifacts = Get-ChildItem release -File -Include *.exe,*.msi
+          $artifacts = Get-ChildItem release -File -Include *.exe
           if (-not $artifacts) {
             throw "No .exe or .msi installer was produced."
           }
