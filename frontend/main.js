@@ -708,6 +708,8 @@ async function showProfiles(){
     list.appendChild(row);
   });
   body.appendChild(list);
+  const rename=document.createElement("button");rename.className="panel-action";rename.textContent="Rename active profile";rename.onclick=async()=>{const name=prompt("New profile name",current.name);if(!name)return;try{await invoke("rename_profile",{profileId:current.id,name});toast("Profile renamed")}catch(e){toast(e)}};body.appendChild(rename);
+  const exportBtn=document.createElement("button");exportBtn.className="panel-action";exportBtn.textContent="Export active profile";exportBtn.onclick=async()=>{try{const path=await invoke("export_profile");toast("Profile exported to "+path)}catch(e){toast(e)}};body.appendChild(exportBtn);
   const create=document.createElement("button");create.className="panel-action";create.textContent="+ Create isolated profile";create.onclick=async()=>{const name=prompt("Profile name");if(!name)return;try{await invoke("create_profile",{name});toast("Launching "+name+"…")}catch(e){toast(e)}};body.appendChild(create);
   const guest=document.createElement("button");guest.className="panel-action";guest.textContent="Start Guest Mode";guest.onclick=async()=>{try{await invoke("switch_profile",{profileId:"guest"});toast("Launching disposable Guest Mode…")}catch(e){toast("Guest Mode is unavailable from this build.")}};body.appendChild(guest);
 }
@@ -1119,6 +1121,28 @@ async function showPerformance(){
   const diag=document.createElement("button");diag.className="panel-action";diag.textContent="Export diagnostics";diag.onclick=async()=>{try{const x=await invoke("export_diagnostics");toast("Diagnostics exported: "+x.path)}catch(e){toast(e)}};body.appendChild(diag);
 }
 
+async function showDataControls(){
+  const body=basePanel("Browser Data");
+  const categories=[
+    ["history","History","Visited pages and search history"],
+    ["downloads","Downloads","Download metadata only"],
+    ["permissions","Permissions","Per-site permission decisions and history"],
+    ["ai","AI history","Local Synth Assist conversations"],
+    ["sessions","Sessions","Saved browser sessions"],
+    ["shelf","Reading Shelf","Saved reading items"],
+    ["notes","Notes & Research","Local notes and research boards"],
+    ["site_data","Site data","Cookies, cache, storage and runtime site data"],
+    ["all","All supported data","Everything above except bookmarks and profile registration"]
+  ];
+  body.innerHTML='<div class="panel-row">Choose exactly what you want to erase. Bookmarks and profile registration are never included unless you use the full browser reset.</div>';
+  categories.forEach(([key,name,desc])=>{
+    const row=document.createElement("div");row.className="tool-row";
+    const copy=document.createElement("div");copy.className="tool-copy";copy.innerHTML='<strong>'+esc(name)+'</strong><span>'+esc(desc)+'</span>';
+    const b=document.createElement("button");b.className="mini-action danger";b.textContent="Clear";
+    b.onclick=async()=>{if(!confirm("Clear "+name+"?"))return;try{await invoke("clear_data_category",{category:key});await refresh();toast(name+" cleared");showDataControls()}catch(e){toast(e)}};
+    row.append(copy,b);body.appendChild(row);
+  });
+}
 async function showPrivacy(){
   const body=basePanel("Synth Shield");
   try{
@@ -1139,6 +1163,7 @@ async function showPrivacy(){
     const cookies=document.createElement("button");cookies.className="panel-action";cookies.textContent="Cookies & site storage";cookies.onclick=showCookies;body.appendChild(cookies);
     const report=document.createElement("button");report.className="panel-action";report.textContent="Privacy diagnostics";report.onclick=async()=>{try{const data=await invoke("export_diagnostics");toast("Diagnostics exported: "+data.path)}catch(e){toast(e)}};body.appendChild(report);
     const strict=document.createElement("button");strict.className="panel-action";strict.textContent="Apply Shielded privacy preset";strict.onclick=async()=>{try{await invoke("privacy_preset");await refresh();toast("Shielded preset applied");showPrivacy()}catch(e){toast(e)}};body.appendChild(strict);
+    const data=document.createElement("button");data.className="panel-action";data.textContent="Choose data to clear";data.onclick=showDataControls;body.appendChild(data);
     const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear browsing data";clear.onclick=async()=>{if(confirm("Clear history, search memory, downloads, permissions and local AI history?")){try{await invoke("clear_browsing_data");await refresh();toast("Browsing data cleared");showPrivacy()}catch(e){toast(e)}}};body.appendChild(clear);
   }catch(e){body.innerHTML='<div class="panel-row">Privacy audit unavailable: '+esc(e)+'</div>'}
 }
