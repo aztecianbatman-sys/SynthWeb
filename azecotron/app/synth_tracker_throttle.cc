@@ -5,11 +5,13 @@
 #include <string_view>
 #include <iostream>
 
+#include "base/command_line.h"
 #include "base/json/json_writer.h"
 #include "base/values.h"
 
 #include "net/base/net_errors.h"
 #include "services/network/public/cpp/resource_request.h"
+#include "azecotron/app/synth_tracker_rules.h"
 #include "url/gurl.h"
 
 namespace synth_azecotron {
@@ -19,7 +21,7 @@ std::atomic<uint64_t> g_blocked{0};
 std::atomic<uint64_t> g_seen{0};
 std::atomic<uint64_t> g_cookie_stripped{0};
 
-constexpr std::array<std::string_view, 12> kTrackerPatterns = {{
+constexpr std::array<std::string_view, 0> kUnusedTrackerPatterns = {{
     "doubleclick.net",
     "googlesyndication.com",
     "googleadservices.com",
@@ -34,18 +36,38 @@ constexpr std::array<std::string_view, 12> kTrackerPatterns = {{
     "clarity.ms",
 }};
 
+const std::vector<TrackerRule>& Rules() {
+  static const std::vector<TrackerRule> rules = [] {
+    const auto path =
+        base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
+            "synth-shield-rules");
+    if (!path.empty()) {
+      auto loaded = LoadTrackerRules(path);
+      if (!loaded.empty())
+        return loaded;
+    }
+    return std::vector<TrackerRule>{
+      {"doubleclick.net","advertising",true},
+      {"googlesyndication.com","advertising",true},
+      {"googleadservices.com","advertising",true},
+      {"connect.facebook.net","tracking",true},
+      {"facebook.net","tracking",true},
+      {"scorecardresearch.com","analytics",true},
+      {"hotjar.com","analytics",true},
+      {"segment.io","analytics",true},
+      {"mixpanel.com","analytics",true},
+      {"amplitude.com","analytics",true},
+      {"matomo.cloud","analytics",true},
+      {"clarity.ms","analytics",true}
+    };
+  }();
+  return rules;
+}
+
 bool IsTrackerHost(const GURL& url) {
   if (!url.is_valid() || !url.SchemeIsHTTPOrHTTPS())
     return false;
-
-  const std::string host=url.host();
-  for (const auto pattern:kTrackerPatterns) {
-    if (host==pattern || host.size()>pattern.size() &&
-        host.ends_with(std::string(".")+std::string(pattern))) {
-      return true;
-    }
-  }
-  return false;
+  return IsTrackerHost(Rules(), url.host());
 }
 
 }  // namespace
