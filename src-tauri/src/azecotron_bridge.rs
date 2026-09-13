@@ -63,6 +63,16 @@ pub fn write_privacy_policy(
         serde_json::to_vec_pretty(&serde_json::Value::Object(map))
             .map_err(|e|e.to_string())?
     ).map_err(|e|e.to_string())?;
+
+    let source_root=std::env::var_os("SYNTHWEB_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(||PathBuf::from("."));
+    let rules_source=source_root.join("azecotron").join("app").join("synth_tracker_rules.json");
+    let rules_target=dir.join("synth_tracker_rules.json");
+    if rules_source.exists() {
+        std::fs::copy(&rules_source,&rules_target).map_err(|e|e.to_string())?;
+    }
+
     Ok(path)
 }
 
@@ -80,7 +90,8 @@ pub fn launch(app: tauri::AppHandle, profile_dir:PathBuf,url:&str,parent_hwnd:Op
         .args(parent_hwnd.map(|h|vec![format!("--synth-parent-hwnd={h}")]).unwrap_or_default())
         .arg(format!("--synth-tab-id={tab_id}"))
         .arg(format!("--synth-url={url}"))
-        .args(policy_path.map(|p| vec![format!("--synth-policy-path={}",p.display())]).unwrap_or_default())
+        .args(policy_path.clone().map(|p| vec![format!("--synth-policy-path={}",p.display())]).unwrap_or_default())
+        .args(policy_path.map(|p| vec![format!("--synth-shield-rules={}",p.parent().unwrap_or(std::path::Path::new(".")).join("synth_tracker_rules.json").display())]).unwrap_or_default())
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .spawn()
