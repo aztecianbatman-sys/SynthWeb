@@ -2,79 +2,77 @@ name: Azecotron Chromium
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   build-azecotron:
-    name: Build pinned Azecotron Chromium
+    name: Build and verify pinned Azecotron Chromium
     runs-on: [self-hosted, windows]
-    timeout-minutes: 360
+    timeout-minutes: 720
 
     steps:
       - name: Checkout SynthWeb
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
           fetch-depth: 1
 
-      - name: Verify depot_tools
+      - name: Verify Windows toolchain
         shell: cmd
         run: |
+          where git
           where fetch
           where gclient
           where gn
           where autoninja
+          where node
+          where cargo
           git config --global core.longpaths true
 
-      - name: Prepare pinned Chromium fork
-        shell: cmd
-        run: call scripts\bootstrap-azecotron.cmd
-
-      - name: Build Azecotron
-        shell: cmd
-        run: |
-          call scripts\build-azecotron.cmd
-          if errorlevel 1 exit /b 1
-          call scripts\build-azecotron-host.cmd
-          if errorlevel 1 exit /b 1
-          if exist src-tauri\resources\azecotron rmdir /S /Q src-tauri\resources\azecotron
-          mkdir src-tauri\resources\azecotron
-          xcopy /E /I /Y third_party\azecotron-chromium\src\out\Azecotron\* src-tauri\resources\azecotron\ >nul
-          if errorlevel 1 exit /b 1
-
-      - name: Smoke test Chromium runtime
-        shell: cmd
-        run: |
-          set "AZECOTRON=third_party\azecotron-chromium\src\out\Azecotron\azecotron_host.exe"
-          if not exist "%AZECOTRON%" exit /b 1
-          "%AZECOTRON%" --version > azecotron-version.txt
-          if errorlevel 1 exit /b 1
-          "%AZECOTRON%" --synth-url=about:blank --headless --disable-gpu --dump-dom about:blank > smoke.html
-          if errorlevel 1 exit /b 1
-          findstr /c:"<html" smoke.html
-          if errorlevel 1 exit /b 1
-
-      - name: Write build manifest
+      - name: Full source gates and native build/smoke
         shell: pwsh
         run: |
-          $rev = (Select-String -Path chromium/REVISION -Pattern '^Revision:\s*(.+)$').Matches.Groups[1].Value
-          $ver = (Select-String -Path chromium/REVISION -Pattern '^Version:\s*(.+)$').Matches.Groups[1].Value
-          @(
-            "product=Azecotron Web"
-            "chromium_version=$ver"
-            "chromium_revision=$rev"
-            "base=chromium/src"
-            "branding=Synth Browser"
-            "sandbox=preserved"
-            "build_target=//azecotron/app:azecotron_host"
-            "runtime_model=Synth ContentMain + Synth BrowserContext + WebContents"
-            "smoke_test=headless about:blank"
-          ) | Set-Content azecotron-build-manifest.txt
+          Set-Location $env:GITHUB_WORKSPACE
+          & .\scripts\acceptance\run-full-windows.ps1 -TabCounts 10,50,100,200 -DurationsMinutes 1,5
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Upload build manifest
+      - name: Verify packaged Azecotron resource layout
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:GITHUB_WORKSPACE 'src-tauri\resources\azecotron'
+          if (-not (Test-Path $root)) { throw "Azecotron package resource directory missing: $root" }
+          $host = Get-ChildItem $root -Recurse -Filter 'azecotron_host.exe' | Select-Object -First 1
+          if (-not $host) { throw 'Packaged azecotron_host.exe not found.' }
+
+      - name: Upload acceptance measurements
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: azecotron-build-manifest
+          name: synth-acceptance-${{ github.sha }}
           path: |
-            azecotron-build-manifest.txt
-            azecotron-version.txt
-            smoke.html
+            .acceptance/**
+            src-tauri/resources/azecotron/**
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.msi
+          if-no-files-found: warn
+
+      - name: Write build metadata
+        shell: pwsh
+        run: |
+          $sha = (git rev-parse HEAD).Trim()
+          $time = (Get-Date).ToUniversalTime().ToString('o')
+          @(
+            "synthweb_commit=$sha"
+            "build_time_utc=$time"
+            "chromium_pin=152.0.7977.119"
+            "runtime=Synth ContentMain + BrowserContext + WebContents"
+            "privacy=Synth Shield native request throttle"
+            "sandbox=preserved"
+          ) | Set-Content azecotron-build-metadata.txt
+
+      - name: Upload build metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: azecotron-build-metadata-${{ github.sha }}
+          path: azecotron-build-metadata.txt
