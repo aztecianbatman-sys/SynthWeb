@@ -12,9 +12,9 @@ executable("azecotron_host") {
     "synth_tracker_rules.cc",
     "synth_tracker_rules.h",
     "synth_tracker_throttle.cc",
+    "synth_tracker_throttle.h",
     "synth_devtools_delegate.cc",
     "synth_devtools_delegate.h",
-    "synth_tracker_throttle.h",
     "synth_devtools_manager_delegate.cc",
     "synth_devtools_manager_delegate.h",
     "synth_permission_controller_delegate.cc",
@@ -24,20 +24,22 @@ executable("azecotron_host") {
   ]
 
   deps = [
-    "//build/win:default_exe_manifest",
     "//azecotron/host:azecotron_runtime_host",
+    "//base",
+    "//build:branding_buildflags",
+    "//components/download/public/common",
     "//content",
     "//content/public/app",
-    "//components/download/public/common",
     "//content/public/browser",
     "//content/public/common",
     "//services/network/public/cpp",
     "//third_party/blink/public/common",
+    "//url",
     "//sandbox",
   ]
 
-  data_deps = [
-    "//tools/v8_context_snapshot:v8_context_snapshot",
+  data = [
+    "synth_tracker_rules.json",
   ]
 
   if (is_win) {
