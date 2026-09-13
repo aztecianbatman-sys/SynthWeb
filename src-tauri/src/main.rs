@@ -3414,6 +3414,9 @@ fn main() {
                         if let Some(state) = handle.try_state::<AppState>() {
                             let _ = layout(&handle, &state);
                         }
+                        if let Some(win) = handle.get_webview_window("main") {
+                            let _ = native_host::resize(win);
+                        }
                     }
                 });
             }
@@ -3443,6 +3446,9 @@ fn main() {
 
     app.run(|app, event| {
         if let tauri::RunEvent::Exit = event {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = native_host::destroy(window);
+            }
             if let Some(state) = app.try_state::<AppState>() {
                 let saved = RestoreState {
                     tabs: state.tabs.lock().unwrap().clone(),
