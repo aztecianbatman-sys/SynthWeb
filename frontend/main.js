@@ -1346,4 +1346,33 @@ async function showCookies(){
   }catch(e){body.innerHTML='<div class="panel-row">Site storage unavailable: '+esc(e)+'</div>'}
 }
 
+async function showAiThreads(){
+  const body=basePanel("Synth Threads");
+  const create=document.createElement("button");create.className="panel-action";create.textContent="+ New context thread";
+  create.onclick=async()=>{const title=prompt("Thread title","New Synth conversation");if(!title)return;try{await invoke("create_ai_thread",{title});toast("Thread created");showAiThreads()}catch(e){toast(e)}};
+  body.appendChild(create);
+  const rows=await invoke("list_ai_threads");
+  if(!rows.length){body.innerHTML+='<div class="panel-row">No context threads yet.</div>';return}
+  rows.forEach(thread=>{
+    const row=document.createElement("div");row.className="tool-row";
+    const copy=document.createElement("div");copy.className="tool-copy";copy.innerHTML='<strong>'+esc(thread.title)+'</strong><span>'+esc(thread.provider)+' · '+esc(thread.model||"No model")+'</span>';
+    const open=document.createElement("button");open.className="mini-action";open.textContent="Open";open.onclick=()=>showAiThread(thread.id);
+    const del=document.createElement("button");del.className="mini-action danger";del.textContent="Delete";del.onclick=async()=>{if(!confirm("Delete this AI thread and its messages?"))return;try{await invoke("delete_ai_thread",{threadId:thread.id});showAiThreads()}catch(e){toast(e)}};
+    row.append(copy,open,del);body.appendChild(row);
+  });
+}
+
+async function showAiThread(threadId){
+  const body=basePanel("Synth Thread");
+  let rows=await invoke("list_ai_messages",{threadId});
+  const messages=document.createElement("div");messages.className="thread-messages";
+  const draw=()=>{messages.replaceChildren();rows.forEach(m=>{const item=document.createElement("div");item.className="thread-message "+esc(m.role);item.innerHTML='<span>'+esc(m.role)+'</span><p>'+esc(m.content)+'</p>';messages.appendChild(item)});messages.scrollTop=messages.scrollHeight};
+  draw();body.appendChild(messages);
+  const composer=document.createElement("textarea");composer.className="thread-composer";composer.rows=3;composer.placeholder="Message Synth…";body.appendChild(composer);
+  const send=document.createElement("button");send.className="panel-action";send.textContent="Send";
+  send.onclick=async()=>{const text=composer.value.trim();if(!text)return;send.disabled=true;try{const answer=await invoke("send_ai_thread_message",{threadId,content:text});rows.push({role:"user",content:text,id:Date.now()});rows.push(answer);composer.value="";draw()}catch(e){toast(e)}finally{send.disabled=false}};
+  body.appendChild(send);
+  const back=document.createElement("button");back.className="panel-action";back.textContent="Back to threads";back.onclick=showAiThreads;body.appendChild(back);
+}
+
 
