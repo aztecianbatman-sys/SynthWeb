@@ -5,6 +5,7 @@
 
 #include "base/files/file_path.h"
 #include "content/public/browser/browser_context.h"
+#include "azecotron/app/synth_download_manager_delegate.h"
 #include "azecotron/app/synth_permission_controller_delegate.h"
 
 namespace synth_azecotron {
@@ -40,6 +41,7 @@ class SynthBrowserContext final : public content::BrowserContext {
  private:
   const bool off_the_record_;
   std::unique_ptr<SynthPermissionControllerDelegate> permission_delegate_;
+  std::unique_ptr<SynthDownloadManagerDelegate> download_delegate_;
   const base::FilePath path_;
 };
 
