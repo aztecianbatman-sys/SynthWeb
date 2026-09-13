@@ -34,6 +34,7 @@
     "longDescription": "Synth Browser is a Rust and Tauri desktop browser with a modular browser runtime boundary and Cortis search layer.",
     "copyright": "Synth Browser Contributors",
     "license": "MIT",
-    "licenseFile": "../LICENSE"
+    "licenseFile": "../LICENSE",
+    "resources": ["resources/azecotron/"]
   }
 }
