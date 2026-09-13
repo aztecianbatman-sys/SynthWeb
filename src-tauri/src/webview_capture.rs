@@ -106,3 +106,86 @@ pub fn capture_png<R: tauri::Runtime>(
 ) -> Result<(), String> {
     Err("Native WebView2 screenshot capture is only available on Windows.".into())
 }
+
+
+#[cfg(windows)]
+pub fn print_pdf<R: tauri::Runtime>(
+    view: &tauri::Webview<R>,
+    path: PathBuf,
+) -> Result<(), String> {
+    let (tx, rx) = mpsc::channel::<Result<(), String>>();
+
+    view.with_webview(move |platform| {
+        #[cfg(windows)]
+        unsafe {
+            use webview2_com::{
+                Microsoft::Web::WebView2::Win32::{
+                    ICoreWebView2_7, ICoreWebView2Environment6,
+                },
+                PrintToPdfCompletedHandler, CoTaskMemPWSTR,
+            };
+            use windows::core::Interface;
+
+            let environment = match platform.environment() {
+                env => env,
+            };
+            let environment6 = match environment.cast::<ICoreWebView2Environment6>() {
+                Ok(env) => env,
+                Err(error) => {
+                    let _ = tx.send(Err(format!("WebView2 PDF support is unavailable: {error}")));
+                    return;
+                }
+            };
+            let settings = match environment6.CreatePrintSettings() {
+                Ok(settings) => settings,
+                Err(error) => {
+                    let _ = tx.send(Err(error.to_string()));
+                    return;
+                }
+            };
+            let core = match platform.controller().CoreWebView2() {
+                Ok(core) => core,
+                Err(error) => {
+                    let _ = tx.send(Err(error.to_string()));
+                    return;
+                }
+            };
+            let core7 = match core.cast::<ICoreWebView2_7>() {
+                Ok(core) => core,
+                Err(error) => {
+                    let _ = tx.send(Err(format!("WebView2 PrintToPdf is unavailable: {error}")));
+                    return;
+                }
+            };
+
+            let destination = CoTaskMemPWSTR::from(path.to_string_lossy().as_ref());
+            let sender = tx.clone();
+            let handler = PrintToPdfCompletedHandler::create(Box::new(move |result| {
+                if let Err(error) = result {
+                    let _ = sender.send(Err(error.to_string()));
+                } else {
+                    let _ = sender.send(Ok(()));
+                }
+                Ok(())
+            }));
+
+            if let Err(error) = core7.PrintToPdf(
+                &destination,
+                &settings,
+                &handler,
+            ) {
+                let _ = tx.send(Err(error.to_string()));
+            }
+        }
+    }).map_err(|e| e.to_string())?;
+
+    rx.recv().map_err(|_| "PDF callback was cancelled.".to_string())?
+}
+
+#[cfg(not(windows))]
+pub fn print_pdf<R: tauri::Runtime>(
+    _view: &tauri::Webview<R>,
+    _path: PathBuf,
+) -> Result<(), String> {
+    Err("Native WebView2 PDF export is only available on Windows.".into())
+}
