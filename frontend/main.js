@@ -1094,9 +1094,9 @@ async function showBrowserTools(){
   const body=basePanel("Browser Tools");
   const tools=[
     ["Print current page","Real Chromium/Tauri print command",async()=>invoke("print_page"),"Available"],
-    ["Screenshot","Capture API is awaiting native runtime support",async()=>toast("Screenshot is runtime-limited in the current host."),"Platform limited"],
-    ["Save page / archive","Full archive writer is waiting for native Chromium page-save APIs",async()=>toast("Save page is waiting for Azecotron."),"Pending"],
-    ["PDF viewer","Built-in Chromium PDF surface will be used by Azecotron",async()=>toast("PDF viewer is waiting for Azecotron."),"Pending"],
+    ["Screenshot","Native Windows WebView2 CapturePreview",async()=>{try{const path=await invoke("capture_screenshot");toast("Screenshot saved to "+path)}catch(e){toast(e)}},"Windows available"],
+    ["Save page","Save the current DOM as a standalone HTML snapshot",async()=>{try{const path=await invoke("save_page_html");toast("Page saved to "+path)}catch(e){toast(e)}},"Available"],
+    ["Export PDF","Native Windows WebView2 PrintToPdf export",async()=>{try{const path=await invoke("print_page_to_pdf");toast("PDF saved to "+path)}catch(e){toast(e)}},"Windows available"],
     ["Picture-in-picture","Requires native Chromium media/PiP plumbing",async()=>toast("Picture-in-picture is waiting for Azecotron."),"Pending"],
     ["Fullscreen","Requires native Chromium fullscreen delegate",async()=>toast("Fullscreen is waiting for Azecotron."),"Pending"],
     ["WebRTC devices","Camera/microphone permission policies are available",async()=>showMedia(),"Partial"],
