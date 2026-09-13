@@ -2,7 +2,7 @@ param(
   [switch]$SkipChromiumBuild,
   [switch]$SkipPackage,
   [int[]]$TabCounts = @(10,50,100,200),
-  [int[]]$DurationsMinutes = @(1,5)
+  [int[]]$DurationsMinutes = @(60,240)
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent | Split-Path -Parent
@@ -14,8 +14,9 @@ function Run-Step([string]$Name, [scriptblock]$Action) {
   if ($LASTEXITCODE -ne 0) { throw "$Name failed with exit code $LASTEXITCODE." }
 }
 
+Run-Step 'Windows build preflight' { & "$root\scripts\setup-windows-build.ps1" }
 Run-Step 'Source gates' { & "$root\scripts\acceptance\run-source-gates.ps1" }
-Run-Step 'Native production boundary' { & "$root\scripts\verify-azecotron-production-boundary.cmd" }
+Run-Step 'Native production boundary' { cmd /c "$root\scripts\verify-azecotron-production-boundary.cmd" }
 Run-Step 'Rust format' { cargo fmt --all -- --check }
 Run-Step 'Rust lint' { cargo clippy --manifest-path "$root\src-tauri\Cargo.toml" --all-targets --all-features -- -D warnings }
 Run-Step 'Rust tests' { cargo test --manifest-path "$root\src-tauri\Cargo.toml" --all-features }
@@ -25,17 +26,9 @@ if (-not $SkipChromiumBuild) {
   Run-Step 'Azecotron native host build' { cmd /c "$root\scripts\build-azecotron-host.cmd" }
 }
 
-Run-Step 'Native runtime smoke' {
-  & "$root\scripts\acceptance\native-runtime-smoke.ps1"
-}
-
-Run-Step 'Privacy integration' {
-  & "$root\scripts\acceptance\privacy-runtime.ps1"
-}
-
-Run-Step 'Performance collection' {
-  & "$root\scripts\acceptance\performance-runtime.ps1" -TabCounts $TabCounts -DurationsMinutes $DurationsMinutes
-}
+Run-Step 'Native runtime smoke' { & "$root\scripts\acceptance\native-runtime-smoke.ps1" }
+Run-Step 'Privacy integration' { & "$root\scripts\acceptance\privacy-runtime.ps1" }
+Run-Step 'Performance collection' { & "$root\scripts\acceptance\performance-runtime.ps1" -TabCounts $TabCounts -DurationsMinutes $DurationsMinutes }
 
 if (-not $SkipPackage) {
   Run-Step 'Tauri package' { cargo tauri build --manifest-path "$root\src-tauri\Cargo.toml" }
@@ -43,4 +36,4 @@ if (-not $SkipPackage) {
 }
 
 Write-Host "`nFULL WINDOWS ACCEPTANCE: PASS" -ForegroundColor Green
-Write-Host 'This result is valid only when every step above exits successfully.'
+Write-Host 'A PASS is valid only when every step above completed successfully.'
