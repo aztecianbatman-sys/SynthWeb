@@ -1118,42 +1118,53 @@ async function showPrivacy(){
   const body=basePanel("Synth Shield");
   try{
     const info=await invoke("site_info");
-    const httpsOnly=state.settings.https_only==="true";
+    const audit=await invoke("privacy_audit");
     const tracker=await invoke("tracker_status");
     const permissionRows=await invoke("list_site_permissions",{origin:(new URL(info.url)).origin});
     body.innerHTML=
-      '<div class="security-hero"><div class="security-orb">◇</div><div><div class="panel-title">Privacy posture</div><strong>'+esc(httpsOnly&&state.settings.search_history==="false"&&state.settings.ai_enabled!=="true"?"SHIELDED":"CUSTOM")+'</strong><div class="reading-url">'+esc(info.host||"Current site")+'</div></div></div>'+
+      '<div class="security-hero"><div class="security-orb">◇</div><div><div class="panel-title">Privacy posture</div><strong>'+(audit.strict?"SHIELDED":"CUSTOM")+'</strong><div class="reading-url">'+esc(info.host||"Current site")+'</div></div></div>'+
+      '<div class="privacy-score"><div><span>Enforceable baseline</span><b>'+esc(audit.score)+'</b></div><div class="privacy-bar"><i style="width:'+Math.round((audit.passed/audit.total)*100)+'%"></i></div></div>'+
       '<div class="shield-mini-grid"><div><span>Trackers</span><b>'+String(state.trackerBlocked||0)+'</b></div><div><span>Cookies</span><b>'+String(info.cookieCount??"—")+'</b></div><div><span>Permissions</span><b>'+String(permissionRows.length)+'</b></div><div><span>History</span><b>'+esc(state.settings.search_history==="true"?"ON":"OFF")+'</b></div></div>'+
-      '<div class="panel-row">HTTPS-only <strong>'+esc(httpsOnly?"Enabled":"Disabled")+'</strong></div>'+
       '<div class="panel-row">Native tracker interception <strong>'+esc(tracker.interception)+'</strong></div>'+
-      '<div class="panel-row">'+esc(tracker.requestInterception)+'</div>';
-    const site=document.createElement("button");site.className="panel-action";site.textContent="Per-site permissions";site.onclick=showSitePermissions;body.appendChild(site);
+      '<div class="panel-row">First-party isolation <strong>'+esc(state.settings.first_party_isolation==="true"?"Enabled":"Disabled")+'</strong></div>'+
+      '<div class="panel-row">Autofill <strong>'+esc(state.settings.autofill==="true"?"Enabled":"Disabled")+'</strong></div>';
+    const checks=document.createElement("div");checks.className="privacy-checks";
+    audit.checks.forEach(check=>{const row=document.createElement("div");row.innerHTML='<span>'+esc(check.name)+'</span><b class="'+(check.passed?"pass":"fail")+'">'+(check.passed?"✓":"!")+'</b>';checks.appendChild(row)});body.appendChild(checks);
+    const perm=document.createElement("button");perm.className="panel-action";perm.textContent="Per-site permissions";perm.onclick=showSitePermissions;body.appendChild(perm);
     const cookies=document.createElement("button");cookies.className="panel-action";cookies.textContent="Cookies & site storage";cookies.onclick=showCookies;body.appendChild(cookies);
     const report=document.createElement("button");report.className="panel-action";report.textContent="Privacy diagnostics";report.onclick=async()=>{try{const data=await invoke("export_diagnostics");toast("Diagnostics exported: "+data.path)}catch(e){toast(e)}};body.appendChild(report);
     const strict=document.createElement("button");strict.className="panel-action";strict.textContent="Apply Shielded privacy preset";strict.onclick=async()=>{try{await invoke("privacy_preset");await refresh();toast("Shielded preset applied");showPrivacy()}catch(e){toast(e)}};body.appendChild(strict);
     const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear browsing data";clear.onclick=async()=>{if(confirm("Clear history, search memory, downloads, permissions and local AI history?")){try{await invoke("clear_browsing_data");await refresh();toast("Browsing data cleared");showPrivacy()}catch(e){toast(e)}}};body.appendChild(clear);
-  }catch(e){body.innerHTML='<div class="panel-row">No active site.</div>'}
+  }catch(e){body.innerHTML='<div class="panel-row">Privacy audit unavailable: '+esc(e)+'</div>'}
 }
 
 
 async function showSitePermissions(){
   const body=basePanel("Per-site permissions");
   let currentOrigin="";
-  try{const info=await invoke("site_info");currentOrigin=info.secure?(new URL(info.url)).origin:(new URL(info.url)).origin}catch{}
+  try{const info=await invoke("site_info");currentOrigin=new URL(info.url).origin}catch{}
   const rows=await invoke("list_site_permissions",{origin:currentOrigin||null});
   body.innerHTML='<div class="panel-row">Origin <strong>'+esc(currentOrigin||"No active site")+'</strong></div>';
-  const kinds=[["permission_camera","Camera"],["permission_microphone","Microphone"],["permission_geolocation","Location"],["permission_notifications","Notifications"],["permission_display_capture","Screen sharing"],["permission_clipboard","Clipboard read"],["permission_local_fonts","Local fonts"],["permission_sensors","Sensors"]];
+  const kinds=[
+    ["permission_camera","Camera"],["permission_microphone","Microphone"],["permission_geolocation","Location"],
+    ["permission_notifications","Notifications"],["permission_display_capture","Screen sharing"],
+    ["permission_clipboard","Clipboard read"],["permission_local_fonts","Local fonts"],["permission_sensors","Sensors"],
+    ["permission_midi","MIDI"],["permission_usb","USB"],["permission_bluetooth","Bluetooth"],
+    ["permission_downloads","Downloads"],["permission_popups","Popups"],["permission_autoplay","Autoplay"]
+  ];
   kinds.forEach(([key,label])=>{
-    const current=rows.find(r=>r.kind===key)?.policy||"prompt";
-    const wrap=document.createElement("label");wrap.className="setting-label";wrap.textContent=label;
+    const current=rows.find(r=>r.kind===key)?.policy||state.settings[key]||"prompt";
+    const row=document.createElement("div");row.className="permission-row";
+    const copy=document.createElement("div");copy.className="permission-copy";copy.innerHTML='<strong>'+esc(label)+'</strong><span>'+esc(currentOrigin||"Current site")+'</span>';
     const select=document.createElement("select");select.className="setting-control";
     [["prompt","Ask"],["deny","Block"],["allow","Allow"]].forEach(([v,t])=>{const o=document.createElement("option");o.value=v;o.textContent=t;select.appendChild(o)});
-    select.value=current;select.onchange=async()=>{try{await invoke("set_site_permission",{origin:currentOrigin,kind:key,policy:select.value});toast(label+" policy updated")}catch(e){toast(e)}};
-    body.append(wrap,select);
+    select.value=current;select.onchange=async()=>{try{if(currentOrigin)await invoke("set_site_permission",{origin:currentOrigin,kind:key,policy:select.value});toast(label+" policy updated")}catch(e){toast(e)}};
+    row.append(copy,select);body.appendChild(row);
   });
-  const reset=document.createElement("button");reset.className="panel-action";reset.textContent="Reset this site's permission overrides";reset.onclick=async()=>{if(!currentOrigin)return;await invoke("reset_site_permissions",{origin:currentOrigin});showSitePermissions()};body.appendChild(reset);
-  const history=document.createElement("button");history.className="panel-action";history.textContent="Permission history";history.onclick=async()=>{const items=await invoke("list_permission_history",{origin:currentOrigin||null});const b=basePanel("Permission history");items.slice(0,40).forEach(x=>{const r=document.createElement("div");r.className="panel-row";r.textContent=x.origin+" · "+x.kind+" · "+x.decision; b.appendChild(r)})};body.appendChild(history);
+  const reset=document.createElement("button");reset.className="panel-action";reset.textContent="Reset this site's overrides";reset.onclick=async()=>{if(!currentOrigin)return;await invoke("reset_site_permissions",{origin:currentOrigin});showSitePermissions()};body.appendChild(reset);
+  const history=document.createElement("button");history.className="panel-action";history.textContent="Permission history";history.onclick=async()=>{const items=await invoke("list_permission_history",{origin:currentOrigin||null});const b=basePanel("Permission history");items.slice(0,60).forEach(x=>{const r=document.createElement("div");r.className="panel-row";r.textContent=x.origin+" · "+x.kind+" · "+x.decision;b.appendChild(r)})};body.appendChild(history);
 }
+
 
 async function showCookies(){
   const body=basePanel("Current site cookies");
