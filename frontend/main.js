@@ -827,8 +827,9 @@ async function showWorkspaceManager(){
     const dot=document.createElement("span");dot.className="workspace-color";dot.style.background=ws.accent||"var(--cyan)";
     const info=document.createElement("div");info.className="profile-copy";info.innerHTML='<strong>'+esc(ws.name)+'</strong><span>'+esc(ws.name===state.activeWorkspace?"Active workspace":"Local workspace")+" · "+esc(ws.icon||"square")+'</span>';
     const open=document.createElement("button");open.className="mini-action";open.textContent=ws.name===state.activeWorkspace?"Active":"Open";open.onclick=async()=>{try{await invoke("switch_workspace",{name:ws.name});await refresh();showWorkspaceManager()}catch(e){toast(e)}};
+    const windowBtn=document.createElement("button");windowBtn.className="mini-action";windowBtn.textContent="Window";windowBtn.title="Open this workspace in a separate Synth window";windowBtn.onclick=async()=>{try{await invoke("open_workspace_in_window",{workspace:ws.name});toast("Opening "+ws.name+" in a new window")}catch(e){toast(e)}};
     const rename=document.createElement("button");rename.className="mini-action";rename.textContent="Rename";rename.onclick=async()=>{const name=prompt("Workspace name",ws.name);if(!name)return;try{await invoke("rename_workspace",{id:ws.id,name});await refresh();showWorkspaceManager()}catch(e){toast(e)}};
-    row.append(dot,info,open);if(ws.name!=="Default")row.appendChild(rename);body.appendChild(row);
+    row.append(dot,info,open,windowBtn);if(ws.name!=="Default")row.appendChild(rename);body.appendChild(row);
   });
   const create=document.createElement("button");create.className="panel-action";create.textContent="+ Create workspace";create.onclick=async()=>{const name=prompt("Workspace name");if(!name)return;try{await invoke("create_workspace",{name});await refresh();showWorkspaceManager()}catch(e){toast(e)}};body.appendChild(create);
   const duplicate=document.createElement("button");duplicate.className="panel-action";duplicate.textContent="Duplicate active workspace";duplicate.onclick=async()=>{const name=prompt("Copy name",state.activeWorkspace+" Copy");if(!name)return;try{await invoke("duplicate_workspace",{source:state.activeWorkspace,name});await refresh();showWorkspaceManager()}catch(e){toast(e)}};body.appendChild(duplicate);
@@ -977,8 +978,9 @@ async function showSessions() {
     const wrap=document.createElement("div");wrap.className="tool-row";
     const info=document.createElement("div");info.className="tool-copy";info.innerHTML='<strong>'+esc(session.name)+'</strong><span>Saved session</span>';
     const open=document.createElement("button");open.className="mini-action";open.textContent="Load";open.onclick=button.onclick;
+    const lazy=document.createElement("button");lazy.className="mini-action";lazy.textContent="Lazy";lazy.title="Restore metadata first, then hydrate pages as opened";lazy.onclick=async()=>{try{await invoke("open_session_lazy",{id:session.id});await refresh();toast("Session restored lazily")}catch(e){toast(e)}};
     const del=document.createElement("button");del.className="mini-action danger";del.textContent="Delete";del.onclick=async()=>{if(confirm("Delete saved session?")){try{await invoke("delete_session",{id:session.id});showSessions()}catch(e){toast(e)}}};
-    wrap.append(info,open,del);body.appendChild(wrap);
+    wrap.append(info,open,lazy,del);body.appendChild(wrap);
   });
   if (!rows.length) body.innerHTML += '<div class="panel-row">No saved sessions yet.</div>';
 }
@@ -1327,6 +1329,10 @@ async function showBrowserTools(){
 
   const body=basePanel("Browser Tools");
   const tools=[
+    ["Play media","Start paused audio/video elements",async()=>{try{await invoke("media_control",{action:"play"});toast("Play requested")}catch(e){toast(e)}}, "Available"],
+    ["Pause media","Pause all audio/video elements in the page",async()=>{try{await invoke("media_control",{action:"pause"});toast("Pause requested")}catch(e){toast(e)}}, "Available"],
+    ["Mute media","Mute all audio/video elements",async()=>{try{await invoke("media_control",{action:"mute"});toast("Muted")}catch(e){toast(e)}}, "Available"],
+    ["Unmute media","Unmute all audio/video elements",async()=>{try{await invoke("media_control",{action:"unmute"});toast("Unmuted")}catch(e){toast(e)}}, "Available"],
     ["Save active tab memory","Discard inactive page renderer while preserving its URL/tab metadata",async()=>{try{const count=await invoke("discard_inactive_tabs",{maxLive:3});toast("Discarded "+count+" inactive tab"+(count===1?"":"s"))}catch(e){toast(e)}}, "Available"],
     ["Restore tab memory","Rehydrate the active discarded tab",async()=>{try{await invoke("restore_tab",{tabId:activeTab()?.id});toast("Tab restored")}catch(e){toast(e)}}, "Available"],
     ["Lazy-open saved session","Restore session metadata first and hydrate the first page only",async()=>{const rows=await invoke("list_sessions");if(!rows.length)return toast("No saved sessions.");const chosen=rows[0];try{await invoke("open_session_lazy",{id:chosen.id});toast("Session metadata restored; pages load as opened.")}catch(e){toast(e)}}, "Available"],
