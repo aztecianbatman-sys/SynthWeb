@@ -3384,6 +3384,9 @@ fn main() {
     } else { selected };
     let db = Db::new(&selected.id).expect("unable to initialize Synth Browser database");
     let state = AppState::new(db, selected, profiles, guest);
+    if state.workspaces.lock().unwrap().iter().any(|w|w.name==start_workspace) {
+        *state.active_workspace.lock().unwrap()=start_workspace;
+    }
     if state.workspaces.lock().unwrap().iter().any(|w| w.name==start_workspace) {
         *state.active_workspace.lock().unwrap()=start_workspace.clone();
     }
