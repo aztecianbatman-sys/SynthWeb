@@ -7,6 +7,17 @@ on:
     branches: [main]
 
 jobs:
+  frontend:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check frontend syntax
+        shell: cmd
+        run: node --check frontend\main.js
+      - name: Check native source boundary
+        shell: cmd
+        run: call scripts\verify-azecotron-production-boundary.cmd
+
   rust:
     runs-on: windows-latest
     steps:
