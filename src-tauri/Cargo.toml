@@ -30,12 +30,6 @@ tokio = { version = "1.47.1", features = ["fs", "io-util"] }
 default = []
 custom-protocol = ["tauri/custom-protocol"]
 
-codegen-units = 1
-lto = "thin"
-opt-level = "s"
-panic = "abort"
-strip = true
-
 [profile.release]
 codegen-units = 1
 lto = "thin"
@@ -46,4 +40,3 @@ strip = true
 [target."cfg(windows)".dependencies]
 windows = { version = "0.61.3", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell", "Win32_System_ProcessStatus", "Win32_System_Threading"] }
 webview2-com = "0.38.2"
-
