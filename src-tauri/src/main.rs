@@ -149,6 +149,34 @@ struct BoardItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct AiThread {
+    id: i64,
+    title: String,
+    provider: String,
+    model: String,
+    created_at: i64,
+    updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct AiMessage {
+    id: i64,
+    thread_id: i64,
+    role: String,
+    content: String,
+    created_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CommandChain {
+    id: i64,
+    name: String,
+    steps: Vec<String>,
+    created_at: i64,
+    updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct ExtensionInfo {
     id: String,
     name: String,
@@ -364,6 +392,30 @@ impl Db {
                enabled INTEGER NOT NULL DEFAULT 1,
                permissions TEXT NOT NULL DEFAULT '[]',
                installed_at INTEGER NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS ai_threads(
+               id INTEGER PRIMARY KEY,
+               title TEXT NOT NULL,
+               provider TEXT NOT NULL,
+               model TEXT NOT NULL,
+               created_at INTEGER NOT NULL,
+               updated_at INTEGER NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS ai_messages(
+               id INTEGER PRIMARY KEY,
+               thread_id INTEGER NOT NULL,
+               role TEXT NOT NULL CHECK(role IN ('user','assistant','system')),
+               content TEXT NOT NULL,
+               created_at INTEGER NOT NULL,
+               FOREIGN KEY(thread_id) REFERENCES ai_threads(id) ON DELETE CASCADE
+             );
+             CREATE INDEX IF NOT EXISTS idx_ai_messages_thread ON ai_messages(thread_id,created_at);
+             CREATE TABLE IF NOT EXISTS command_chains(
+               id INTEGER PRIMARY KEY,
+               name TEXT NOT NULL UNIQUE,
+               steps TEXT NOT NULL,
+               created_at INTEGER NOT NULL,
+               updated_at INTEGER NOT NULL
              );
              CREATE TABLE IF NOT EXISTS ai_history(
                id INTEGER PRIMARY KEY,
@@ -752,6 +804,72 @@ impl Db {
         let path:Option<String>=self.connect()?.query_row("SELECT path FROM extensions WHERE id=?1",[id],|r|r.get(0)).optional()?;
         self.connect()?.execute("DELETE FROM extensions WHERE id=?1",[id])?;
         Ok(path)
+    }
+
+    fn create_ai_thread(&self,title:&str,provider:&str,model:&str)->AppResult<AiThread>{
+        let title=title.trim();
+        if title.is_empty()||title.len()>100{return Err(AppError::Message("Thread title must be 1–100 characters.".into()))}
+        let now=Self::now();
+        let conn=self.connect()?;
+        conn.execute("INSERT INTO ai_threads(title,provider,model,created_at,updated_at) VALUES(?1,?2,?3,?4,?4)",rusqlite::params![title,provider,model,now])?;
+        let id=conn.last_insert_rowid();
+        Ok(AiThread{id,title:title.into(),provider:provider.into(),model:model.into(),created_at:now,updated_at:now})
+    }
+
+    fn list_ai_threads(&self)->AppResult<Vec<AiThread>>{
+        let c=self.connect()?;
+        let mut s=c.prepare("SELECT id,title,provider,model,created_at,updated_at FROM ai_threads ORDER BY updated_at DESC")?;
+        let rows=s.query_map([],|r|Ok(AiThread{id:r.get(0)?,title:r.get(1)?,provider:r.get(2)?,model:r.get(3)?,created_at:r.get(4)?,updated_at:r.get(5)?}))?;
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
+    }
+
+    fn add_ai_message(&self,thread_id:i64,role:&str,content:&str)->AppResult<AiMessage>{
+        if !matches!(role,"user"|"assistant"|"system"){return Err(AppError::Message("Invalid AI message role.".into()))}
+        if content.len()>200000{return Err(AppError::Message("AI message is too large.".into()))}
+        let now=Self::now();
+        let c=self.connect()?;
+        c.execute("INSERT INTO ai_messages(thread_id,role,content,created_at) VALUES(?1,?2,?3,?4)",rusqlite::params![thread_id,role,content,now])?;
+        c.execute("UPDATE ai_threads SET updated_at=?1 WHERE id=?2",[now.to_string(),thread_id])?;
+        Ok(AiMessage{id:c.last_insert_rowid(),thread_id,role:role.into(),content:content.into(),created_at:now})
+    }
+
+    fn list_ai_messages(&self,thread_id:i64)->AppResult<Vec<AiMessage>>{
+        let c=self.connect()?;
+        let mut s=c.prepare("SELECT id,thread_id,role,content,created_at FROM ai_messages WHERE thread_id=?1 ORDER BY created_at,id")?;
+        let rows=s.query_map([thread_id],|r|Ok(AiMessage{id:r.get(0)?,thread_id:r.get(1)?,role:r.get(2)?,content:r.get(3)?,created_at:r.get(4)?}))?;
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
+    }
+
+    fn delete_ai_thread(&self,id:i64)->AppResult<()>{
+        self.connect()?.execute("DELETE FROM ai_threads WHERE id=?1",[id])?;Ok(())
+    }
+
+    fn create_command_chain(&self,name:&str,steps:&[String])->AppResult<CommandChain>{
+        let name=name.trim();
+        if name.is_empty()||name.len()>80{return Err(AppError::Message("Chain name must be 1–80 characters.".into()))}
+        if steps.is_empty()||steps.len()>20{return Err(AppError::Message("A chain must contain 1–20 steps.".into()))}
+        let allowed=["new_tab","reload","back","forward","open_devtools","add_bookmark","add_to_shelf","reader_mode","page_lens","clear_history","copy_url"];
+        if !steps.iter().all(|s|allowed.contains(&s.as_str())){return Err(AppError::Message("Chain contains an unsupported browser action.".into()))}
+        let now=Self::now();
+        let encoded=serde_json::to_string(steps).map_err(|e|AppError::Message(e.to_string()))?;
+        let c=self.connect()?;
+        c.execute("INSERT INTO command_chains(name,steps,created_at,updated_at) VALUES(?1,?2,?3,?3) ON CONFLICT(name) DO UPDATE SET steps=excluded.steps,updated_at=excluded.updated_at",rusqlite::params![name,encoded,now])?;
+        let id:i64=c.query_row("SELECT id FROM command_chains WHERE name=?1",[name],|r|r.get(0))?;
+        Ok(CommandChain{id,name:name.into(),steps:steps.to_vec(),created_at:now,updated_at:now})
+    }
+
+    fn list_command_chains(&self)->AppResult<Vec<CommandChain>>{
+        let c=self.connect()?;
+        let mut s=c.prepare("SELECT id,name,steps,created_at,updated_at FROM command_chains ORDER BY name")?;
+        let rows=s.query_map([],|r|{
+            let encoded:String=r.get(2)?;
+            Ok(CommandChain{id:r.get(0)?,name:r.get(1)?,steps:serde_json::from_str(&encoded).unwrap_or_default(),created_at:r.get(3)?,updated_at:r.get(4)?})
+        })?;
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
+    }
+
+    fn delete_command_chain(&self,id:i64)->AppResult<()>{
+        self.connect()?.execute("DELETE FROM command_chains WHERE id=?1",[id])?;Ok(())
     }
 
     fn add_ai_history(&self,provider:&str,model:&str,question:&str,answer:&str)->AppResult<()>{
@@ -2282,6 +2400,28 @@ async fn synth_ai_search(state: State<AppState>, query:String)->AppResult<String
 fn ai_presets()->Vec<ai::ProviderPreset>{ai::presets()}
 
 #[tauri::command]
+fn create_ai_thread(state: State<AppState>, title:String)->AppResult<AiThread>{
+    let provider=state.db.get_setting("ai_provider")?.unwrap_or_else(||"custom".into());
+    let model=state.db.get_setting("ai_model")?.unwrap_or_default();
+    state.db.create_ai_thread(&title,&provider,&model)
+}
+#[tauri::command]
+fn list_ai_threads(state: State<AppState>)->AppResult<Vec<AiThread>>{state.db.list_ai_threads()}
+#[tauri::command]
+fn list_ai_messages(state: State<AppState>, thread_id:i64)->AppResult<Vec<AiMessage>>{state.db.list_ai_messages(thread_id)}
+#[tauri::command]
+fn add_ai_message(state: State<AppState>, thread_id:i64, role:String, content:String)->AppResult<AiMessage>{state.db.add_ai_message(thread_id,&role,&content)}
+#[tauri::command]
+fn delete_ai_thread(state: State<AppState>, thread_id:i64)->AppResult<()> { state.db.delete_ai_thread(thread_id) }
+
+#[tauri::command]
+fn create_command_chain(state: State<AppState>, name:String, steps:Vec<String>)->AppResult<CommandChain>{state.db.create_command_chain(&name,&steps)}
+#[tauri::command]
+fn list_command_chains(state: State<AppState>)->AppResult<Vec<CommandChain>>{state.db.list_command_chains()}
+#[tauri::command]
+fn delete_command_chain(state: State<AppState>, id:i64)->AppResult<()> {state.db.delete_command_chain(id)}
+
+#[tauri::command]
 fn list_ai_history(state: State<AppState>)->AppResult<Vec<serde_json::Value>>{state.db.list_ai_history()}
 
 #[tauri::command]
@@ -2679,11 +2819,11 @@ fn main() {
             list_site_permissions, set_site_permission, reset_site_permissions,
             tracker_status, privacy_audit, set_tracker_policy,
             clear_data_category, list_extensions, install_extension, set_extension_enabled, remove_extension, extension_runtime_status, rename_profile, export_profile, import_profile, delete_session,
-            list_query_history, list_workspaces, create_workspace, switch_workspace,
+            create_command_chain, list_command_chains, delete_command_chain, list_query_history, list_workspaces, create_workspace, switch_workspace,
             rename_workspace, delete_workspace, reorder_tab, move_tab_to_workspace, toggle_pin, close_other_tabs, close_tabs_right, duplicate_workspace, save_session, list_sessions,
             open_session, add_to_shelf, list_shelf, toggle_shelf_read, remove_shelf,
             restore_previous_session, dismiss_restore, export_data, export_diagnostics,
-            reset_browser, ai_status, set_ai_key, clear_ai_key, list_ai_models, ai_presets, list_ai_history, clear_ai_history, synth_assist, synth_assist_stream, synth_ai_search, request_page_context, request_selection_context, page_lens, reader_mode, create_note, list_notes, delete_note, create_research_board,
+            reset_browser, ai_status, set_ai_key, clear_ai_key, list_ai_models, ai_presets, list_ai_threads, create_ai_thread, list_ai_messages, add_ai_message, delete_ai_thread, list_ai_history, clear_ai_history, synth_assist, synth_assist_stream, synth_ai_search, request_page_context, request_selection_context, page_lens, reader_mode, create_note, list_notes, delete_note, create_research_board,
             list_research_boards, delete_research_board, add_current_to_board, list_board_items,
             complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings,
             azecotron_host_target, azecotron_status, launch_azecotron
