@@ -58,8 +58,8 @@ jobs:
             "base=chromium/src"
             "branding=Synth Browser"
             "sandbox=preserved"
-            "build_target=//azecotron/app:azecotron_host
-            runtime_model=Synth ContentMain + Synth BrowserContext + WebContents"
+            "build_target=//azecotron/app:azecotron_host"
+            "runtime_model=Synth ContentMain + Synth BrowserContext + WebContents"
             "smoke_test=headless about:blank"
           ) | Set-Content azecotron-build-manifest.txt
 
