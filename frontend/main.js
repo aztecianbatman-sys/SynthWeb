@@ -370,6 +370,7 @@ function wireHomeRail(){
       if(action==="settings")return showSettings();
       if(action==="tools")return showBrowserTools();
       if(action==="diagnostics")return showDiagnostics();
+      if(action==="inspector")return showInspector();
       if(action==="accessibility")return accessibilityAudit();
     };
   });
@@ -666,6 +667,7 @@ function showMenuPanel() {
     ["Downloads", async () => showDownloads()],
     ["Profile", async () => showProfiles()],
     ["Developer Tools", async () => invoke("open_devtools")],
+    ["Synth Inspector", async () => showInspector()],
     ["Clear Browsing Data", async () => {
       if (confirm("Clear local history and active browser data?")) await invoke("clear_browsing_data");
     }]
@@ -1088,6 +1090,43 @@ async function accessibilityAudit(){
   body.innerHTML='<div class="panel-row">This is an automated shell audit, not a substitute for manual screen-reader and contrast testing.</div>';
   checks.forEach(([name,ok])=>{const row=document.createElement("div");row.className="panel-row";row.innerHTML='<span>'+esc(name)+'</span><strong class="'+(ok?"pass":"fail")+'">'+(ok?"PASS":"REVIEW")+'</strong>';body.appendChild(row)});
   const manual=document.createElement("div");manual.className="panel-row";manual.textContent="Manual Windows high-DPI, keyboard-only, contrast and screen-reader testing remains required.";body.appendChild(manual);
+}
+
+async function showInspector(){
+  const body=basePanel("Synth Inspector");
+  const tabs=["Elements","Console","Network","Application","Security","Performance"];
+  const nav=document.createElement("div");nav.className="inspector-tabs";
+  const content=document.createElement("pre");content.className="inspector-output";content.textContent="Select an inspector.";
+  const run=async(tab)=>{
+    content.textContent="Loading "+tab+"…";
+    try{
+      if(tab==="Elements"){
+        const doc=JSON.parse(await invoke("devtools_cdp",{method:"DOM.getDocument",params:'{"depth":1}'}));
+        const nodeId=doc?.root?.nodeId; if(!nodeId)throw new Error("DOM document unavailable");
+        const html=await invoke("devtools_cdp",{method:"DOM.getOuterHTML",params:JSON.stringify({nodeId})});
+        content.textContent=html;
+      }else if(tab==="Console"){
+        const result=await invoke("devtools_cdp",{method:"Runtime.evaluate",params:JSON.stringify({expression:"JSON.stringify({title:document.title,url:location.href,readyState:document.readyState})",returnByValue:true})});
+        content.textContent=result;
+      }else if(tab==="Network"){
+        await invoke("devtools_cdp",{method:"Network.enable",params:"{}"});
+        const result=await invoke("devtools_cdp",{method:"Runtime.evaluate",params:JSON.stringify({expression:"JSON.stringify(performance.getEntriesByType('resource').map(x=>({name:x.name,initiatorType:x.initiatorType,duration:Math.round(x.duration),transferSize:x.transferSize||0})).slice(-100))",returnByValue:true})});
+        const parsed=JSON.parse(result);content.textContent=parsed?.result?.result?.value||result;
+      }else if(tab==="Application"){
+        const result=await invoke("devtools_cdp",{method:"Runtime.evaluate",params:JSON.stringify({expression:"JSON.stringify({localStorage:Array.from({length:localStorage.length},(_,i)=>localStorage.key(i)),sessionStorage:Array.from({length:sessionStorage.length},(_,i)=>sessionStorage.key(i)),indexedDB:indexedDB.databases?await indexedDB.databases():[]})",awaitPromise:true,returnByValue:true})});
+        content.textContent=result;
+      }else if(tab==="Security"){
+        const result=await invoke("devtools_cdp",{method:"Runtime.evaluate",params:JSON.stringify({expression:"JSON.stringify({protocol:location.protocol,origin:location.origin,referrer:document.referrer,cookieEnabled:navigator.cookieEnabled})",returnByValue:true})});
+        content.textContent=result;
+      }else if(tab==="Performance"){
+        const result=await invoke("Performance.getMetrics", {params:"{}"}).catch(()=>null);
+        content.textContent=result||await invoke("devtools_cdp",{method:"Performance.getMetrics",params:"{}"});
+      }
+    }catch(e){content.textContent="Inspector error: "+String(e)}
+  };
+  tabs.forEach(tab=>{const b=document.createElement("button");b.className="inspector-tab";b.textContent=tab;b.onclick=()=>{nav.querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b));run(tab)};nav.appendChild(b)});
+  body.append(nav,content);
+  run("Elements");
 }
 
 async function showBrowserTools(){
@@ -1737,6 +1776,7 @@ const commands = [
   ["Tracker Protection", "", () => showTrackerStatus()],
   ["Browser Tools", "", () => showBrowserTools()],
   ["Diagnostics", "", () => showDiagnostics()],
+  ["Synth Inspector", "", () => showInspector()],
   ["Accessibility Audit", "", () => accessibilityAudit()],
   ["Downloads", "Ctrl+J", () => showDownloads()],
   ["Print Page", "Ctrl+P", () => invoke("print_page")],
