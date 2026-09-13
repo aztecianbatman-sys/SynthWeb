@@ -2,8 +2,6 @@ name: Synth Browser Windows Installer
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 permissions:
   contents: read
@@ -11,51 +9,81 @@ permissions:
 jobs:
   build-installer:
     runs-on: windows-latest
-    timeout-minutes: 360
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup depot_tools
-        shell: cmd
-        run: |
-          git clone --depth=1 https://chromium.googlesource.com/chromium/tools/depot_tools.git "%RUNNER_TEMP%\depot_tools"
-          echo %RUNNER_TEMP%\depot_tools>> "%GITHUB_PATH%"
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable-x86_64-pc-windows-msvc
+          components: rustfmt, clippy
 
-      - name: Configure MSVC environment
-        shell: cmd
-        run: |
-          for /f "usebackq tokens=*" %%I in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSINSTALL=%%I"
-          call "%VSINSTALL%\VC\Auxiliary\Build\vcvars64.bat"
-          set "PATH=%RUNNER_TEMP%\depot_tools;%PATH%"
-          where cl
-          where link
-          where rc
-          where python
-          where node
-          where cargo
-          where fetch
-          where gclient
-          where gn
-          where autoninja
+      - name: Install Tauri CLI
+        shell: pwsh
+        run: cargo install tauri-cli --version 2.11.5 --locked
 
-      - name: Build Synth Browser installer
-        shell: cmd
+      - name: Verify runner capacity
+        shell: pwsh
         run: |
-          call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath > "%RUNNER_TEMP%\vsinstall.txt"
-          set /p VSINSTALL=<"%RUNNER_TEMP%\vsinstall.txt"
-          call "%VSINSTALL%\VC\Auxiliary\Build\vcvars64.bat"
-          set "PATH=%RUNNER_TEMP%\depot_tools;%PATH%"
-          call scripts\build-installer.cmd
+          $free = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
+          Write-Host "Free C: drive space: $free GB"
+          if ($free -lt 10) {
+            throw "Not enough free disk space for the Tauri-only installer build."
+          }
 
-      - name: Upload installers
+      - name: Validate frontend
+        shell: cmd
+        run: node --check frontend\main.js
+
+      - name: Rust format
+        shell: pwsh
+        run: cargo fmt --manifest-path src-tauri\Cargo.toml -- --check
+
+      - name: Rust lint
+        shell: pwsh
+        run: cargo clippy --manifest-path src-tauri\Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Rust tests
+        shell: pwsh
+        run: cargo test --manifest-path src-tauri\Cargo.toml --all-features
+
+      - name: Build Tauri installer
+        shell: pwsh
+        working-directory: src-tauri
+        run: cargo tauri build --bundles nsis,msi
+
+      - name: Collect installer artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          Get-ChildItem src-tauri\target\release\bundle -Recurse -File -Include *.exe,*.msi |
+            ForEach-Object { Copy-Item $_.FullName release\ -Force }
+
+          $files = @()
+          Get-ChildItem release -File -Include *.exe,*.msi | ForEach-Object {
+            $files += [ordered]@{
+              file = $_.Name
+              bytes = $_.Length
+              sha256 = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+            }
+          }
+
+          $manifest = [ordered]@{
+            product = "Synth Browser"
+            version = "0.1.0"
+            runtime = "Tauri WebView2"
+            azecotron = "NOT_BUNDLED"
+            installers = $files
+          }
+          $manifest | ConvertTo-Json -Depth 5 | Set-Content release\installer-manifest.json
+
+      - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: synth-browser-windows-installer
           if-no-files-found: error
-          path: |
-            release/*.exe
-            release/*.msi
-            release/installer-manifest.json
+          path: release/*
           retention-days: 14
