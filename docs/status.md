@@ -276,3 +276,31 @@ Implemented in source during the current build sweep:
 - native tracker throttle with measured block events;
 
 These are source-level implementation claims only. Windows Chromium compilation and full native runtime verification remain separate acceptance gates.
+
+
+## Current checklist completion pass
+
+Newly source-complete in this pass:
+- native DownloadManagerDelegate attached to SynthBrowserContext;
+- native PermissionControllerDelegate attached to SynthBrowserContext;
+- native DevToolsManagerDelegate attached to SynthContentBrowserClient;
+- profile-scoped privacy policy serialization for native Azecotron;
+- category-based browser-data clearing;
+- profile rename/export/import/integrity UX;
+- Research Board Markdown/BibTeX citation export;
+- workspace-scoped bookmark/Reading Shelf schema and queries;
+- large-session restore safety gate;
+- versioned Synth Shield ruleset packaged with native profiles;
+- accessibility language/text-scale/reduced-motion/high-contrast preferences;
+- signed-update manifest Ed25519 verification primitive and update-security status UI;
+- expanded Extensions, Media/WebRTC, Performance, Browser Tools and Privacy surfaces.
+
+Still not verified:
+- real Windows Chromium 152 compilation;
+- native HWND/runtime smoke;
+- full native DevTools frontend/docking;
+- native extension runtime compatibility;
+- media/PiP/fullscreen verification;
+- performance certification;
+- signed binary updater transport/rollback;
+- manual accessibility certification.
