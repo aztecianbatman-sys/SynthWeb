@@ -1303,4 +1303,39 @@ async function showPerformance(){
   }catch(e){body.innerHTML='<div class="panel-row">Performance diagnostics unavailable: '+esc(e)+'</div>'}
 }
 
+async function showCookies(){
+  const body=basePanel("Cookies & Site Storage");
+  try{
+    const info=await invoke("site_storage");
+    const cookies=await invoke("list_current_site_cookies");
+    body.innerHTML='<div class="panel-row">Storage inventory for <strong>'+esc(activeTab()?.title||"current site")+'</strong></div>';
+    const storageSections=[
+      ["Cookies",cookies.map(x=>({name:x.name,kind:"cookie",detail:x.domain+x.path}))],
+      ["localStorage",(info.localStorageKeys||[]).map(name=>({name,kind:"localStorage",detail:"origin storage"}))],
+      ["sessionStorage",(info.sessionStorage||[]).map(name=>({name,kind:"sessionStorage",detail:"session storage"}))],
+      ["IndexedDB",(info.indexedDbNames||[]).map(name=>({name,kind:"indexedDB",detail:"database"}))]
+    ];
+    storageSections.forEach(([title,items])=>{
+      const head=document.createElement("div");head.className="panel-title";head.textContent=title+" · "+items.length;body.appendChild(head);
+      if(!items.length){const empty=document.createElement("div");empty.className="panel-row";empty.textContent="None";body.appendChild(empty);return}
+      items.slice(0,60).forEach(item=>{
+        const row=document.createElement("div");row.className="tool-row";
+        const copy=document.createElement("div");copy.className="tool-copy";copy.innerHTML='<strong>'+esc(item.name)+'</strong><span>'+esc(item.detail)+'</span>';
+        const del=document.createElement("button");del.className="mini-action danger";del.textContent="Delete";
+        del.onclick=async()=>{try{
+          if(item.kind==="cookie"){
+            const cookie=cookies.find(x=>x.name===item.name&&x.domain+x.path===item.detail);
+            if(cookie) await invoke("delete_current_site_cookie",{name:cookie.name,domain:cookie.domain,path:cookie.path});
+          }else{
+            await invoke("delete_site_storage_item",{kind:item.kind,name:item.name});
+          }
+          toast("Deleted "+item.name);showCookies();
+        }catch(e){toast(e)}};
+        row.append(copy,del);body.appendChild(row);
+      });
+    });
+    const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear this site's cookies + storage";clear.onclick=async()=>{if(confirm("Delete this site's cookies and storage?")){try{await invoke("clear_current_site_data");toast("Site data cleared");showCookies()}catch(e){toast(e)}}};body.appendChild(clear);
+  }catch(e){body.innerHTML='<div class="panel-row">Site storage unavailable: '+esc(e)+'</div>'}
+}
+
 
