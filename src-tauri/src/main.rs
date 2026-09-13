@@ -2646,6 +2646,18 @@ fn export_diagnostics(state: State<AppState>) -> AppResult<String> {
 }
 
 #[tauri::command]
+fn update_status()->serde_json::Value{
+    serde_json::json!({
+      "updater":"SIGNED MANIFEST VERIFICATION READY",
+      "transport":"NOT IMPLEMENTED",
+      "rollback":"NOT IMPLEMENTED",
+      "binary_download":"NOT IMPLEMENTED",
+      "signature":"Ed25519",
+      "note":"A verified manifest is required before any future binary update can be accepted."
+    })
+}
+
+#[tauri::command]
 fn verify_update_manifest(manifest:Vec<u8>,signature:Vec<u8>,public_key:Vec<u8>)->AppResult<serde_json::Value>{
     use ed25519_dalek::{Signature,Verifier,VerifyingKey};
     let key:[u8;32]=public_key.try_into().map_err(|_|AppError::Message("Ed25519 public key must be 32 bytes.".into()))?;
@@ -3022,10 +3034,13 @@ fn get_settings(state: State<AppState>) -> AppResult<std::collections::HashMap<S
 fn set_setting(state: State<AppState>, key: String, value: String) -> AppResult<()> {
     match key.as_str() {
         "theme" if matches!(value.as_str(),"dark"|"light"|"system") => {}
+        "language" if matches!(value.as_str(),"en"|"hi"|"es"|"fr"|"de"|"ja") => {}
+        "text_scale" => { let n=value.parse::<u32>().map_err(|_|AppError::Message("Invalid text scale.".into()))?; if !(80..=180).contains(&n){return Err(AppError::Message("Text scale must be 80–180%.".into()));} }
         "accent" if matches!(value.as_str(),"cyan"|"violet"|"blue"|"green") => {}
         "density" if matches!(value.as_str(),"compact"|"comfortable") => {}
         "show_clock"|"show_greeting"|"show_shortcuts"|"show_recent"|"search_history"|"quiet_mode"|"https_only"|"ai_enabled"|"ai_page_context"|"ai_selection_context"|"tracker_enabled"|"autofill" =>
             if !matches!(value.as_str(),"true"|"false") { return Err(AppError::Message("Invalid boolean setting.".into())); },
+        "reduce_motion"|"high_contrast" => if !matches!(value.as_str(),"true"|"false") { return Err(AppError::Message("Invalid accessibility boolean.".into())); },
         "default_zoom" => {
             let n=value.parse::<f64>().map_err(|_|AppError::Message("Invalid zoom.".into()))?;
             if !(50.0..=200.0).contains(&n) { return Err(AppError::Message("Zoom must be 50–200%.".into())); }
@@ -3199,7 +3214,7 @@ fn main() {
             restore_previous_session, dismiss_restore, export_data, export_diagnostics,
             reset_browser, ai_status, set_ai_key, clear_ai_key, list_ai_models, list_ai_model_info, ai_presets, list_ai_threads, create_ai_thread, list_ai_messages, add_ai_message, send_ai_thread_message, delete_ai_thread, list_ai_history, clear_ai_history, synth_assist, synth_assist_stream, synth_ai_search, request_page_context, request_selection_context, page_lens, reader_mode, create_note, list_notes, delete_note, create_research_board,
             list_research_boards, delete_research_board, add_current_to_board, list_board_items, export_board_citations,
-            complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings, verify_update_manifest,
+            complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings, verify_update_manifest, update_status,
             azecotron_host_target, azecotron_status, launch_azecotron
         ])
         .build(tauri::generate_context!())
