@@ -26,6 +26,7 @@ executable("azecotron_host") {
     "//azecotron/host:azecotron_runtime_host",
     "//content",
     "//content/public/app",
+    "//components/download/public/common",
     "//content/public/browser",
     "//content/public/common",
     "//services/network/public/cpp",
