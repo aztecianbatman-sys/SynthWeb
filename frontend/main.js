@@ -1357,7 +1357,7 @@ async function showSitePermissions(){
     ["permission_clipboard","Clipboard read"],["permission_local_fonts","Local fonts"],["permission_sensors","Sensors"],
     ["permission_midi","MIDI"],["permission_usb","USB"],["permission_bluetooth","Bluetooth"],
     ["permission_downloads","Downloads"],["permission_popups","Popups"],["permission_autoplay","Autoplay"]
-  ]  ].forEach(([key,label])=>select(key,label,[["prompt","Ask"],["deny","Block"],["allow","Allow"]]));
+  ].forEach(([key,label])=>select(key,label,[["prompt","Ask"],["deny","Block"],["allow","Allow"]]));
   toggle("ai_enabled", "Enable Synth Assist");
   toggle("ai_page_context", "Allow page context when requested");
   toggle("ai_selection_context", "Allow selection context when requested");
