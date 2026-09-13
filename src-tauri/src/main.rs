@@ -3122,6 +3122,7 @@ fn main() {
             list_site_permissions, set_site_permission, reset_site_permissions,
             tracker_status, privacy_audit, set_tracker_policy,
             capture_screenshot, print_page_to_pdf, save_page_html, clear_data_category, list_extensions, install_extension, set_extension_enabled, remove_extension, extension_runtime_status, rename_profile, export_profile, import_profile, profile_integrity, verify_profile_integrity, delete_session,
+            process_diagnostics, record_performance_sample, list_performance_samples, clear_performance_samples, diagnostics_snapshot, devtools_cdp,
             create_command_chain, list_command_chains, delete_command_chain, list_query_history, list_workspaces, create_workspace, switch_workspace,
             rename_workspace, delete_workspace, reorder_tab, move_tab_to_workspace, toggle_pin, close_other_tabs, close_tabs_right, duplicate_workspace, save_session, list_sessions,
             open_session, add_to_shelf, list_shelf, toggle_shelf_read, remove_shelf,
