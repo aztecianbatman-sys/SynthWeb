@@ -191,6 +191,21 @@ fn profile_dir(profile_id:&str)->PathBuf {
     app_root().join("profiles").join(profile_id)
 }
 
+fn copy_dir_recursive(from:&Path, to:&Path)->AppResult<()> {
+    fs::create_dir_all(to)?;
+    for entry in fs::read_dir(from)? {
+        let entry=entry?;
+        let source=entry.path();
+        let dest=to.join(entry.file_name());
+        if source.is_dir() {
+            copy_dir_recursive(&source,&dest)?;
+        } else {
+            fs::copy(&source,&dest)?;
+        }
+    }
+    Ok(())
+}
+
 fn parse_start_profile() -> (String,bool) {
     let mut profile="default".to_string();
     let mut guest=false;
@@ -770,6 +785,25 @@ impl Db {
             "settings":self.all_settings()?
         });
         fs::write(path,serde_json::to_vec_pretty(&payload).map_err(|e|AppError::Message(e.to_string()))?)?;
+        Ok(())
+    }
+
+    fn clear_category(&self, category:&str)->AppResult<()> {
+        let c=self.connect()?;
+        match category {
+            "history" => { c.execute("DELETE FROM history",[])?; c.execute("DELETE FROM query_history",[])?; },
+            "downloads" => { c.execute("DELETE FROM downloads",[])?; c.execute("DELETE FROM download_verification",[])?; },
+            "permissions" => { c.execute("DELETE FROM site_permissions",[])?; c.execute("DELETE FROM permission_history",[])?; },
+            "ai" => { c.execute("DELETE FROM ai_history",[])?; },
+            "sessions" => { c.execute("DELETE FROM sessions",[])?; },
+            "shelf" => { c.execute("DELETE FROM reading_shelf",[])?; },
+            "notes" => { c.execute("DELETE FROM notes",[])?; c.execute("DELETE FROM board_items",[])?; c.execute("DELETE FROM research_boards",[])?; },
+            "site_data" => {},
+            "all" => {
+                c.execute_batch("DELETE FROM query_history;DELETE FROM downloads;DELETE FROM download_verification;DELETE FROM site_permissions;DELETE FROM permission_history;DELETE FROM ai_history;DELETE FROM sessions;DELETE FROM reading_shelf;DELETE FROM notes;DELETE FROM board_items;DELETE FROM research_boards;DELETE FROM history;")?;
+            },
+            _ => return Err(AppError::Message("Unknown data category.".into())),
+        }
         Ok(())
     }
 
@@ -1517,6 +1551,76 @@ fn clear_browsing_data(app: tauri::AppHandle, state: State<AppState>) -> AppResu
     Ok(())
 }
 
+
+#[tauri::command]
+fn clear_data_category(app: tauri::AppHandle, state: State<AppState>, category:String)->AppResult<()>{
+    if !matches!(category.as_str(),"history"|"downloads"|"permissions"|"ai"|"sessions"|"shelf"|"notes"|"site_data"|"all"){
+        return Err(AppError::Message("Unsupported data category.".into()));
+    }
+    if category=="site_data" {
+        let ids:Vec<String>=state.tabs.lock().unwrap().iter().map(|t|t.id.clone()).collect();
+        for id in ids {
+            if let Some(view)=app.get_webview(&format!("page-{id}")){let _=view.clear_all_browsing_data();}
+        }
+    }
+    state.db.clear_category(&category)
+}
+
+#[tauri::command]
+fn rename_profile(state: State<AppState>, profile_id:String, name:String)->AppResult<Vec<Profile>>{
+    if state.guest { return Err(AppError::Message("Guest mode cannot rename profiles.".into())); }
+    let name=name.trim();
+    if name.is_empty() || name.len()>60 { return Err(AppError::Message("Profile name must be 1–60 characters.".into())); }
+    let mut profiles=load_profiles()?;
+    let p=profiles.iter_mut().find(|p|p.id==profile_id).ok_or_else(||AppError::Message("Profile not found.".into()))?;
+    p.name=name.to_string();
+    save_profiles(&profiles)?;
+    Ok(profiles)
+}
+
+#[tauri::command]
+fn export_profile(state: State<AppState>)->AppResult<String>{
+    let source=profile_dir(&state.profile.id);
+    let root=dirs_next::download_dir().unwrap_or_else(||PathBuf::from(".")).join("Synth Browser").join("profile-exports");
+    let target=root.join(format!("{}-{}",state.profile.id,Db::now()));
+    if target.exists(){return Err(AppError::Message("Profile export target already exists.".into()));}
+    copy_dir_recursive(&source,&target)?;
+    let manifest=serde_json::json!({
+        "format":"synth-profile-v1",
+        "profile":state.profile,
+        "exported_at":Db::now()
+    });
+    fs::write(target.join("profile.json"),serde_json::to_vec_pretty(&manifest).map_err(|e|AppError::Message(e.to_string()))?)?;
+    Ok(target.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn import_profile(name:String, source:String)->AppResult<Profile>{
+    let source=PathBuf::from(source);
+    let manifest_path=source.join("profile.json");
+    if !manifest_path.exists(){return Err(AppError::Message("Profile export manifest not found.".into()));}
+    let bytes=fs::read(&manifest_path)?;
+    let manifest:serde_json::Value=serde_json::from_slice(&bytes).map_err(|e|AppError::Message(e.to_string()))?;
+    if manifest.get("format").and_then(|v|v.as_str())!=Some("synth-profile-v1"){return Err(AppError::Message("Unsupported profile export format.".into()));}
+    let safe=name.trim();
+    if safe.is_empty()||safe.len()>60{return Err(AppError::Message("Profile name must be 1–60 characters.".into()));}
+    let mut profiles=load_profiles()?;
+    let mut id=format!("profile-{}",uuid_fragment(safe));
+    let base=id.clone();let mut suffix=2;
+    while profiles.iter().any(|p|p.id==id){id=format!("{base}-{suffix}");suffix+=1;}
+    let target=profile_dir(&id);
+    copy_dir_recursive(&source,&target)?;
+    let profile=Profile{id:id.clone(),name:safe.into(),guest:false};
+    profiles.push(profile.clone());
+    save_profiles(&profiles)?;
+    Ok(profile)
+}
+
+#[tauri::command]
+fn delete_session(state: State<AppState>, id:i64)->AppResult<()>{
+    state.db.connect()?.execute("DELETE FROM sessions WHERE id=?1",[id])?;
+    Ok(())
+}
 
 #[tauri::command]
 fn list_profiles(state: State<AppState>) -> Vec<Profile> { state.profiles.clone() }
@@ -2460,6 +2564,7 @@ fn main() {
             list_permission_history, list_current_site_cookies, delete_current_site_cookie, clear_current_site_data,
             list_site_permissions, set_site_permission, reset_site_permissions,
             tracker_status, privacy_audit, set_tracker_policy,
+            clear_data_category, rename_profile, export_profile, import_profile, delete_session,
             list_query_history, list_workspaces, create_workspace, switch_workspace,
             rename_workspace, delete_workspace, reorder_tab, move_tab_to_workspace, toggle_pin, close_other_tabs, close_tabs_right, duplicate_workspace, save_session, list_sessions,
             open_session, add_to_shelf, list_shelf, toggle_shelf_read, remove_shelf,
