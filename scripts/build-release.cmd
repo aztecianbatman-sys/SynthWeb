@@ -29,6 +29,12 @@ if errorlevel 1 exit /b 1
 call "%~dp0build-azecotron-host.cmd"
 if errorlevel 1 exit /b 1
 
+if exist "%ROOT%\src-tauri\resources\azecotron" rmdir /S /Q "%ROOT%\src-tauri\resources\azecotron"
+mkdir "%ROOT%\src-tauri\resources\azecotron"
+xcopy /E /I /Y "%ROOT%\third_party\azecotron-chromium\src\out\Azecotron\*" "%ROOT%\src-tauri\resources\azecotron\" >nul
+if errorlevel 1 exit /b 1
+if not exist "%ROOT%\src-tauri\resources\azecotron\azecotron_host.exe" (echo ERROR: Native Azecotron host missing after build. & exit /b 1)
+
 echo === Synth Browser package ===
 pushd "%ROOT%\src-tauri"
 cargo tauri build
