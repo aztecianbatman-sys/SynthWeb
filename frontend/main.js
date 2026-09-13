@@ -372,6 +372,7 @@ function wireHomeRail(){
       if(action==="profiles")return showProfiles();
       if(action==="extensions")return toast("Extensions are waiting for the native Azecotron extension runtime.");
       if(action==="settings")return showSettings();
+      if(action==="windows")return showWindows();
       if(action==="tools")return showBrowserTools();
       if(action==="diagnostics")return showDiagnostics();
       if(action==="inspector")return showInspector();
@@ -1220,6 +1221,13 @@ async function showInspector(){
   tabs.forEach(tab=>{const b=document.createElement("button");b.className="inspector-tab";b.textContent=tab;b.onclick=()=>{nav.querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b));run(tab)};nav.appendChild(b)});
   body.append(nav,content);
   run("Elements");
+}
+
+async function showWindows(){
+  const body=basePanel("Browser Windows");
+  body.innerHTML='<div class="panel-row">Each window runs the same Synth shell. Native Azecotron window attachment is handled independently when that runtime is active.</div>';
+  const open=document.createElement("button");open.className="panel-action";open.textContent="+ New browser window";open.onclick=async()=>{try{const id=await invoke("create_browser_window");toast("Created "+id)}catch(e){toast(e)}};body.appendChild(open);
+  const current=document.createElement("div");current.className="panel-row";current.innerHTML='Current window <strong>Main</strong>';body.appendChild(current);
 }
 
 async function showBrowserTools(){
