@@ -1694,6 +1694,15 @@ async fn reopen_closed_tab(app: tauri::AppHandle, state: State<AppState>) -> App
 }
 
 #[tauri::command]
+fn reload_without_cache(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    webview_cdp::call(&view,"Page.reload",r#"{"ignoreCache":true,"scriptToEvaluateOnLoad":null}"#)
+        .map(|_|())
+        .map_err(AppError::Message)
+}
+
+#[tauri::command]
 fn reload(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
     let id = state.active_id.lock().unwrap().clone();
     if let Some(view) = app.get_webview(&format!("page-{id}")) { view.reload().map_err(|e| AppError::Message(e.to_string()))?; }
@@ -3115,7 +3124,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             create_browser_window, get_snapshot, navigate, search_with_mode, site_info, page_source, find_in_page, get_selection, list_profiles, switch_profile, create_profile, delete_profile, new_tab, activate_tab, close_tab, reopen_closed_tab,
-            reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools, close_devtools, devtools_status,
+            reload, reload_without_cache, stop_or_reload, print_page, set_zoom, back, forward, open_devtools, close_devtools, devtools_status,
             add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
             list_downloads, remove_download_history, open_download, reveal_download, verify_download,
             list_permission_history, list_current_site_cookies, delete_current_site_cookie, site_storage, delete_site_storage_item, clear_current_site_data,
