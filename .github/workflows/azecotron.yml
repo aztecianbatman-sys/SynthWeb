@@ -36,13 +36,33 @@ jobs:
           & .\scripts\acceptance\run-full-windows.ps1 -TabCounts 10,50,100,200 -DurationsMinutes 1,5
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Verify native Chromium binaries
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:GITHUB_WORKSPACE 'third_party\azecotron-chromium\src\out\Azecotron'
+          $chrome = Join-Path $out 'chrome.exe'
+          $host = Join-Path $out 'azecotron_host.exe'
+          if (-not (Test-Path $chrome)) { throw "Chromium chrome.exe missing: $chrome" }
+          if (-not (Test-Path $host)) { throw "Azecotron host missing: $host" }
+          $chromeHash = (Get-FileHash -Algorithm SHA256 $chrome).Hash
+          $hostHash = (Get-FileHash -Algorithm SHA256 $host).Hash
+          $chromeVersion = (& $chrome --version 2>$null | Out-String).Trim()
+          $hostVersion = (& $host --version 2>$null | Out-String).Trim()
+          Write-Host "chrome.exe SHA256=$chromeHash" -ForegroundColor Green
+          Write-Host "azecotron_host.exe SHA256=$hostHash" -ForegroundColor Green
+          Write-Host "chrome version=$chromeVersion" -ForegroundColor Green
+          Write-Host "host version=$hostVersion" -ForegroundColor Green
+          if ([string]::IsNullOrWhiteSpace($hostVersion)) { throw 'Azecotron host did not report a version.' }
+
       - name: Verify packaged Azecotron resource layout
         shell: pwsh
         run: |
           $root = Join-Path $env:GITHUB_WORKSPACE 'src-tauri\resources\azecotron'
           if (-not (Test-Path $root)) { throw "Azecotron package resource directory missing: $root" }
-          $host = Get-ChildItem $root -Recurse -Filter 'azecotron_host.exe' | Select-Object -First 1
+          $host = Get-ChildItem $root -Filter 'azecotron_host.exe' | Select-Object -First 1
+          $chrome = Get-ChildItem $root -Filter 'chrome.exe' | Select-Object -First 1
           if (-not $host) { throw 'Packaged azecotron_host.exe not found.' }
+          if (-not $chrome) { throw 'Packaged chrome.exe not found.' }
 
       - name: Upload acceptance measurements
         if: always()
@@ -61,6 +81,13 @@ jobs:
         run: |
           $sha = (git rev-parse HEAD).Trim()
           $time = (Get-Date).ToUniversalTime().ToString('o')
+          $out = Join-Path $env:GITHUB_WORKSPACE 'third_party\azecotron-chromium\src\out\Azecotron'
+          $chrome = Join-Path $out 'chrome.exe'
+          $host = Join-Path $out 'azecotron_host.exe'
+          $chromeHash = (Get-FileHash -Algorithm SHA256 $chrome).Hash
+          $hostHash = (Get-FileHash -Algorithm SHA256 $host).Hash
+          $chromeVersion = (& $chrome --version 2>$null | Out-String).Trim()
+          $hostVersion = (& $host --version 2>$null | Out-String).Trim()
           @(
             "synthweb_commit=$sha"
             "build_time_utc=$time"
@@ -68,6 +95,10 @@ jobs:
             "runtime=Synth ContentMain + BrowserContext + WebContents"
             "privacy=Synth Shield native request throttle"
             "sandbox=preserved"
+            "chrome_version=$chromeVersion"
+            "chrome_sha256=$chromeHash"
+            "azecotron_host_version=$hostVersion"
+            "azecotron_host_sha256=$hostHash"
           ) | Set-Content azecotron-build-metadata.txt
 
       - name: Upload build metadata
