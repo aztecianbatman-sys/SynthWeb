@@ -52,35 +52,28 @@ The implementation follows the master prompt incrementally. Statuses below descr
 
 ## PARTIALLY FUNCTIONAL
 - Cortis is a real provider/delegation layer but does not ship its own search index in v0.1.
-- Downloads persist metadata, but pause/resume/retry/reveal/open/remove history actions are not all exposed.
+- Native downloads have persistent metadata, checksum verification, open/reveal/remove-history controls, and browser-host download hooks; pause/resume/retry remain runtime-dependent until native Chromium verification.
 - Tab duplication copies real navigation but does not yet preserve every browser-native metadata field.
-- New-window requests remain within the current application flow rather than creating a complete multi-window browser manager.
+- New-window requests have application-level handling; complete multi-window Chromium manager verification remains pending.
 - Reader Mode is deterministic extraction and does not promise perfect extraction on every site.
 - Page Lens reports actual DOM metadata only; advanced semantic/AI interpretation remains optional.
-- Synth Assist supports OpenAI-compatible endpoints and secure keys; provider-specific adapters for Ollama/LM Studio/hosted services remain to be validated individually.
-- Workspace UI exposes management through contextual interaction; a dedicated polished workspace management surface is still pending.
+- Synth Assist has provider presets, secure keys, model discovery, streaming-compatible transport, threads, and explicit context controls; individual provider runtime validation remains pending.
+- Workspace management is available in the UI and saved-content records can be scoped to the active workspace.
 
-## DESIGNED / NOT STARTED
-- extension manager and extension permission UI
-- full site permission center for camera/microphone/location/notifications/etc.
-- tracker-blocking rule engine and measured interception counters
-- complete cookie/site-storage UI
-- full screenshot/page-save/archive flows
+## REMAINING / NOT VERIFIED
 - multi-window workspace transfer
 - session lazy-loading strategy for very large sessions
-- workspace-specific bookmarks/shelf data model
-- citation-helper export UI
-- Context Threads
 - Tab Memory beyond explicit tab metadata
-- local command-chain builder/preview UI
-- full diagnostics screen
 - signed updater with verification/rollback
 - localization beyond architecture readiness
-- full accessibility audit
+- full accessibility manual audit
 - measured 10/50/100/200-tab and multi-hour performance suite
 - hardware acceleration troubleshooting UI
-- measured runtime crash-count/performance dashboard
+- measured runtime crash-count/performance certification
 - Chromium extension compatibility certification
+- production Chromium DevTools docking/detach verification
+- native media/PiP/fullscreen verification
+- Windows packaged runtime verification
 
 ## BLOCKED / EXPLICITLY NOT CLAIMED
 ### Azecotron Web
@@ -109,7 +102,7 @@ Cortis is the branded search layer. v0.1 sends web/image/news/video/maps searche
 - Therefore no installer/executable is marked VERIFIED or TESTED until an actual Windows CI/package run completes.
 
 ## Acceptance status against the master prompt
-Core browser architecture: IN DEVELOPMENT
+Core browser architecture: IN DEVELOPMENT / native runtime source integrated
 Tabs/navigation/omnibox: FUNCTIONAL IN SOURCE
 Synt Search delegation: FUNCTIONAL IN SOURCE
 Bookmarks/history/downloads: FUNCTIONAL IN SOURCE
@@ -118,7 +111,7 @@ Privacy/security: FUNCTIONAL IN SOURCE for per-site permissions/cookies/site-dat
 Synth Assist: FUNCTIONAL IN SOURCE for provider presets, secure keys, model discovery, streaming-compatible providers, AI history, explicit page/selection context, and AI Search via OpenRouter
 Reader/Page Lens/Research: FUNCTIONAL IN SOURCE
 Developer Tools / power-user commands: FUNCTIONAL IN SOURCE where host runtime supports them
-Profiles: FUNCTIONAL IN SOURCE; Guest Mode: FUNCTIONAL IN SOURCE; native permission prompts: FUNCTIONAL IN SOURCE; extension manager/extension permission UI: NOT STARTED
+Profiles: FUNCTIONAL IN SOURCE; Guest Mode: FUNCTIONAL IN SOURCE; native permission prompts: FUNCTIONAL IN SOURCE; extension manager: FUNCTIONAL IN SOURCE; native extension runtime: NOT VERIFIED
 Azecotron Web Chromium fork/build workflow: IMPLEMENTED IN SOURCE; Cortis provider transformation: IMPLEMENTED IN SOURCE; Synth-owned ContentMain/BrowserContext stack: IMPLEMENTED IN SOURCE; binary build: NOT VERIFIED
 Performance certification: NOT TESTED
 Packaging: CONFIGURED, NOT VERIFIED
@@ -268,3 +261,18 @@ Implemented in the reference UI:
 - Reference New Tab remains live-data driven and uses explicit NOT VERIFIED / NOT STARTED / PLATFORM LIMITED states.
 
 Native Chromium service integration remains pending Windows verification for production download manager, permission delegate, DevTools manager, media/device services, and full runtime smoke tests.
+
+
+## Checklist implementation pass
+Implemented in source during the current build sweep:
+- category-based browser data clearing UI/backend;
+- workspace columns and queries for bookmarks and Reading Shelf with safe existing-profile migration;
+- profile rename, export, import, and integrity visibility;
+- Research Board Markdown/BibTeX citation export;
+- extension install/list/enable/disable/remove UI and backend;
+- performance sampling and diagnostics UI;
+- native permission/download delegates attached to Synth BrowserContext;
+- profile privacy-policy serialization passed to Azecotron;
+- native tracker throttle with measured block events;
+
+These are source-level implementation claims only. Windows Chromium compilation and full native runtime verification remain separate acceptance gates.
