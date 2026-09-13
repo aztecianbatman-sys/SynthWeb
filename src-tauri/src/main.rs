@@ -420,6 +420,18 @@ impl Db {
                FOREIGN KEY(thread_id) REFERENCES ai_threads(id) ON DELETE CASCADE
              );
              CREATE INDEX IF NOT EXISTS idx_ai_messages_thread ON ai_messages(thread_id,created_at);
+             CREATE TABLE IF NOT EXISTS performance_samples(
+               id INTEGER PRIMARY KEY,
+               sampled_at INTEGER NOT NULL,
+               memory_bytes INTEGER NOT NULL,
+               peak_memory_bytes INTEGER NOT NULL,
+               handles INTEGER,
+               cpu_time_ms INTEGER NOT NULL,
+               tab_count INTEGER NOT NULL,
+               workspace_count INTEGER NOT NULL,
+               azecotron_running INTEGER NOT NULL
+             );
+             CREATE INDEX IF NOT EXISTS idx_performance_samples_time ON performance_samples(sampled_at DESC);
              CREATE TABLE IF NOT EXISTS command_chains(
                id INTEGER PRIMARY KEY,
                name TEXT NOT NULL UNIQUE,
@@ -880,6 +892,31 @@ impl Db {
 
     fn delete_command_chain(&self,id:i64)->AppResult<()>{
         self.connect()?.execute("DELETE FROM command_chains WHERE id=?1",[id])?;Ok(())
+    }
+
+    fn add_performance_sample(&self, sample:&process_diagnostics::ProcessStats, tab_count:usize, workspace_count:usize, azecotron_running:bool)->AppResult<i64>{
+        let c=self.connect()?;
+        c.execute("INSERT INTO performance_samples(sampled_at,memory_bytes,peak_memory_bytes,handles,cpu_time_ms,tab_count,workspace_count,azecotron_running) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",
+          rusqlite::params![Self::now(),sample.memory_bytes,sample.peak_memory_bytes,sample.handles.map(|v|v as i64),sample.cpu_time_ms,tab_count as i64,workspace_count as i64,azecotron_running as i64])?;
+        Ok(c.last_insert_rowid())
+    }
+
+    fn list_performance_samples(&self,limit:usize)->AppResult<Vec<serde_json::Value>>{
+        let limit=limit.clamp(1,1000);
+        let c=self.connect()?;
+        let mut s=c.prepare("SELECT id,sampled_at,memory_bytes,peak_memory_bytes,handles,cpu_time_ms,tab_count,workspace_count,azecotron_running FROM performance_samples ORDER BY sampled_at DESC LIMIT ?1")?;
+        let rows=s.query_map([limit as i64],|r|Ok(serde_json::json!({
+          "id":r.get::<_,i64>(0)?,"sampled_at":r.get::<_,i64>(1)?,
+          "memory_bytes":r.get::<_,i64>(2)?,"peak_memory_bytes":r.get::<_,i64>(3)?,
+          "handles":r.get::<_,Option<i64>>(4)?,"cpu_time_ms":r.get::<_,i64>(5)?,
+          "tab_count":r.get::<_,i64>(6)?,"workspace_count":r.get::<_,i64>(7)?,
+          "azecotron_running":r.get::<_,i64>(8)?!=0
+        })))?;
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
+    }
+
+    fn clear_performance_samples(&self)->AppResult<()>{
+        self.connect()?.execute("DELETE FROM performance_samples",[])?;Ok(())
     }
 
     fn add_ai_history(&self,provider:&str,model:&str,question:&str,answer:&str)->AppResult<()>{
@@ -2446,6 +2483,31 @@ fn export_data(state: State<AppState>) -> AppResult<String> {
 #[tauri::command]
 fn process_diagnostics()->AppResult<process_diagnostics::ProcessStats>{
     process_diagnostics::current_process().map_err(AppError::Message)
+}
+
+#[tauri::command]
+fn record_performance_sample(state: State<AppState>)->AppResult<serde_json::Value>{
+    let stats=process_diagnostics::current_process().map_err(AppError::Message)?;
+    let tabs=state.tabs.lock().unwrap().len();
+    let workspaces=state.workspaces.lock().unwrap().len();
+    let running=azecotron_bridge::running();
+    let id=state.db.add_performance_sample(&stats,tabs,workspaces,running)?;
+    Ok(serde_json::json!({
+      "id":id,"sampled_at":Db::now(),"memory_bytes":stats.memory_bytes,
+      "peak_memory_bytes":stats.peak_memory_bytes,"handles":stats.handles,
+      "cpu_time_ms":stats.cpu_time_ms,"tab_count":tabs,
+      "workspace_count":workspaces,"azecotron_running":running,"supported":stats.supported
+    }))
+}
+
+#[tauri::command]
+fn list_performance_samples(state: State<AppState>, limit:Option<usize>)->AppResult<Vec<serde_json::Value>>{
+    state.db.list_performance_samples(limit.unwrap_or(100))
+}
+
+#[tauri::command]
+fn clear_performance_samples(state: State<AppState>)->AppResult<()>{
+    state.db.clear_performance_samples()
 }
 
 #[tauri::command]
