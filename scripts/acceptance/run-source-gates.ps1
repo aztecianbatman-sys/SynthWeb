@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$gates = @('verify-source.ps1','privacy-regression.ps1','accessibility-audit.ps1')
+$gates = @('verify-source.ps1','privacy-regression.ps1','accessibility-audit.ps1','verify-matrix-coverage.ps1')
 foreach ($gate in $gates) {
   Write-Host "`n=== $gate ===" -ForegroundColor Cyan
   & (Join-Path $PSScriptRoot $gate)
