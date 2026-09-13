@@ -33,9 +33,7 @@ set "OUT=%ROOT%\third_party\azecotron-chromium\src\out\Azecotron"
 if not exist "%OUT%\chrome.exe" (echo ERROR: Chromium chrome.exe missing after build. & exit /b 1)
 if not exist "%OUT%\azecotron_host.exe" (echo ERROR: Synth native Azecotron host missing after build. & exit /b 1)
 
-if exist "%ROOT%\src-tauri\resources\azecotron" rmdir /S /Q "%ROOT%\src-tauri\resources\azecotron"
-mkdir "%ROOT%\src-tauri\resources\azecotron"
-for %%F in ("chrome.exe" "azecotron_host.exe") do copy /Y "%OUT%\%%~F" "%ROOT%\src-tauri\resources\azecotron\%%~F" >nul
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\stage-azecotron-runtime.ps1"
 if errorlevel 1 exit /b 1
 
 echo === Synth Browser package ===
