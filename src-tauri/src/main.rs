@@ -2312,6 +2312,42 @@ fn export_data(state: State<AppState>) -> AppResult<String> {
 }
 
 #[tauri::command]
+fn diagnostics_snapshot(state: State<AppState>)->AppResult<serde_json::Value>{
+    let settings=state.db.all_settings()?;
+    let tab_count=state.tabs.lock().unwrap().len();
+    let private_tabs=state.tabs.lock().unwrap().iter().filter(|t|t.private).count();
+    let workspace_count=state.workspaces.lock().unwrap().len();
+    let profile=serde_json::json!({"id":state.profile.id,"name":state.profile.name,"guest":state.guest});
+    let tracker=tracker::default_rules();
+    Ok(serde_json::json!({
+      "version":"0.1.0",
+      "profile":profile,
+      "tabs":{"total":tab_count,"private":private_tabs},
+      "workspaces":workspace_count,
+      "database_bytes":state.db.size_bytes(),
+      "runtime":{
+        "host":runtime_status().0,
+        "revision":runtime_status().1,
+        "azecotron":runtime_status().2,
+        "native_available":azecotron_bridge::status().available,
+        "native_running":azecotron_bridge::running()
+      },
+      "privacy":{
+        "https_only":settings.get("https_only").map(|v|v=="true").unwrap_or(false),
+        "ai_enabled":settings.get("ai_enabled").map(|v|v=="true").unwrap_or(false),
+        "tracker_enabled":settings.get("tracker_enabled").map(|v|v=="true").unwrap_or(false),
+        "autofill":settings.get("autofill").map(|v|v=="true").unwrap_or(false),
+        "tracker_rules":tracker.len()
+      },
+      "capabilities":{
+        "devtools":"host runtime",
+        "extensions":"Windows WebView2 unpacked or native Azecotron pending",
+        "network_interception":"native Azecotron required"
+      }
+    }))
+}
+
+#[tauri::command]
 fn export_diagnostics(state: State<AppState>) -> AppResult<String> {
     let dir=dirs_next::download_dir().unwrap_or_else(||PathBuf::from(".")).join("Synth Browser").join("diagnostics");
     fs::create_dir_all(&dir)?;
