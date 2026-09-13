@@ -31,7 +31,7 @@ Run-Step 'Privacy integration' { & "$root\scripts\acceptance\privacy-runtime.ps1
 Run-Step 'Performance collection' { & "$root\scripts\acceptance\performance-runtime.ps1" -TabCounts $TabCounts -DurationsMinutes $DurationsMinutes }
 
 if (-not $SkipPackage) {
-  Run-Step 'Tauri package' { cargo tauri build --manifest-path "$root\src-tauri\Cargo.toml" }
+  Run-Step 'Stage Azecotron and build installers' { & "$root\scripts\build-installer.ps1" -SkipChromiumBuild -SkipHostBuild }
   Run-Step 'Release gate' { & "$root\scripts\acceptance\release-gate.ps1" }
 }
 
