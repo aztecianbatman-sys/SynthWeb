@@ -1272,6 +1272,14 @@ async function showSitePermissions(){
   toggle("ai_enabled", "Enable Synth Assist");
   toggle("ai_page_context", "Allow page context when requested");
   toggle("ai_selection_context", "Allow selection context when requested");
+  toggle("first_party_isolation", "First-party isolation policy");
+  select("permission_midi","MIDI",[["deny","Block"],["prompt","Ask"],["allow","Allow"]]);
+  select("permission_usb","USB",[["deny","Block"],["prompt","Ask"],["allow","Allow"]]);
+  select("permission_bluetooth","Bluetooth",[["deny","Block"],["prompt","Ask"],["allow","Allow"]]);
+  select("permission_downloads","Downloads",[["prompt","Ask"],["deny","Block"],["allow","Allow"]]);
+  select("permission_popups","Popups",[["deny","Block"],["prompt","Ask"],["allow","Allow"]]);
+  select("permission_autoplay","Autoplay",[["deny","Block"],["prompt","Ask"],["allow","Allow"]]);
+
   select("default_zoom", "Default zoom", [["75","75%"],["90","90%"],["100","100%"],["110","110%"],["125","125%"],["150","150%"]]);
 
   const tools = document.createElement("div");
