@@ -1223,6 +1223,39 @@ async function showInspector(){
   run("Elements");
 }
 
+async function showAcceptance(){
+  const body=basePanel("Acceptance Matrix");
+  const az=await invoke("azecotron_status").catch(()=>({available:false,running:false,version:null}));
+  const checks=[
+    ["Native ContentMain","IMPLEMENTED","Synth ContentMainDelegate + BrowserMainParts source exists"],
+    ["Synth BrowserContext","IMPLEMENTED","Direct content::BrowserContext implementation"],
+    ["Windows Azecotron binary",az.available?"IMPLEMENTED":"NOT VERIFIED","Requires the pinned Windows Chromium build"],
+    ["Native HWND embedding",az.available?"IMPLEMENTED":"NOT VERIFIED","Runtime smoke test required"],
+    ["Renderer / GPU verification","NOT VERIFIED","Controlled Windows runtime test required"],
+    ["Network tracker interception",az.running?"IMPLEMENTED":"PARTIAL","Native throttle exists; active runtime required"],
+    ["Third-party cookie enforcement","PARTIAL","Strict cross-origin cookie policy is source-backed; full Chromium verification pending"],
+    ["Per-site permissions","IMPLEMENTED","Origin policy editor + history"],
+    ["Site storage controls","IMPLEMENTED","Cookie/localStorage/sessionStorage/IndexedDB inventory"],
+    ["Download integrity","IMPLEMENTED","SHA-256 verification"],
+    ["Native DevTools","PARTIAL","Host DevTools/CDP exists; Chromium DevToolsAgentHost pending"],
+    ["Extensions","PARTIAL","Unpacked manager exists; native Chromium lifecycle pending"],
+    ["Synth Assist","IMPLEMENTED","Providers, model discovery, streaming, threads, explicit context"],
+    ["Media / WebRTC","PARTIAL","Permissions wired; native device routing pending"],
+    ["Profiles","IMPLEMENTED","Isolation, rename, export/import, integrity"],
+    ["Session recovery","IMPLEMENTED","Crash restore + saved sessions"],
+    ["Performance certification","NOT VERIFIED","Windows benchmark suite pending"],
+    ["Accessibility certification","NOT VERIFIED","Automated shell audit exists; manual testing pending"],
+    ["Windows packaging / signing","NOT VERIFIED","Release build pending"]
+  ];
+  checks.forEach(([name,status,detail])=>{
+    const row=document.createElement("div");row.className="accept-row";
+    const badge=document.createElement("span");badge.className="accept-badge "+status.toLowerCase().replaceAll(" ","-");badge.textContent=status;
+    const copy=document.createElement("div");copy.className="tool-copy";copy.innerHTML='<strong>'+esc(name)+'</strong><span>'+esc(detail)+'</span>';
+    row.append(badge,copy);body.appendChild(row);
+  });
+  const note=document.createElement("div");note.className="panel-row";note.textContent="This matrix is intentionally conservative: NOT VERIFIED means the code may exist, but the required Windows/runtime evidence has not been produced.";body.appendChild(note);
+}
+
 async function showWindows(){
   const body=basePanel("Browser Windows");
   body.innerHTML='<div class="panel-row">Each window runs the same Synth shell. Native Azecotron window attachment is handled independently when that runtime is active.</div>';
