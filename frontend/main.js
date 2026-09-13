@@ -691,6 +691,95 @@ function showMenuPanel() {
   });
 }
 
+async function showSettings(){
+  const body=basePanel("Settings");
+  const settings=await invoke("get_settings");
+  state.settings=settings;
+  const search=document.createElement("input");search.className="setting-control";search.placeholder="Search settings…";body.appendChild(search);
+  const groups=document.createElement("div");groups.className="settings-sections";body.appendChild(groups);
+
+  const section=(title,description)=>{
+    const wrap=document.createElement("section");wrap.className="settings-section";
+    const h=document.createElement("div");h.className="settings-section-head";h.innerHTML='<div><div class="panel-title">'+esc(title)+'</div><span>'+esc(description)+'</span></div>';wrap.appendChild(h);
+    groups.appendChild(wrap);return wrap;
+  };
+  const toggle=(parent,key,label,description="")=>{
+    const row=document.createElement("label");row.className="setting-toggle";
+    const copy=document.createElement("div");copy.className="setting-copy";copy.innerHTML='<strong>'+esc(label)+'</strong>'+(description?'<span>'+esc(description)+'</span>':'');
+    const input=document.createElement("input");input.type="checkbox";input.checked=settings[key]==="true";
+    input.onchange=async()=>{try{await invoke("set_setting",{key,value:String(input.checked)});settings[key]=String(input.checked);state.settings=settings;applySettings();updateReferenceCapsule()}catch(e){toast(e)}};
+    row.append(copy,input);parent.appendChild(row);
+  };
+  const select=(parent,key,label,options,description="")=>{
+    const row=document.createElement("label");row.className="setting-field";
+    const copy=document.createElement("div");copy.className="setting-copy";copy.innerHTML='<strong>'+esc(label)+'</strong>'+(description?'<span>'+esc(description)+'</span>':'');
+    const input=document.createElement("select");input.className="setting-control";
+    options.forEach(([v,t])=>{const o=document.createElement("option");o.value=v;o.textContent=t;input.appendChild(o)});
+    input.value=settings[key]??options[0]?.[0]??"";
+    input.onchange=async()=>{try{await invoke("set_setting",{key,value:input.value});settings[key]=input.value;state.settings=settings;applySettings();updateReferenceCapsule()}catch(e){toast(e)}};
+    row.append(copy,input);parent.appendChild(row);
+  };
+
+  const appearance=section("Appearance","Personalize Synth without changing browser security.");
+  select(appearance,"theme","Theme",[["dark","Dark"],["light","Light"],["system","System"]]);
+  select(appearance,"accent","Accent",[["cyan","Cyan"],["violet","Violet"],["blue","Blue"],["green","Green"]]);
+  select(appearance,"density","Density",[["comfortable","Comfortable"],["compact","Compact"]]);
+  toggle(appearance,"show_shortcuts","Show shortcuts");
+  toggle(appearance,"quiet_mode","Quiet Mode","Reduce nonessential activity and UI noise.");
+
+  const privacy=section("Privacy & Security","Strong defaults. Every sensitive permission can be changed per site.");
+  toggle(privacy,"https_only","HTTPS-only","Block cleartext HTTP navigation.");
+  toggle(privacy,"tracker_enabled","Tracker protection policy","Enable native blocking when Azecotron is active.");
+  toggle(privacy,"first_party_isolation","First-party isolation","Keep site state partitioned by top-level origin when supported.");
+  toggle(privacy,"autofill","Browser autofill","Store and suggest form values.");
+  toggle(privacy,"search_history","Store search history");
+  toggle(privacy,"show_recent","Show recent activity");
+  [["permission_camera","Camera"],["permission_microphone","Microphone"],["permission_geolocation","Location"],["permission_notifications","Notifications"],["permission_display_capture","Screen sharing"],["permission_clipboard","Clipboard read"],["permission_local_fonts","Local fonts"],["permission_sensors","Sensors"],["permission_midi","MIDI"],["permission_usb","USB"],["permission_bluetooth","Bluetooth"],["permission_downloads","Downloads"],["permission_popups","Popups"],["permission_autoplay","Autoplay"]].forEach(([key,label])=>select(privacy,key,label,[["prompt","Ask"],["deny","Block"],["allow","Allow"]]));
+
+  const ai=section("Synth Assist","AI is optional and page context is always explicit.");
+  toggle(ai,"ai_enabled","Enable Synth Assist");
+  toggle(ai,"ai_page_context","Allow page context","Nothing is sent until you explicitly request context.");
+  toggle(ai,"ai_selection_context","Allow selection context");
+  const aiOpen=document.createElement("button");aiOpen.className="panel-action";aiOpen.textContent="Open Synth Assist manager";aiOpen.onclick=showAssist;ai.appendChild(aiOpen);
+
+  const profile=section("Profile","Manage isolated local browser identities.");
+  const profOpen=document.createElement("button");profOpen.className="panel-action";profOpen.textContent="Open Profiles";profOpen.onclick=showProfiles;profile.appendChild(profOpen);
+  const profIntegrity=document.createElement("button");profIntegrity.className="panel-action";profIntegrity.textContent="Verify profile integrity";profIntegrity.onclick=async()=>{try{const x=await invoke("profile_integrity");toast(x.database_present?"Profile database verified":"Profile database missing")}catch(e){toast(e)}};profile.appendChild(profIntegrity);
+  const profExport=document.createElement("button");profExport.className="panel-action";profExport.textContent="Export active profile";profExport.onclick=async()=>{try{toast("Exported: "+await invoke("export_profile"))}catch(e){toast(e)}};profile.appendChild(profExport);
+
+  const data=section("Data","Erase only what you choose.");
+  const dataOpen=document.createElement("button");dataOpen.className="panel-action";dataOpen.textContent="Choose data to clear";dataOpen.onclick=showDataControls;data.appendChild(dataOpen);
+  const exportData=document.createElement("button");exportData.className="panel-action";exportData.textContent="Export browser data";exportData.onclick=async()=>{try{toast("Exported: "+await invoke("export_data"))}catch(e){toast(e)}};data.appendChild(exportData);
+
+  const work=section("Workspaces","Keep tabs and saved content organized.");
+  const workOpen=document.createElement("button");workOpen.className="panel-action";workOpen.textContent="Open Workspace Manager";workOpen.onclick=showWorkspaceManager;work.appendChild(workOpen);
+
+  const dev=section("Developer","Native diagnostics and inspected pages.");
+  const inspect=document.createElement("button");inspect.className="panel-action";inspect.textContent="Open Synth Inspector";inspect.onclick=showInspector;dev.appendChild(inspect);
+  const diagnostics=document.createElement("button");diagnostics.className="panel-action";diagnostics.textContent="Diagnostics";diagnostics.onclick=showDiagnostics;dev.appendChild(diagnostics);
+  const access=document.createElement("button");access.className="panel-action";access.textContent="Accessibility audit";access.onclick=accessibilityAudit;dev.appendChild(access);
+
+  const runtime=section("Runtime","See exactly which browser engine is active.");
+  const runtimeOpen=document.createElement("button");runtimeOpen.className="panel-action";runtimeOpen.textContent="Runtime status";runtimeOpen.onclick=showRuntime;runtime.appendChild(runtimeOpen);
+
+  search.oninput=()=>{const q=search.value.toLowerCase();groups.querySelectorAll(".settings-section").forEach(s=>s.hidden=!s.textContent.toLowerCase().includes(q))};
+}
+
+async function showWorkspaceManager(){
+  const body=basePanel("Workspace Manager");
+  const rows=state.workspaces;
+  body.innerHTML='<div class="panel-row">Workspace state is local to this profile. Saved bookmarks and Reading Shelf entries follow the active workspace.</div>';
+  rows.forEach(ws=>{
+    const row=document.createElement("div");row.className="profile-row";
+    const dot=document.createElement("span");dot.className="workspace-color";dot.style.background=ws.accent||"var(--cyan)";
+    const info=document.createElement("div");info.className="profile-copy";info.innerHTML='<strong>'+esc(ws.name)+'</strong><span>'+esc(ws.name===state.activeWorkspace?"Active workspace":"Local workspace")+" · "+esc(ws.icon||"square")+'</span>';
+    const open=document.createElement("button");open.className="mini-action";open.textContent=ws.name===state.activeWorkspace?"Active":"Open";open.onclick=async()=>{try{await invoke("switch_workspace",{name:ws.name});await refresh();showWorkspaceManager()}catch(e){toast(e)}};
+    const rename=document.createElement("button");rename.className="mini-action";rename.textContent="Rename";rename.onclick=async()=>{const name=prompt("Workspace name",ws.name);if(!name)return;try{await invoke("rename_workspace",{id:ws.id,name});await refresh();showWorkspaceManager()}catch(e){toast(e)}};
+    row.append(dot,info,open);if(ws.name!=="Default")row.appendChild(rename);body.appendChild(row);
+  });
+  const create=document.createElement("button");create.className="panel-action";create.textContent="+ Create workspace";create.onclick=async()=>{const name=prompt("Workspace name");if(!name)return;try{await invoke("create_workspace",{name});await refresh();showWorkspaceManager()}catch(e){toast(e)}};body.appendChild(create);
+  const duplicate=document.createElement("button");duplicate.className="panel-action";duplicate.textContent="Duplicate active workspace";duplicate.onclick=async()=>{const name=prompt("Copy name",state.activeWorkspace+" Copy");if(!name)return;try{await invoke("duplicate_workspace",{source:state.activeWorkspace,name});await refresh();showWorkspaceManager()}catch(e){toast(e)}};body.appendChild(duplicate);
+}
 async function showProfiles(){
   const body=basePanel("Synth Profiles");
   const current=state.profile||{id:"default",name:"Default",guest:false};
