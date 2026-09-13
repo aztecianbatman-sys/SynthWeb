@@ -1346,6 +1346,35 @@ async function showCookies(){
   }catch(e){body.innerHTML='<div class="panel-row">Site storage unavailable: '+esc(e)+'</div>'}
 }
 
+async function showCommandChains(){
+  const body=basePanel("Command Chains");
+  const actions=[
+    ["new_tab","New tab"],["reload","Reload"],["back","Back"],["forward","Forward"],
+    ["open_devtools","Open DevTools"],["add_bookmark","Add bookmark"],["add_to_shelf","Add to Reading Shelf"],
+    ["reader_mode","Reader Mode"],["page_lens","Page Lens"],["clear_history","Clear history"],["copy_url","Copy URL"]
+  ];
+  const form=document.createElement("div");form.className="chain-builder";
+  const title=document.createElement("input");title.className="setting-control";title.placeholder="Chain name";form.appendChild(title);
+  const select=document.createElement("select");select.className="setting-control";
+  actions.forEach(([id,label])=>{const o=document.createElement("option");o.value=id;o.textContent=label;select.appendChild(o)});
+  form.appendChild(select);
+  const steps=document.createElement("div");steps.className="chain-steps";form.appendChild(steps);
+  const add=document.createElement("button");add.className="panel-action";add.textContent="+ Add step";
+  add.onclick=()=>{const id=select.value;const label=select.selectedOptions[0].textContent;const chip=document.createElement("span");chip.className="model-chip";chip.dataset.action=id;chip.textContent=label+" ×";chip.onclick=()=>chip.remove();steps.appendChild(chip)};form.appendChild(add);
+  const save=document.createElement("button");save.className="panel-action";save.textContent="Save chain";
+  save.onclick=async()=>{const name=title.value.trim();const picked=[...steps.children].map(x=>x.dataset.action);if(!name||!picked.length){toast("Add a name and at least one step.");return}try{await invoke("create_command_chain",{name,steps:picked});toast("Chain saved");showCommandChains()}catch(e){toast(e)}};form.appendChild(save);
+  body.appendChild(form);
+  const rows=await invoke("list_command_chains");
+  if(!rows.length){body.innerHTML+='<div class="panel-row">No command chains saved.</div>';return}
+  rows.forEach(chain=>{
+    const row=document.createElement("div");row.className="tool-row";
+    const info=document.createElement("div");info.className="tool-copy";info.innerHTML='<strong>'+esc(chain.name)+'</strong><span>'+esc(chain.steps.join(" → "))+'</span>';
+    const run=document.createElement("button");run.className="mini-action";run.textContent="Run";run.onclick=async()=>{try{for(const step of chain.steps){if(step==="new_tab")await invoke("new_tab",{private:false});else if(step==="reload")await invoke("reload");else if(step==="back")await invoke("back");else if(step==="forward")await invoke("forward");else if(step==="open_devtools")await invoke("open_devtools");else if(step==="add_bookmark")await invoke("add_bookmark");else if(step==="add_to_shelf")await invoke("add_to_shelf");else if(step==="reader_mode")await invoke("reader_mode");else if(step==="page_lens")await invoke("page_lens");else if(step==="clear_history")await invoke("clear_data_category",{category:"history"});else if(step==="copy_url")await copyCurrentUrl()}toast("Chain complete")}catch(e){toast("Chain stopped: "+e)}};    
+    const del=document.createElement("button");del.className="mini-action danger";del.textContent="Delete";del.onclick=async()=>{if(confirm("Delete command chain?")){await invoke("delete_command_chain",{id:chain.id});showCommandChains()}};
+    row.append(info,run,del);body.appendChild(row);
+  });
+}
+
 async function showAiThreads(){
   const body=basePanel("Synth Threads");
   const create=document.createElement("button");create.className="panel-action";create.textContent="+ New context thread";
