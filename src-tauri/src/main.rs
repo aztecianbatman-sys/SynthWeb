@@ -2603,6 +2603,13 @@ fn clear_ai_history(state: State<AppState>)->AppResult<()>{
 }
 
 #[tauri::command]
+async fn list_ai_model_info(state: State<AppState>)->AppResult<Vec<ai::ModelInfo>>{
+    let endpoint=state.db.get_setting("ai_endpoint")?.unwrap_or_else(||"http://127.0.0.1:11434/v1".into());
+    let provider=state.db.get_setting("ai_provider")?.unwrap_or_else(||"ollama".into());
+    ai::list_model_info(&endpoint,&provider).await.map_err(AppError::Message)
+}
+
+#[tauri::command]
 async fn synth_assist_stream(app: tauri::AppHandle, state: State<AppState>, context:String, question:String)->AppResult<()>{
     if state.db.get_setting("ai_enabled")?.as_deref()!=Some("true"){return Err(AppError::Message("Synth Assist is disabled.".into()))}
     let endpoint=state.db.get_setting("ai_endpoint")?.unwrap_or_else(||"http://127.0.0.1:11434/v1".into());
@@ -2999,7 +3006,7 @@ fn main() {
             rename_workspace, delete_workspace, reorder_tab, move_tab_to_workspace, toggle_pin, close_other_tabs, close_tabs_right, duplicate_workspace, save_session, list_sessions,
             open_session, add_to_shelf, list_shelf, toggle_shelf_read, remove_shelf,
             restore_previous_session, dismiss_restore, export_data, export_diagnostics,
-            reset_browser, ai_status, set_ai_key, clear_ai_key, list_ai_models, ai_presets, list_ai_threads, create_ai_thread, list_ai_messages, add_ai_message, delete_ai_thread, list_ai_history, clear_ai_history, synth_assist, synth_assist_stream, synth_ai_search, request_page_context, request_selection_context, page_lens, reader_mode, create_note, list_notes, delete_note, create_research_board,
+            reset_browser, ai_status, set_ai_key, clear_ai_key, list_ai_models, list_ai_model_info, ai_presets, list_ai_threads, create_ai_thread, list_ai_messages, add_ai_message, delete_ai_thread, list_ai_history, clear_ai_history, synth_assist, synth_assist_stream, synth_ai_search, request_page_context, request_selection_context, page_lens, reader_mode, create_note, list_notes, delete_note, create_research_board,
             list_research_boards, delete_research_board, add_current_to_board, list_board_items,
             complete_onboarding, privacy_preset, get_settings, set_setting, reset_settings,
             azecotron_host_target, azecotron_status, launch_azecotron
