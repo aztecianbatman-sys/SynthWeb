@@ -1078,16 +1078,29 @@ async function showBrowserTools(){
 
 async function showExtensions(){
   const body=basePanel("Extensions");
-  body.innerHTML='<div class="security-hero"><div class="security-orb">⌘</div><div><div class="panel-title">Native extension runtime</div><strong>NOT STARTED</strong><div class="reading-url">Requires Azecotron extension services</div></div></div>';
-  const items=[
-    ["Install / enable / disable","Waiting for Chromium extension runtime"],
-    ["Permissions","Waiting for Chromium extension permission store"],
-    ["Update management","Waiting for verified extension updater"],
-    ["Compatibility tests","Chrome Web Store compatibility is not claimed"]
-  ];
-  items.forEach(([a,b])=>{const r=document.createElement("div");r.className="panel-row";r.innerHTML=esc(a)+' <strong>'+esc(b)+'</strong>';body.appendChild(r)});
-  const runtime=document.createElement("button");runtime.className="panel-action";runtime.textContent="Open Azecotron runtime status";runtime.onclick=showRuntime;body.appendChild(runtime);
+  try{
+    const runtime=await invoke("extension_runtime_status");
+    const rows=await invoke("list_extensions");
+    body.innerHTML='<div class="security-hero"><div class="security-orb">⌘</div><div><div class="panel-title">Extension runtime</div><strong>'+esc(runtime.azecotron==="PENDING NATIVE CHROMIUM EXTENSION SERVICES"?"PARTIAL":"AVAILABLE")+'</strong><div class="reading-url">'+esc(runtime.chrome_web_store)+'</div></div></div>';
+    const list=document.createElement("div");list.className="profile-list";
+    if(!rows.length){
+      const empty=document.createElement("div");empty.className="panel-row";empty.textContent="No unpacked extensions installed.";list.appendChild(empty);
+    }
+    rows.forEach(ext=>{
+      const row=document.createElement("div");row.className="profile-row";
+      const avatar=document.createElement("span");avatar.className="profile-avatar small";avatar.textContent=(ext.name||"E").slice(0,1).toUpperCase();
+      const info=document.createElement("div");info.className="profile-copy";
+      info.innerHTML='<strong>'+esc(ext.name)+' <span style="color:#61788a">v'+esc(ext.version)+'</span></strong><span>'+esc(ext.description||"Unpacked extension")+'</span><span>'+esc(ext.permissions.length?ext.permissions.join(", "):"No declared permissions")+'</span>';
+      const toggle=document.createElement("button");toggle.className="mini-action";toggle.textContent=ext.enabled?"Enabled":"Disabled";toggle.onclick=async()=>{try{await invoke("set_extension_enabled",{id:ext.id,enabled:!ext.enabled});showExtensions()}catch(e){toast(e)}};
+      const remove=document.createElement("button");remove.className="mini-action danger";remove.textContent="Remove";remove.onclick=async()=>{if(!confirm("Remove this extension?"))return;try{await invoke("remove_extension",{id:ext.id});showExtensions()}catch(e){toast(e)}};
+      row.append(avatar,info,toggle,remove);list.appendChild(row);
+    });
+    body.appendChild(list);
+    const install=document.createElement("button");install.className="panel-action";install.textContent="Install unpacked extension";install.onclick=async()=>{const path=prompt("Path to unpacked Chrome extension folder");if(!path)return;try{const ext=await invoke("install_extension",{source:path});toast("Installed "+ext.name);showExtensions()}catch(e){toast(e)}};body.appendChild(install);
+    const note=document.createElement("div");note.className="panel-row";note.textContent="WebView2 can load unpacked Windows extensions. Full Azecotron/Chromium extension lifecycle and store compatibility still require native-runtime verification.";body.appendChild(note);
+  }catch(e){body.innerHTML='<div class="panel-row">Extension manager unavailable: '+esc(e)+'</div>'}
 }
+
 
 async function showMedia(){
   const body=basePanel("Media & WebRTC");
