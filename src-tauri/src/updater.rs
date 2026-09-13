@@ -66,3 +66,56 @@ pub fn backup_current(executable:&Path,backup_dir:&Path)->Result<PathBuf,String>
     std::fs::copy(executable,&backup).map_err(|e|format!("Could not create updater rollback backup: {e}"))?;
     Ok(backup)
 }
+
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PendingUpdate {
+    pub staged_path: String,
+    pub backup_path: String,
+    pub version: String,
+    pub sha256: String,
+}
+
+pub fn sha256_file(path:&Path)->Result<String,String>{
+    let mut file=std::fs::File::open(path).map_err(|e|e.to_string())?;
+    let mut hasher=Sha256::new();
+    let mut buf=[0u8;1024*1024];
+    loop {
+        use std::io::Read;
+        let n=file.read(&mut buf).map_err(|e|e.to_string())?;
+        if n==0 {break;}
+        hasher.update(&buf[..n]);
+    }
+    Ok(format!("{:x}",hasher.finalize()))
+}
+
+pub fn write_pending(root:&Path,pending:&PendingUpdate)->Result<PathBuf,String>{
+    std::fs::create_dir_all(root).map_err(|e|e.to_string())?;
+    let path=root.join("pending-update.json");
+    let temp=root.join("pending-update.tmp");
+    let bytes=serde_json::to_vec_pretty(pending).map_err(|e|e.to_string())?;
+    std::fs::write(&temp,&bytes).map_err(|e|e.to_string())?;
+    std::fs::rename(&temp,&path).map_err(|e|e.to_string())?;
+    Ok(path)
+}
+
+pub fn read_pending(root:&Path)->Result<Option<PendingUpdate>,String>{
+    let path=root.join("pending-update.json");
+    if !path.is_file(){return Ok(None);}
+    let bytes=std::fs::read(path).map_err(|e|e.to_string())?;
+    serde_json::from_slice(&bytes).map(Some).map_err(|e|format!("Invalid pending update: {e}"))
+}
+
+pub fn clear_pending(root:&Path)->Result<(),String>{
+    let path=root.join("pending-update.json");
+    if path.exists(){std::fs::remove_file(path).map_err(|e|e.to_string())?;}
+    Ok(())
+}
+
+pub fn prepare_verified_swap(executable:&Path,staged:&Path,version:&str,sha256:&str,root:&Path)->Result<PendingUpdate,String>{
+    if !staged.is_file(){return Err("Staged update does not exist.".into());}
+    let actual=sha256_file(staged)?;
+    if !actual.eq_ignore_ascii_case(sha256){return Err("Staged update checksum mismatch.".into());}
+    let backup=backup_current(executable,&root.join("backup"))?;
+    Ok(PendingUpdate{staged_path:staged.to_string_lossy().to_string(),backup_path:backup.to_string_lossy().to_string(),version:version.to_string(),sha256:sha256.to_string()})
+}
