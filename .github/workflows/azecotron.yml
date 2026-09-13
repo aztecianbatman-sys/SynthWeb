@@ -54,6 +54,18 @@ jobs:
           Write-Host "host version=$hostVersion" -ForegroundColor Green
           if ([string]::IsNullOrWhiteSpace($hostVersion)) { throw 'Azecotron host did not report a version.' }
 
+      - name: Create build manifest
+        shell: pwsh
+        run: |
+          $src = Join-Path $env:GITHUB_WORKSPACE 'third_party\azecotron-chromium\src'
+          $manifest = [ordered]@{
+            synth_commit = (git rev-parse HEAD).Trim()
+            chromium_revision = 'e6333471674f4d3af9f386bfc2e5e4388333b734'
+            chromium_version = '152.0.7977.119'
+            gn_args = Get-Content (Join-Path $src 'out\Azecotron\args.gn') -Raw
+          }
+          $manifest | ConvertTo-Json -Depth 4 | Set-Content 'azecotron-build-manifest.json'
+
       - name: Verify packaged Azecotron resource layout
         shell: pwsh
         run: |
