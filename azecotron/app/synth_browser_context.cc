@@ -1,9 +1,6 @@
 #include "azecotron/app/synth_browser_context.h"
 
-#include "azecotron/app/synth_download_manager_delegate.h"
-#include "azecotron/app/synth_permission_controller_delegate.h"
-#include "azecotron/app/synth_download_manager_delegate.h"
-#include "azecotron/app/synth_permission_controller_delegate.h"
+#include "content/public/browser/download_manager.h"
 
 namespace synth_azecotron {
 
@@ -13,10 +10,11 @@ SynthBrowserContext::SynthBrowserContext(
     : off_the_record_(off_the_record), path_(path), permission_delegate_(std::make_unique<SynthPermissionControllerDelegate>(path.AppendASCII("synth-policy.json"))), download_delegate_(std::make_unique<SynthDownloadManagerDelegate>(path.AppendASCII("Downloads"))) {}
 
 SynthBrowserContext::~SynthBrowserContext() {
+  if (auto* manager = GetDownloadManager()) {
+    manager->SetDelegate(nullptr);
+    manager->Shutdown();
+  }
   ShutdownStoragePartitions();
-  permission_delegate_.reset();
-  download_delegate_->Shutdown();
-  download_delegate_.reset();
 }
 
 std::unique_ptr<content::ZoomLevelDelegate>
