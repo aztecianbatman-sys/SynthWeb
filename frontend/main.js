@@ -696,6 +696,39 @@ function showMenuPanel() {
   });
 }
 
+async function showDataControls(){
+  const body=basePanel("Clear browser data");
+  const categories=[
+    ["history","Browsing history","Visited pages and local search memory"],
+    ["downloads","Downloads","Download history and verification metadata"],
+    ["permissions","Permissions","Per-site permission overrides and history"],
+    ["ai","Synth Assist","Local AI conversation/history data"],
+    ["sessions","Saved sessions","Saved tab/session snapshots"],
+    ["shelf","Reading Shelf","Saved reading items"],
+    ["notes","Notes & Research","Local notes and research boards"],
+    ["site_data","Current site data","Cookies, cache, local/session storage and IndexedDB in open tabs"],
+    ["all","Everything","All removable browser data; bookmarks and profiles remain"]
+  ];
+  const selected=new Set();
+  categories.forEach(([id,title,desc])=>{
+    const row=document.createElement("label");row.className="data-choice";
+    const input=document.createElement("input");input.type="checkbox";input.onchange=()=>input.checked?selected.add(id):selected.delete(id);
+    const copy=document.createElement("div");copy.innerHTML='<strong>'+esc(title)+'</strong><span>'+esc(desc)+'</span>';
+    row.append(input,copy);body.appendChild(row);
+  });
+  const erase=document.createElement("button");erase.className="panel-action";erase.textContent="Clear selected data";
+  erase.onclick=async()=>{
+    if(!selected.size){toast("Choose at least one category.");return}
+    if(!confirm("Delete the selected browser data? This cannot be undone."))return;
+    try{
+      for(const category of selected) await invoke("clear_data_category",{category});
+      await refresh();toast("Selected browser data cleared");showDataControls();
+    }catch(e){toast(e)}
+  };
+  body.appendChild(erase);
+  const note=document.createElement("div");note.className="panel-row";note.textContent="Bookmarks, saved profiles and explicit profile configuration are not removed by category clearing.";body.appendChild(note);
+}
+
 async function showSettings(){
   const body=basePanel("Settings");
   const settings=await invoke("get_settings");
