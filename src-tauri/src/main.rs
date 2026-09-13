@@ -355,6 +355,7 @@ impl Db {
                title TEXT NOT NULL,
                url TEXT NOT NULL UNIQUE,
                folder TEXT NOT NULL DEFAULT 'Bookmarks',
+               workspace TEXT NOT NULL DEFAULT 'Default',
                created_at INTEGER NOT NULL
              );
              CREATE TABLE IF NOT EXISTS history(
@@ -395,6 +396,7 @@ impl Db {
                url TEXT NOT NULL UNIQUE,
                tags TEXT NOT NULL DEFAULT '',
                is_read INTEGER NOT NULL DEFAULT 0,
+               workspace TEXT NOT NULL DEFAULT 'Default',
                saved_at INTEGER NOT NULL
              );
              CREATE TABLE IF NOT EXISTS settings(
