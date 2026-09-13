@@ -1408,6 +1408,49 @@ async function showCommandChains(){
   });
 }
 
+async function showAssist(){
+  const body=basePanel("Synth Assist");
+  try{
+    const info=await invoke("ai_status");
+    const presets=await invoke("ai_presets");
+    body.innerHTML='<div class="security-hero"><div class="security-orb">✦</div><div><div class="panel-title">Synth Assist</div><strong>'+esc(info.enabled?"Enabled":"Disabled")+'</strong><div class="reading-url">'+esc(info.provider||"No provider")+' · '+esc(info.model||"No model")+'</div></div></div>';
+    const status=document.createElement("div");status.className="assist-mini-grid";
+    [["Context","Explicit only"],["Credential",info.keyStored?"Securely stored":"Not stored"],["Mode",info.enabled?"Remote/local model":"Off"],["Search","AI Search available"]].forEach(([k,v])=>{const x=document.createElement("div");x.innerHTML='<span>'+esc(k)+'</span><b>'+esc(v)+'</b>';status.appendChild(x)});body.appendChild(status);
+
+    const provider=document.createElement("select");provider.className="setting-control";
+    presets.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.name;provider.appendChild(o)});
+    provider.value=presets.some(p=>p.id===info.provider)?info.provider:"custom";
+    provider.onchange=async()=>{const p=presets.find(x=>x.id===provider.value);if(!p)return;try{await invoke("set_setting",{key:"ai_provider",value:p.id});await invoke("set_setting",{key:"ai_endpoint",value:p.endpoint});await invoke("set_setting",{key:"ai_model",value:""});showAssist()}catch(e){toast(e)}};body.appendChild(provider);
+
+    const endpoint=document.createElement("input");endpoint.className="setting-control";endpoint.value=info.endpoint||"";endpoint.placeholder="HTTPS endpoint or localhost";endpoint.onchange=async()=>{try{await invoke("set_setting",{key:"ai_endpoint",value:endpoint.value)};toast("Endpoint saved")}catch(e){toast(e)}};body.appendChild(endpoint);
+
+    const model=document.createElement("input");model.className="setting-control";model.value=info.model||"";model.placeholder="Model id";model.onchange=async()=>{try{await invoke("set_setting",{key:"ai_model",value:model.value)};toast("Model saved")}catch(e){toast(e)}};body.appendChild(model);
+
+    const models=document.createElement("div");models.className="assist-models";body.appendChild(models);
+    const discover=document.createElement("button");discover.className="panel-action";discover.textContent="Discover models";
+    discover.onclick=async()=>{try{const list=await invoke("list_ai_model_info");models.replaceChildren();list.slice(0,50).forEach(meta=>{const card=document.createElement("div");card.className="model-info-card";const b=document.createElement("button");b.className="model-chip";b.textContent=meta.id;b.onclick=async()=>{model.value=meta.id;await invoke("set_setting",{key:"ai_model",value:meta.id});toast("Model selected")};const m=document.createElement("span");m.textContent=[meta.family,meta.context_window?formatNumber(meta.context_window)+" context":null,meta.supports_vision?"Vision":null,meta.supports_tools?"Tools":null].filter(Boolean).join(" · ");card.append(b,m);models.appendChild(card)})}catch(e){toast(e)}};body.appendChild(discover);
+
+    const enabled=document.createElement("label");enabled.className="setting-toggle";const ec=document.createElement("span");ec.textContent="Enable Synth Assist";const ei=document.createElement("input");ei.type="checkbox";ei.checked=!!info.enabled;ei.onchange=async()=>{await invoke("set_setting",{key:"ai_enabled",value:String(ei.checked)});showAssist()};enabled.append(ec,ei);body.appendChild(enabled);
+
+    const page=document.createElement("label");page.className="setting-toggle";const pc=document.createElement("span");pc.textContent="Allow page context on request";const pi=document.createElement("input");pi.type="checkbox";pi.checked=state.settings.ai_page_context==="true";pi.onchange=async()=>{await invoke("set_setting",{key:"ai_page_context",value:String(pi.checked)})};page.append(pc,pi);body.appendChild(page);
+
+    const selection=document.createElement("label");selection.className="setting-toggle";const sc=document.createElement("span");sc.textContent="Allow selection context on request";const si=document.createElement("input");si.type="checkbox";si.checked=state.settings.ai_selection_context==="true";si.onchange=async()=>{await invoke("set_setting",{key:"ai_selection_context",value:String(si.checked)})};selection.append(sc,si);body.appendChild(selection);
+
+    const key=document.createElement("input");key.type="password";key.className="setting-control";key.placeholder=info.keyStored?"Replace secure API key":"Store API key securely";body.appendChild(key);
+    const actions=document.createElement("div");actions.className="feature-actions";
+    const save=document.createElement("button");save.className="feature-action primary";save.textContent="Save credential";save.onclick=async()=>{if(!key.value)return;try{await invoke("set_ai_key",{provider:info.provider,key:key.value});key.value="";toast("Credential stored")}catch(e){toast(e)}};
+    const clear=document.createElement("button");clear.className="feature-action";clear.textContent="Clear credential";clear.onclick=async()=>{try{await invoke("clear_ai_key",{provider:info.provider});toast("Credential cleared");showAssist()}catch(e){toast(e)}};
+    actions.append(save,clear);body.appendChild(actions);
+
+    const ask=document.createElement("button");ask.className="panel-action";ask.textContent="Ask about current page";ask.onclick=async()=>{try{await invoke("request_page_context")}catch(e){toast(e)}};body.appendChild(ask);
+    const sel=document.createElement("button");sel.className="panel-action";sel.textContent="Ask about selection";sel.onclick=()=>requestSelectionAction("ask");body.appendChild(sel);
+    const search=document.createElement("button");search.className="panel-action";search.textContent="AI Search";search.onclick=async()=>{const q=prompt("AI Search");if(!q)return;try{showAiAnswer(await invoke("synth_ai_search",{query:q}),"AI Search")}catch(e){toast(e)}};body.appendChild(search);
+    const threads=document.createElement("button");threads.className="panel-action";threads.textContent="Context Threads";threads.onclick=showAiThreads;body.appendChild(threads);
+  }catch(e){body.innerHTML='<div class="panel-row">Synth Assist unavailable: '+esc(e)+'</div>'}
+}
+
+function formatNumber(n){return Number(n||0).toLocaleString()}
+
 async function showAiThreads(){
   const body=basePanel("Synth Threads");
   const create=document.createElement("button");create.className="panel-action";create.textContent="+ New context thread";
