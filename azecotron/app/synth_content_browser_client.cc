@@ -3,7 +3,6 @@
 #include <vector>
 
 #include "azecotron/app/synth_browser_main_parts.h"
-#include "azecotron/app/synth_devtools_delegate.h"
 #include "azecotron/app/synth_tracker_throttle.h"
 #include "azecotron/app/synth_devtools_manager_delegate.h"
 #include "content/public/browser/browser_main_parts.h"
@@ -44,9 +43,11 @@ SynthContentBrowserClient::GetWebContentsViewDelegate(
   return nullptr;
 }
 
-std::unique_ptr<content::DevToolsManagerDelegate>
-SynthContentBrowserClient::CreateDevToolsManagerDelegate() {
-  return std::make_unique<SynthDevToolsManagerDelegate>();
+content::DevToolsManagerDelegate*
+SynthContentBrowserClient::GetDevToolsManagerDelegate() {
+  if (!devtools_delegate_)
+    devtools_delegate_ = std::make_unique<SynthDevToolsManagerDelegate>();
+  return devtools_delegate_.get();
 }
 
 std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
