@@ -1422,7 +1422,7 @@ async function showAssist(){
     provider.value=presets.some(p=>p.id===info.provider)?info.provider:"custom";
     provider.onchange=async()=>{const p=presets.find(x=>x.id===provider.value);if(!p)return;try{await invoke("set_setting",{key:"ai_provider",value:p.id});await invoke("set_setting",{key:"ai_endpoint",value:p.endpoint});await invoke("set_setting",{key:"ai_model",value:""});showAssist()}catch(e){toast(e)}};body.appendChild(provider);
 
-    const endpoint=document.createElement("input");endpoint.className="setting-control";endpoint.value=info.endpoint||"";endpoint.placeholder="HTTPS endpoint or localhost";endpoint.onchange=async()=>{try{await invoke("set_setting",{key:"ai_endpoint",value:endpoint.value)};toast("Endpoint saved")}catch(e){toast(e)}};body.appendChild(endpoint);
+    const endpoint=document.createElement("input");endpoint.className="setting-control";endpoint.value=info.endpoint||"";endpoint.placeholder="HTTPS endpoint or localhost";endpoint.onchange=async()=>{try{await invoke("set_setting",{key:"ai_endpoint",value:endpoint.value});toast("Endpoint saved")}catch(e){toast(e)}};body.appendChild(endpoint);
 
     const model=document.createElement("input");model.className="setting-control";model.value=info.model||"";model.placeholder="Model id";model.onchange=async()=>{try{await invoke("set_setting",{key:"ai_model",value:model.value)};toast("Model saved")}catch(e){toast(e)}};body.appendChild(model);
 
