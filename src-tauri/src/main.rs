@@ -107,6 +107,8 @@ struct SavedSession {
     id: i64,
     name: String,
     created_at: i64,
+    tab_count: i64,
+    data_bytes: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -379,7 +381,9 @@ impl Db {
                id INTEGER PRIMARY KEY,
                name TEXT NOT NULL UNIQUE,
                created_at INTEGER NOT NULL,
-               data TEXT NOT NULL
+               data TEXT NOT NULL,
+               tab_count INTEGER NOT NULL DEFAULT 0,
+               data_bytes INTEGER NOT NULL DEFAULT 0
              );
              CREATE TABLE IF NOT EXISTS reading_shelf(
                id INTEGER PRIMARY KEY,
@@ -563,6 +567,12 @@ impl Db {
 
         {
             let conn = self.connect()?;
+            if !column_exists("sessions", "tab_count")? {
+                conn.execute("ALTER TABLE sessions ADD COLUMN tab_count INTEGER NOT NULL DEFAULT 0", [])?;
+            }
+            if !column_exists("sessions", "data_bytes")? {
+                conn.execute("ALTER TABLE sessions ADD COLUMN data_bytes INTEGER NOT NULL DEFAULT 0", [])?;
+            }
             if !column_exists("bookmarks", "workspace")? {
                 conn.execute("ALTER TABLE bookmarks ADD COLUMN workspace TEXT NOT NULL DEFAULT 'Default'", [])?;
             }
@@ -770,26 +780,26 @@ impl Db {
         let name=name.trim();
         if name.is_empty() || name.len()>80 { return Err(AppError::Message("Session name must be 1–80 characters.".into())); }
         let data=serde_json::to_string(tabs).map_err(|e|AppError::Message(e.to_string()))?;
+        let bytes=data.len() as i64;
+        let count=tabs.len() as i64;
         self.connect()?.execute(
-            "INSERT INTO sessions(name,created_at,data) VALUES(?1,?2,?3)
-             ON CONFLICT(name) DO UPDATE SET created_at=excluded.created_at,data=excluded.data",
-            rusqlite::params![name,Self::now(),data]
+            "INSERT INTO sessions(name,created_at,data,tab_count,data_bytes) VALUES(?1,?2,?3,?4,?5)
+             ON CONFLICT(name) DO UPDATE SET created_at=excluded.created_at,data=excluded.data,tab_count=excluded.tab_count,data_bytes=excluded.data_bytes",
+            rusqlite::params![name,Self::now(),data,count,bytes]
         )?;
         let c=self.connect()?;
-        Ok(c.query_row("SELECT id,name,created_at FROM sessions WHERE name=?1",[name],|r|Ok(SavedSession{id:r.get(0)?,name:r.get(1)?,created_at:r.get(2)?}))?)
+        Ok(c.query_row("SELECT id,name,created_at,tab_count,data_bytes FROM sessions WHERE name=?1",[name],|r|Ok(SavedSession{
+            id:r.get(0)?,name:r.get(1)?,created_at:r.get(2)?,tab_count:r.get(3)?,data_bytes:r.get(4)?
+        }))?)
     }
 
     fn list_sessions(&self)->AppResult<Vec<SavedSession>>{
         let c=self.connect()?;
-        let mut s=c.prepare("SELECT id,name,created_at FROM sessions ORDER BY created_at DESC")?;
-        let rows=s.query_map([],|r|Ok(SavedSession{id:r.get(0)?,name:r.get(1)?,created_at:r.get(2)?}))?;
+        let mut s=c.prepare("SELECT id,name,created_at,tab_count,data_bytes FROM sessions ORDER BY created_at DESC")?;
+        let rows=s.query_map([],|r|Ok(SavedSession{
+            id:r.get(0)?,name:r.get(1)?,created_at:r.get(2)?,tab_count:r.get(3)?,data_bytes:r.get(4)?
+        }))?;
         Ok(rows.collect::<Result<Vec<_>,_>>()?)
-    }
-
-    fn load_session(&self,id:i64)->AppResult<Vec<Tab>>{
-        let c=self.connect()?;
-        let data:String=c.query_row("SELECT data FROM sessions WHERE id=?1",[id],|r|r.get(0))?;
-        serde_json::from_str(&data).map_err(|e|AppError::Message(e.to_string()))
     }
 
     fn list_extensions(&self)->AppResult<Vec<ExtensionInfo>>{
