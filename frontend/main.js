@@ -1207,7 +1207,8 @@ async function showPrivacy(){
     const checks=document.createElement("div");checks.className="privacy-checks";
     audit.checks.forEach(check=>{const row=document.createElement("div");row.innerHTML='<span>'+esc(check.name)+'</span><b class="'+(check.passed?"pass":"fail")+'">'+(check.passed?"✓":"!")+'</b>';checks.appendChild(row)});body.appendChild(checks);
     const perm=document.createElement("button");perm.className="panel-action";perm.textContent="Per-site permissions";perm.onclick=showSitePermissions;body.appendChild(perm);
-    const cookies=document.createElement("button");cookies.className="panel-action";cookies.textContent="Cookies & site storage";cookies.onclick=showCookies;body.appendChild(cookies);
+    const cookies=document.createElement("button");cookies.className="panel-action";cookies.textContent="Cookies";cookies.onclick=showCookies;body.appendChild(cookies);
+    const storage=document.createElement("button");storage.className="panel-action";storage.textContent="Site Storage";storage.onclick=showSiteStorage;body.appendChild(storage);
     const report=document.createElement("button");report.className="panel-action";report.textContent="Privacy diagnostics";report.onclick=async()=>{try{const data=await invoke("export_diagnostics");toast("Diagnostics exported: "+data.path)}catch(e){toast(e)}};body.appendChild(report);
     const strict=document.createElement("button");strict.className="panel-action";strict.textContent="Apply Shielded privacy preset";strict.onclick=async()=>{try{await invoke("privacy_preset");await refresh();toast("Shielded preset applied");showPrivacy()}catch(e){toast(e)}};body.appendChild(strict);
     const data=document.createElement("button");data.className="panel-action";data.textContent="Choose data to clear";data.onclick=showDataControls;body.appendChild(data);
@@ -1242,6 +1243,25 @@ async function showSitePermissions(){
   const history=document.createElement("button");history.className="panel-action";history.textContent="Permission history";history.onclick=async()=>{const items=await invoke("list_permission_history",{origin:currentOrigin||null});const b=basePanel("Permission history");items.slice(0,60).forEach(x=>{const r=document.createElement("div");r.className="panel-row";r.textContent=x.origin+" · "+x.kind+" · "+x.decision;b.appendChild(r)})};body.appendChild(history);
 }
 
+
+async function showSiteStorage(){
+  const body=basePanel("Site Storage");
+  try{
+    const data=await invoke("site_storage");
+    const groups=[["localStorage",data.localStorageKeys||[]],["sessionStorage",data.sessionStorageKeys||[]],["indexedDB",data.indexedDbNames||[]]];
+    groups.forEach(([kind,items])=>{
+      const head=document.createElement("div");head.className="panel-section-title";head.textContent=kind+" · "+items.length;body.appendChild(head);
+      if(!items.length){const empty=document.createElement("div");empty.className="panel-row";empty.textContent="No entries";body.appendChild(empty);return}
+      items.slice(0,100).forEach(name=>{
+        const row=document.createElement("div");row.className="reading-row";
+        const info=document.createElement("div");info.className="reading-info";info.innerHTML='<div class="reading-title">'+esc(name)+'</div><div class="reading-url">'+esc(kind)+'</div>';
+        const del=document.createElement("button");del.className="mini-action danger";del.textContent="Delete";del.onclick=async()=>{if(!confirm("Delete "+kind+" entry?"))return;try{await invoke("delete_site_storage_item",{kind,name});showSiteStorage()}catch(e){toast(e)}};
+        row.append(info,del);body.appendChild(row);
+      });
+    });
+    const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear all site storage";clear.onclick=async()=>{if(confirm("Clear all cookies and site storage for this site?")){try{await invoke("clear_current_site_data");toast("Site data cleared");showSiteStorage()}catch(e){toast(e)}}};body.appendChild(clear);
+  }catch(e){body.innerHTML='<div class="panel-row">Site storage unavailable: '+esc(e)+'</div>'}
+}
 
 async function showCookies(){
   const body=basePanel("Current site cookies");
