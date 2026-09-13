@@ -10,6 +10,9 @@
 
 namespace synth_azecotron {
 
+class SynthDownloadManagerDelegate;
+class SynthPermissionControllerDelegate;
+
 class SynthBrowserContext final : public content::BrowserContext {
  public:
   SynthBrowserContext(bool off_the_record, const base::FilePath& path);
@@ -43,6 +46,8 @@ class SynthBrowserContext final : public content::BrowserContext {
   std::unique_ptr<SynthPermissionControllerDelegate> permission_delegate_;
   std::unique_ptr<SynthDownloadManagerDelegate> download_delegate_;
   const base::FilePath path_;
+  std::unique_ptr<SynthDownloadManagerDelegate> download_delegate_;
+  std::unique_ptr<SynthPermissionControllerDelegate> permission_delegate_;
 };
 
 }  // namespace synth_azecotron
