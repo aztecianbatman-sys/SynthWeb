@@ -28,7 +28,7 @@ class SynthBrowserMainParts final : public content::BrowserMainParts {
   }
 
  protected:
-  int PreMainMessageLoopRun() override;
+  void PreMainMessageLoopRun() override;
   void PostMainMessageLoopRun() override;
 
  private:
