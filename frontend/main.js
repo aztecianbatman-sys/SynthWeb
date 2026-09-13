@@ -1424,7 +1424,7 @@ async function showAssist(){
 
     const endpoint=document.createElement("input");endpoint.className="setting-control";endpoint.value=info.endpoint||"";endpoint.placeholder="HTTPS endpoint or localhost";endpoint.onchange=async()=>{try{await invoke("set_setting",{key:"ai_endpoint",value:endpoint.value});toast("Endpoint saved")}catch(e){toast(e)}};body.appendChild(endpoint);
 
-    const model=document.createElement("input");model.className="setting-control";model.value=info.model||"";model.placeholder="Model id";model.onchange=async()=>{try{await invoke("set_setting",{key:"ai_model",value:model.value)};toast("Model saved")}catch(e){toast(e)}};body.appendChild(model);
+    const model=document.createElement("input");model.className="setting-control";model.value=info.model||"";model.placeholder="Model id";model.onchange=async()=>{try{await invoke("set_setting",{key:"ai_model",value:model.value});toast("Model saved")}catch(e){toast(e)}};body.appendChild(model);
 
     const models=document.createElement("div");models.className="assist-models";body.appendChild(models);
     const discover=document.createElement("button");discover.className="panel-action";discover.textContent="Discover models";
