@@ -1318,30 +1318,6 @@ async function showWindows(){
   const current=document.createElement("div");current.className="panel-row";current.innerHTML='Current window <strong>Main</strong>';body.appendChild(current);
 }
 
-async async function showDataControls(){
-  const body=basePanel("Data Controls");
-  body.innerHTML='<div class="security-hero"><div class="security-orb">◫</div><div><div class="panel-title">Local browser data</div><strong>Profile scoped</strong><div class="reading-url">Choose exactly what Synth should remove.</div></div></div>';
-  const categories=[
-    ["history","Browsing + Cortis search history","Removes navigation and query history."],
-    ["downloads","Download records","Removes local download metadata and checksum records."],
-    ["permissions","Permission history","Resets stored per-origin permission decisions."],
-    ["ai","Synth Assist history","Removes stored AI history; active providers are untouched."],
-    ["sessions","Saved sessions","Removes saved session snapshots."],
-    ["shelf","Reading Shelf","Removes saved reading items."],
-    ["notes","Notes + research boards","Removes local notes and research boards."],
-    ["site_data","Current-site storage","Clears cookies/cache/site data through the active host where supported."],
-    ["all","Everything except bookmarks","Performs the broad local-data reset."]
-  ];
-  categories.forEach(([id,title,desc])=>{
-    const row=document.createElement("div");row.className="tool-row";
-    const info=document.createElement("div");info.className="tool-copy";info.innerHTML='<strong>'+esc(title)+'</strong><span>'+esc(desc)+'</span>';
-    const action=document.createElement("button");action.className="mini-action"+(id==="all"?" danger":"");action.textContent=id==="all"?"Reset":"Clear";
-    action.onclick=async()=>{if(!confirm("Clear "+title.toLowerCase()+"?"))return;try{await invoke("clear_data_category",{category:id});await refresh();toast(title+" cleared");showDataControls()}catch(e){toast(e)}};
-    row.append(info,action);body.appendChild(row);
-  });
-  const note=document.createElement("div");note.className="panel-row";note.textContent="Bookmarks and installed profile identity are preserved by the category controls.";body.appendChild(note);
-}
-
 async function showBrowserTools(){
 
   const body=basePanel("Browser Tools");
