@@ -35,7 +35,7 @@ void SynthBrowserMainParts::InitializeBrowserContexts() {
       true, root.AppendASCII("AzecotronPrivate"));
 }
 
-int SynthBrowserMainParts::PreMainMessageLoopRun() {
+void SynthBrowserMainParts::PreMainMessageLoopRun() {
   InitializeBrowserContexts();
 
   const auto& command_line = *base::CommandLine::ForCurrentProcess();
@@ -45,7 +45,7 @@ int SynthBrowserMainParts::PreMainMessageLoopRun() {
 
   GURL target(url);
   if (!target.is_valid())
-    return 1;
+    return;
 
   runtime_host_ =
       std::make_unique<AzecotronRuntimeHost>(browser_context_.get());
@@ -53,10 +53,10 @@ int SynthBrowserMainParts::PreMainMessageLoopRun() {
   content::WebContents::CreateParams params(browser_context_.get());
   auto web_contents = content::WebContents::Create(params);
   if (!web_contents)
-    return 1;
+    return;
 
   if (!runtime_host_->AdoptWebContents(std::move(web_contents), target))
-    return 1;
+    return;
 
   return content::RESULT_CODE_NORMAL_EXIT;
 }
