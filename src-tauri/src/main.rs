@@ -24,7 +24,7 @@ use std::{
 use tauri::{
     menu::{Menu, MenuItem},
     webview::{DownloadEvent, NewWindowResponse, PageLoadEvent, PermissionKind, PermissionResponse, WebviewBuilder, WebviewUrl},
-    Emitter, LogicalPosition, LogicalSize, Manager, State, WindowEvent,
+    Emitter, LogicalPosition, LogicalSize, Manager, State, WebviewWindowBuilder, WindowEvent,
 };
 use thiserror::Error;
 use url::Url;
@@ -1540,6 +1540,20 @@ fn create_page_webview<R: tauri::Runtime>(
 
     view.hide().map_err(|e| AppError::Message(e.to_string()))?;
     Ok(())
+}
+
+#[tauri::command]
+fn create_browser_window(app: tauri::AppHandle)->AppResult<String>{
+    let id=format!("browser-{}",Db::now());
+    WebviewWindowBuilder::new(&app,&id,WebviewUrl::App("index.html".into()))
+      .title("Synth Browser")
+      .inner_size(1200.0,800.0)
+      .min_inner_size(900.0,600.0)
+      .resizable(true)
+      .center()
+      .build()
+      .map_err(|e|AppError::Message(e.to_string()))?;
+    Ok(id)
 }
 
 #[tauri::command]
@@ -3100,7 +3114,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            get_snapshot, navigate, search_with_mode, site_info, page_source, find_in_page, get_selection, list_profiles, switch_profile, create_profile, delete_profile, new_tab, activate_tab, close_tab, reopen_closed_tab,
+            create_browser_window, get_snapshot, navigate, search_with_mode, site_info, page_source, find_in_page, get_selection, list_profiles, switch_profile, create_profile, delete_profile, new_tab, activate_tab, close_tab, reopen_closed_tab,
             reload, stop_or_reload, print_page, set_zoom, back, forward, open_devtools, close_devtools, devtools_status,
             add_bookmark, list_bookmarks, list_history, clear_browsing_data, runtime_info,
             list_downloads, remove_download_history, open_download, reveal_download, verify_download,
