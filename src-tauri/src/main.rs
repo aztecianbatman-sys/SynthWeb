@@ -76,6 +76,7 @@ struct Bookmark {
     title: String,
     url: String,
     folder: String,
+    workspace: String,
     created_at: i64,
 }
 
@@ -112,6 +113,7 @@ struct ShelfItem {
     url: String,
     tags: String,
     is_read: bool,
+    workspace: String,
     saved_at: i64,
 }
 
@@ -436,6 +438,27 @@ impl Db {
                ('default_zoom','100'),
                ('autofill','false');"
         )?;
+
+        let column_exists = |table: &str, column: &str| -> Result<bool, rusqlite::Error> {
+            let conn = self.connect()?;
+            let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})"))?;
+            let mut rows = stmt.query([])?;
+            while let Some(row) = rows.next()? {
+                let name: String = row.get(1)?;
+                if name == column { return Ok(true); }
+            }
+            Ok(false)
+        };
+
+        {
+            let conn = self.connect()?;
+            if !column_exists("bookmarks", "workspace")? {
+                conn.execute("ALTER TABLE bookmarks ADD COLUMN workspace TEXT NOT NULL DEFAULT 'Default'", [])?;
+            }
+            if !column_exists("reading_shelf", "workspace")? {
+                conn.execute("ALTER TABLE reading_shelf ADD COLUMN workspace TEXT NOT NULL DEFAULT 'Default'", [])?;
+            }
+        }
         Ok(())
     }
 
@@ -466,26 +489,42 @@ impl Db {
         Ok(())
     }
 
-    fn add_bookmark(&self, title: &str, url: &str) -> AppResult<Bookmark> {
+    fn add_bookmark(&self, title: &str, url: &str, workspace: &str) -> AppResult<Bookmark> {
         self.connect()?.execute(
-            "INSERT INTO bookmarks(title,url,folder,created_at) VALUES(?1,?2,'Bookmarks',?3)
-             ON CONFLICT(url) DO UPDATE SET title=excluded.title",
-            rusqlite::params![title, url, Self::now()]
+            "INSERT INTO bookmarks(title,url,folder,workspace,created_at) VALUES(?1,?2,'Bookmarks',?3,?4)
+             ON CONFLICT(url) DO UPDATE SET title=excluded.title,workspace=excluded.workspace",
+            rusqlite::params![title, url, workspace, Self::now()]
         )?;
         let c = self.connect()?;
-        let mut s = c.prepare("SELECT id,title,url,folder,created_at FROM bookmarks WHERE url=?1")?;
-        Ok(s.query_row([url], |r| Ok(Bookmark {
-            id:r.get(0)?, title:r.get(1)?, url:r.get(2)?, folder:r.get(3)?, created_at:r.get(4)?
-        }))?)
+        Ok(c.query_row(
+            "SELECT id,title,url,folder,workspace,created_at FROM bookmarks WHERE url=?1",
+            [url],
+            |r| Ok(Bookmark {
+                id:r.get(0)?, title:r.get(1)?, url:r.get(2)?, folder:r.get(3)?,
+                workspace:r.get(4)?, created_at:r.get(5)?
+            })
+        )?)
     }
 
-    fn list_bookmarks(&self) -> AppResult<Vec<Bookmark>> {
+    fn list_bookmarks(&self, workspace: Option<&str>) -> AppResult<Vec<Bookmark>> {
         let c = self.connect()?;
-        let mut s = c.prepare("SELECT id,title,url,folder,created_at FROM bookmarks ORDER BY created_at DESC")?;
-        let rows = s.query_map([], |r| Ok(Bookmark {
-            id:r.get(0)?, title:r.get(1)?, url:r.get(2)?, folder:r.get(3)?, created_at:r.get(4)?
-        }))?;
-        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+        let mut s = if workspace.is_some() {
+            c.prepare("SELECT id,title,url,folder,workspace,created_at FROM bookmarks WHERE workspace=?1 ORDER BY created_at DESC")?
+        } else {
+            c.prepare("SELECT id,title,url,folder,workspace,created_at FROM bookmarks ORDER BY created_at DESC")?
+        };
+        let rows = if let Some(ws) = workspace {
+            s.query_map([ws], |r| Ok(Bookmark {
+                id:r.get(0)?, title:r.get(1)?, url:r.get(2)?, folder:r.get(3)?,
+                workspace:r.get(4)?, created_at:r.get(5)?
+            }))?
+        } else {
+            s.query_map([], |r| Ok(Bookmark {
+                id:r.get(0)?, title:r.get(1)?, url:r.get(2)?, folder:r.get(3)?,
+                workspace:r.get(4)?, created_at:r.get(5)?
+            }))?
+        };
+        Ok(rows.collect::<Result<Vec<_>,_>>()?)
     }
 
     fn list_downloads(&self)->AppResult<Vec<DownloadEntry>>{
@@ -751,22 +790,31 @@ impl Db {
 
 
 
-    fn add_shelf(&self,title:&str,url:&str)->AppResult<ShelfItem>{
+    fn add_shelf(&self,title:&str,url:&str,workspace:&str)->AppResult<ShelfItem>{
         self.connect()?.execute(
-            "INSERT INTO reading_shelf(title,url,tags,is_read,saved_at) VALUES(?1,?2,'',0,?3)
-             ON CONFLICT(url) DO UPDATE SET title=excluded.title",
-            rusqlite::params![title,url,Self::now()]
+            "INSERT INTO reading_shelf(title,url,tags,is_read,workspace,saved_at) VALUES(?1,?2,'',0,?3,?4)
+             ON CONFLICT(url) DO UPDATE SET title=excluded.title,workspace=excluded.workspace",
+            rusqlite::params![title,url,workspace,Self::now()]
         )?;
         let c=self.connect()?;
-        Ok(c.query_row("SELECT id,title,url,tags,is_read,saved_at FROM reading_shelf WHERE url=?1",[url],|r|Ok(ShelfItem{
-            id:r.get(0)?,title:r.get(1)?,url:r.get(2)?,tags:r.get(3)?,is_read:r.get::<_,i64>(4)?!=0,saved_at:r.get(5)?
+        Ok(c.query_row("SELECT id,title,url,tags,is_read,workspace,saved_at FROM reading_shelf WHERE url=?1",[url],|r|Ok(ShelfItem{
+            id:r.get(0)?,title:r.get(1)?,url:r.get(2)?,tags:r.get(3)?,
+            is_read:r.get::<_,i64>(4)?!=0,workspace:r.get(5)?,saved_at:r.get(6)?
         }))?)
     }
 
-    fn list_shelf(&self)->AppResult<Vec<ShelfItem>>{
+    fn list_shelf(&self, workspace: Option<&str>)->AppResult<Vec<ShelfItem>>{
         let c=self.connect()?;
-        let mut s=c.prepare("SELECT id,title,url,tags,is_read,saved_at FROM reading_shelf ORDER BY saved_at DESC")?;
-        let rows=s.query_map([],|r|Ok(ShelfItem{id:r.get(0)?,title:r.get(1)?,url:r.get(2)?,tags:r.get(3)?,is_read:r.get::<_,i64>(4)?!=0,saved_at:r.get(5)?}))?;
+        let mut s=if workspace.is_some(){
+            c.prepare("SELECT id,title,url,tags,is_read,workspace,saved_at FROM reading_shelf WHERE workspace=?1 ORDER BY saved_at DESC")?
+        }else{
+            c.prepare("SELECT id,title,url,tags,is_read,workspace,saved_at FROM reading_shelf ORDER BY saved_at DESC")?
+        };
+        let rows=if let Some(ws)=workspace{
+            s.query_map([ws],|r|Ok(ShelfItem{id:r.get(0)?,title:r.get(1)?,url:r.get(2)?,tags:r.get(3)?,is_read:r.get::<_,i64>(4)?!=0,workspace:r.get(5)?,saved_at:r.get(6)?}))?
+        }else{
+            s.query_map([],|r|Ok(ShelfItem{id:r.get(0)?,title:r.get(1)?,url:r.get(2)?,tags:r.get(3)?,is_read:r.get::<_,i64>(4)?!=0,workspace:r.get(5)?,saved_at:r.get(6)?}))?
+        };
         Ok(rows.collect::<Result<Vec<_>,_>>()?)
     }
 
@@ -1436,12 +1484,13 @@ fn add_bookmark(state: State<AppState>) -> AppResult<Bookmark> {
     let id = state.active_id.lock().unwrap().clone();
     let tab = state.tabs.lock().unwrap().iter().find(|t| t.id == id).cloned().ok_or_else(|| AppError::Message("active tab missing".into()))?;
     if tab.url == "synth://newtab" { return Err(AppError::Message("There is no page to bookmark.".into())); }
-    state.db.add_bookmark(&tab.title, &tab.url)
+    state.db.add_bookmark(&tab.title, &tab.url, &tab.workspace)
 }
 
 #[tauri::command]
-fn list_bookmarks(state: State<AppState>) -> AppResult<Vec<Bookmark>> {
-    state.db.list_bookmarks()
+fn list_bookmarks(state: State<AppState>, workspace:Option<String>) -> AppResult<Vec<Bookmark>> {
+    let ws=workspace.or_else(||Some(state.active_workspace.lock().unwrap().clone()));
+    state.db.list_bookmarks(ws.as_deref())
 }
 
 #[tauri::command]
@@ -1719,12 +1768,13 @@ fn add_to_shelf(state: State<AppState>) -> AppResult<ShelfItem> {
     let id=state.active_id.lock().unwrap().clone();
     let tab=state.tabs.lock().unwrap().iter().find(|t|t.id==id).cloned().ok_or_else(||AppError::Message("active tab missing".into()))?;
     if tab.url=="synth://newtab" {return Err(AppError::Message("There is no page to save.".into()));}
-    state.db.add_shelf(&tab.title,&tab.url)
+    state.db.add_shelf(&tab.title,&tab.url,&tab.workspace)
 }
 
 #[tauri::command]
-fn list_shelf(state: State<AppState>) -> AppResult<Vec<ShelfItem>> {
-    state.db.list_shelf()
+fn list_shelf(state: State<AppState>, workspace:Option<String>) -> AppResult<Vec<ShelfItem>> {
+    let ws=workspace.or_else(||Some(state.active_workspace.lock().unwrap().clone()));
+    state.db.list_shelf(ws.as_deref())
 }
 
 #[tauri::command]
