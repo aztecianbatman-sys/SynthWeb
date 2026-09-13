@@ -241,10 +241,14 @@ fn copy_dir_recursive(from:&Path, to:&Path)->AppResult<()> {
     for entry in fs::read_dir(from)? {
         let entry=entry?;
         let source=entry.path();
+        let file_type=entry.file_type()?;
+        if file_type.is_symlink() {
+            return Err(AppError::Message(format!("Profile export contains unsupported symlink: {}",source.display())));
+        }
         let dest=to.join(entry.file_name());
-        if source.is_dir() {
+        if file_type.is_dir() {
             copy_dir_recursive(&source,&dest)?;
-        } else {
+        } else if file_type.is_file() {
             fs::copy(&source,&dest)?;
         }
     }
@@ -1976,8 +1980,10 @@ fn export_profile(state: State<AppState>)->AppResult<String>{
 #[tauri::command]
 fn import_profile(name:String, source:String)->AppResult<Profile>{
     let source=PathBuf::from(source);
+    let source=fs::canonicalize(&source).map_err(|_|AppError::Message("Profile export path is invalid.".into()))?;
+    if !source.is_dir(){return Err(AppError::Message("Profile export must be a directory.".into()));}
     let manifest_path=source.join("profile.json");
-    if !manifest_path.exists(){return Err(AppError::Message("Profile export manifest not found.".into()));}
+    if !manifest_path.is_file(){return Err(AppError::Message("Profile export manifest not found.".into()));}
     let bytes=fs::read(&manifest_path)?;
     let manifest:serde_json::Value=serde_json::from_slice(&bytes).map_err(|e|AppError::Message(e.to_string()))?;
     if manifest.get("format").and_then(|v|v.as_str())!=Some("synth-profile-v1"){return Err(AppError::Message("Unsupported profile export format.".into()));}
