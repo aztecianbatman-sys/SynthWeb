@@ -945,14 +945,17 @@ fn create_page_webview<R: tauri::Runtime>(
     let app_favicon = app.clone();
     let app_download = app.clone();
     let app_new_window = app.clone();
-    let db_path = state.db.path().to_path_buf();
-    let permission_db_path = state.db.path().to_path_buf();
-    let download_dir = dirs_next::download_dir().unwrap_or_else(|| PathBuf::from(".")).join("Synth Browser");
+    let db_path = state.db.path.clone();
+    let permission_db_path = state.db.path.clone();
+    let download_dir = dirs_next::download_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("Synth Browser");
     fs::create_dir_all(&download_dir)?;
 
     let data_dir = profile_dir(&state.profile.id).join("webview");
     fs::create_dir_all(&data_dir)?;
     let autofill = state.db.get_setting("autofill")?.as_deref() == Some("true");
+
     let builder = WebviewBuilder::new(label.clone(), WebviewUrl::External(url.clone()))
         .data_directory(data_dir)
         .general_autofill_enabled(autofill)
@@ -966,49 +969,77 @@ fn create_page_webview<R: tauri::Runtime>(
                 PermissionKind::Microphone => "permission_microphone",
                 PermissionKind::Geolocation => "permission_geolocation",
                 PermissionKind::Notifications => "permission_notifications",
-                PermissionKind::DisplayCapture => "permission_display_capture",
+                PermissionKind::OtherSensors => "permission_sensors",
                 PermissionKind::ClipboardRead => "permission_clipboard",
-                PermissionKind::LocalFonts => "permission_local_fonts",
-                PermissionKind::Sensors => "permission_sensors",
                 _ => return PermissionResponse::Default,
             };
-            let policy = Db::open(&permission_db_path)
+
+            let origin = webview
+                .url()
                 .ok()
-                .and_then(|db| db.get_setting(setting).ok().flatten())
+                .and_then(|u| u.host_str().map(|_| origin_key(&u)));
+
+            let policy = origin
+                .as_deref()
+                .and_then(|origin| {
+                    Db { path: permission_db_path.clone() }
+                        .permission_for(origin, setting)
+                        .ok()
+                        .flatten()
+                })
+                .or_else(|| {
+                    Db { path: permission_db_path.clone() }
+                        .get_setting(setting)
+                        .ok()
+                        .flatten()
+                })
                 .unwrap_or_else(|| "prompt".into());
-            let _ = app.emit("browser://permission-request", serde_json::json!({
+
+            if let Some(origin) = origin.as_deref() {
+                let _ = Db { path: permission_db_path.clone() }
+                    .record_permission_history(origin, setting, &policy);
+            }
+
+            let _ = app_new_window.emit("browser://permission-request", serde_json::json!({
                 "tabId": tab_id,
                 "url": webview.url().ok().map(|u| u.to_string()),
                 "kind": setting,
                 "policy": policy
-            })
-        .on_new_window(move |url, _features| {
-            let _=app_new_window.emit("browser://new-window",serde_json::json!({"url":url.as_str(),"tabId":tab_id}));
-            NewWindowResponse::Deny
-        }));
+            }));
+
             match policy.as_str() {
                 "allow" => PermissionResponse::Allow,
                 "deny" => PermissionResponse::Deny,
                 _ => PermissionResponse::Prompt,
             }
         })
+        .on_new_window(move |new_url, _features| {
+            let _ = app_new_window.emit(
+                "browser://new-window",
+                serde_json::json!({"url": new_url.as_str(), "tabId": tab_id}),
+            );
+            NewWindowResponse::Deny
+        })
         .on_navigation(move |next| {
-            if !matches!(next.scheme(), "http"|"https") { return false; }
-            if next.scheme()=="http" {
-                let db=Db{path:db_path.clone()};
-                if db.get_setting("https_only").ok().flatten().as_deref()==Some("true") {
-                    if let Ok(mut https)=next.clone().set_scheme("https") {
-                        let _ = app_nav.emit("browser://https-upgrade", serde_json::json!({
-                            "tabId":tab_id,"url":https.as_str()
-                        }));
-                    } else {
-                        let _ = app_nav.emit("browser://navigation-blocked", serde_json::json!({
-                            "tabId":tab_id,"url":next.as_str(),"reason":"HTTPS-only mode"
-                        }));
-                    }
+            if !matches!(next.scheme(), "http" | "https") {
+                return false;
+            }
+
+            if next.scheme() == "http" {
+                let db = Db { path: db_path.clone() };
+                if db.get_setting("https_only").ok().flatten().as_deref() == Some("true") {
+                    let _ = app_nav.emit(
+                        "browser://navigation-blocked",
+                        serde_json::json!({
+                            "tabId": tab_id,
+                            "url": next.as_str(),
+                            "reason": "HTTPS-only mode"
+                        }),
+                    );
                     return false;
                 }
             }
+
             if let Ok(mut tabs) = tabs_nav.lock() {
                 if let Some(tab) = tabs.iter_mut().find(|t| t.id == tab_id) {
                     tab.url = next.as_str().to_owned();
@@ -1017,90 +1048,161 @@ fn create_page_webview<R: tauri::Runtime>(
                     tab.has_webview = true;
                 }
             }
-            if !private {
+
+            if !private && db_path.exists() {
                 let db = Db { path: db_path.clone() };
-                let _ = db.migrate();
-                let _ = db.add_history(next.as_str(), "", next.host_str().unwrap_or(""));
+                let _ = db.add_history(
+                    next.as_str(),
+                    "",
+                    next.host_str().unwrap_or(""),
+                );
             }
-            let _ = app_nav.emit("browser://navigation", serde_json::json!({
-                "tabId": tab_id, "url": next.as_str(), "loading": true
-            }));
+
+            let _ = app_nav.emit(
+                "browser://navigation",
+                serde_json::json!({
+                    "tabId": tab_id,
+                    "url": next.as_str(),
+                    "loading": true
+                }),
+            );
             true
         })
         .on_document_title_changed(move |_view, title| {
             if let Ok(mut tabs) = tabs_title.lock() {
                 if let Some(tab) = tabs.iter_mut().find(|t| t.id == tab_id) {
-                    tab.title = if title.trim().is_empty() { "Untitled".into() } else { title.clone() };
+                    tab.title = if title.trim().is_empty() {
+                        "Untitled".into()
+                    } else {
+                        title.clone()
+                    };
                     tab.loading = false;
                 }
             }
-            let _ = app_title.emit("browser://title", serde_json::json!({
-                "tabId": tab_id, "title": title
-            }));
+            let _ = app_title.emit(
+                "browser://title",
+                serde_json::json!({"tabId": tab_id, "title": title}),
+            );
         })
         .on_page_load(move |view, payload| {
-            if payload.event() == PageLoadEvent::Finished {
-                if let Ok(mut tabs) = tabs_load.lock() {
-                    if let Some(tab) = tabs.iter_mut().find(|t| t.id == tab_id) { tab.loading = false; }
+            if payload.event() != PageLoadEvent::Finished {
+                return;
+            }
+
+            if let Ok(mut tabs) = tabs_load.lock() {
+                if let Some(tab) = tabs.iter_mut().find(|t| t.id == tab_id) {
+                    tab.loading = false;
                 }
-                let _ = app_load.emit("browser://load", serde_json::json!({
-                    "tabId": tab_id, "url": payload.url().as_str()
-                }));
-                let tabs_icon=tabs_title.clone();
-                let app_icon=app_favicon.clone();
-                let _ = view.eval_with_callback(
-                    "(()=>{const l=document.querySelector('link[rel~="icon"],link[rel="shortcut icon"]');return l?l.href:''})()",
-                    move |raw| {
-                        if let Ok(icon)=serde_json::from_str::<String>(&raw) {
-                            if !icon.trim().is_empty() {
-                                if let Ok(mut tabs)=tabs_icon.lock() {
-                                    if let Some(tab)=tabs.iter_mut().find(|t|t.id==tab_id){tab.favicon=Some(icon.clone());}
+            }
+
+            let _ = app_load.emit(
+                "browser://load",
+                serde_json::json!({
+                    "tabId": tab_id,
+                    "url": payload.url().as_str()
+                }),
+            );
+
+            let tabs_icon = tabs_title.clone();
+            let app_icon = app_favicon.clone();
+            let _ = view.eval_with_callback(
+                r#"(()=>{const l=document.querySelector('link[rel~="icon"],link[rel="shortcut icon"]');return l?l.href:''})()"#,
+                move |raw| {
+                    if let Ok(icon) = serde_json::from_str::<String>(&raw) {
+                        if !icon.trim().is_empty() {
+                            if let Ok(mut tabs) = tabs_icon.lock() {
+                                if let Some(tab) = tabs.iter_mut().find(|t| t.id == tab_id) {
+                                    tab.favicon = Some(icon.clone());
                                 }
-                                let _=app_icon.emit("browser://favicon",serde_json::json!({"tabId":tab_id,"favicon":icon}));
                             }
+                            let _ = app_icon.emit(
+                                "browser://favicon",
+                                serde_json::json!({"tabId": tab_id, "favicon": icon}),
+                            );
                         }
                     }
-                );
-            }
+                },
+            );
         })
         .on_download(move |_view, event| {
             match event {
                 DownloadEvent::Requested { url, destination } => {
-                    let filename = url.path_segments().and_then(|s| s.last()).filter(|s| !s.is_empty()).unwrap_or("download");
-                    let mut target = download_dir.join(filename);
+                    let filename = url
+                        .path_segments()
+                        .and_then(|s| s.last())
+                        .filter(|s| !s.is_empty())
+                        .unwrap_or("download");
+                    let safe_name = filename
+                        .chars()
+                        .map(|c| if c.is_control() { '_' } else { c })
+                        .collect::<String>();
+                    let mut target = download_dir.join(if safe_name.is_empty() {
+                        "download"
+                    } else {
+                        &safe_name
+                    });
+
                     if target.exists() {
-                        let stem = target.file_stem().and_then(|s| s.to_str()).unwrap_or("download");
-                        let ext = target.extension().and_then(|s| s.to_str()).map(|s| format!(".{s}")).unwrap_or_default();
-                        let mut n = 2;
+                        let stem = target
+                            .file_stem()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("download");
+                        let ext = target
+                            .extension()
+                            .and_then(|s| s.to_str())
+                            .map(|s| format!(".{s}"))
+                            .unwrap_or_default();
+                        let mut n = 2u32;
                         loop {
-                            let candidate = download_dir.join(format!("{stem} ({n}){ext}"));
-                            if !candidate.exists() { target = candidate; break; }
+                            let candidate =
+                                download_dir.join(format!("{stem} ({n}){ext}"));
+                            if !candidate.exists() {
+                                target = candidate;
+                                break;
+                            }
                             n += 1;
                         }
                     }
+
                     *destination = target.clone();
                     let db = Db { path: db_path.clone() };
                     let _ = db.download_started(url.as_str(), &target);
-                    let _ = app_download.emit("browser://download", serde_json::json!({
-                        "status":"downloading","url":url.as_str(),"path":target
-                    }));
+                    let _ = app_download.emit(
+                        "browser://download",
+                        serde_json::json!({
+                            "status": "downloading",
+                            "url": url.as_str(),
+                            "path": target.to_string_lossy()
+                        }),
+                    );
                     true
                 }
                 DownloadEvent::Finished { url, path, success } => {
                     let db = Db { path: db_path.clone() };
-                    let _ = db.download_finished(url.as_str(), path.as_deref(), success);
-                    let _ = app_download.emit("browser://download", serde_json::json!({
-                        "status": if success {"completed"} else {"failed"},
-                        "url":url.as_str(),"path":path
-                    }));
+                    let _ = db.download_finished(
+                        url.as_str(),
+                        path.as_deref(),
+                        success,
+                    );
+                    let _ = app_download.emit(
+                        "browser://download",
+                        serde_json::json!({
+                            "status": if success { "completed" } else { "failed" },
+                            "url": url.as_str(),
+                            "path": path.as_ref().map(|p| p.to_string_lossy().to_string())
+                        }),
+                    );
                     true
                 }
-                _ => true
+                _ => true,
             }
         });
 
     let (pos, size) = webview_bounds(&window)?;
-    let view = window.add_child(builder, pos, size).map_err(|e| AppError::Message(e.to_string()))?;
+    let view = window
+        .add_child(builder, pos, size)
+        .map_err(|e| AppError::Message(e.to_string()))?;
+
     if let Some(value) = state.db.get_setting("default_zoom")? {
         if let Ok(percent) = value.parse::<f64>() {
             if (50.0..=200.0).contains(&percent) {
@@ -1108,6 +1210,7 @@ fn create_page_webview<R: tauri::Runtime>(
             }
         }
     }
+
     view.hide().map_err(|e| AppError::Message(e.to_string()))?;
     Ok(())
 }
