@@ -833,7 +833,7 @@ async function showProfiles(){
   const rows=state.profiles||[];
   body.innerHTML='<div class="profile-hero"><div class="profile-avatar">'+esc((current.name||"S").slice(0,1).toUpperCase())+'</div><div><div class="panel-title">Active profile</div><strong>'+esc(current.name)+'</strong><div class="reading-url">'+(current.guest?"Disposable Guest profile":"Isolated local profile data")+'</div></div></div>'+
     '<div class="profile-security"><span>Cookies</span><b>Isolated</b><span>Storage</span><b>Isolated</b><span>Permissions</span><b>Per-site</b><span>Sessions</span><b>Profile scoped</b><span>Integrity</span><b id="profileIntegrityState">Checking…</b></div>';
-  try{const integrity=await invoke("profile_integrity");$("profileIntegrityState").textContent=integrity.verified?"Verified":"Checksum ready";}catch{$("profileIntegrityState").textContent="Unavailable"}
+  try{const integrity=await invoke("profile_integrity");const check=await invoke("verify_profile_integrity",{expectedDbSha256:integrity.database_sha256||null});$("profileIntegrityState").textContent=check.verified?"Verified":"Checksum available";}catch{$("profileIntegrityState").textContent="Unavailable"}
   if(current.guest)body.innerHTML+='<div class="panel-row">Guest Mode uses a temporary profile directory and is removed on exit.</div>';
   const list=document.createElement("div");list.className="profile-list";
   rows.forEach(profile=>{
