@@ -5,7 +5,7 @@ namespace synth_azecotron {
 SynthBrowserContext::SynthBrowserContext(
     bool off_the_record,
     const base::FilePath& path)
-    : off_the_record_(off_the_record), path_(path), permission_delegate_(std::make_unique<SynthPermissionControllerDelegate>(path.AppendASCII("synth-policy.json"))) {}
+    : off_the_record_(off_the_record), path_(path), permission_delegate_(std::make_unique<SynthPermissionControllerDelegate>(path.AppendASCII("synth-policy.json"))), download_delegate_(std::make_unique<SynthDownloadManagerDelegate>(path.AppendASCII("Downloads"))) {}
 
 SynthBrowserContext::~SynthBrowserContext() {
   ShutdownStoragePartitions();
@@ -27,7 +27,7 @@ bool SynthBrowserContext::IsOffTheRecord() {
 
 content::DownloadManagerDelegate*
 SynthBrowserContext::GetDownloadManagerDelegate() {
-  return nullptr;
+  return download_delegate_.get();
 }
 
 content::BrowserPluginGuestManager*
