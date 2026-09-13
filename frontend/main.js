@@ -686,27 +686,32 @@ function showMenuPanel() {
 }
 
 async function showProfiles(){
-  const body=basePanel("Profiles");
-  let current=state.profile||{id:"default",name:"Default",guest:false};
+  const body=basePanel("Synth Profiles");
+  const current=state.profile||{id:"default",name:"Default",guest:false};
   const rows=state.profiles||[];
-  body.innerHTML='<div class="panel-row">Current <strong>'+esc(current.name)+'</strong></div>';
-  if(current.guest){
-    body.innerHTML+='<div class="panel-row">Guest Mode uses a temporary profile directory and is removed on exit.</div>';
-  }
-  const list=document.createElement("div");
+  body.innerHTML='<div class="profile-hero"><div class="profile-avatar">'+esc((current.name||"S").slice(0,1).toUpperCase())+'</div><div><div class="panel-title">Active profile</div><strong>'+esc(current.name)+'</strong><div class="reading-url">'+(current.guest?"Disposable Guest profile":"Isolated local profile data")+'</div></div></div>'+
+    '<div class="profile-security"><span>Cookies</span><b>Isolated</b><span>Storage</span><b>Isolated</b><span>Permissions</span><b>Per-site</b><span>Sessions</span><b>Profile scoped</b></div>';
+  if(current.guest)body.innerHTML+='<div class="panel-row">Guest Mode uses a temporary profile directory and is removed on exit.</div>';
+  const list=document.createElement("div");list.className="profile-list";
   rows.forEach(profile=>{
-    const row=document.createElement("div");row.className="reading-row";
-    const info=document.createElement("div");info.className="reading-info";info.innerHTML='<div class="reading-title">'+esc(profile.name)+'</div><div class="reading-url">'+(profile.id===current.id?"Active":"Separate data profile")+'</div>';
-    const switchBtn=document.createElement("button");switchBtn.className="mini-action";switchBtn.textContent=profile.id===current.id?"Active":"Switch";
-    switchBtn.disabled=profile.id===current.id||current.guest;
+    const row=document.createElement("div");row.className="profile-row";
+    const letter=document.createElement("span");letter.className="profile-avatar small";letter.textContent=(profile.name||"S").slice(0,1).toUpperCase();
+    const info=document.createElement("div");info.className="profile-copy";
+    info.innerHTML='<strong>'+esc(profile.name)+'</strong><span>'+(profile.id===current.id?"Active · current process":"Separate data directory")+'</span>';
+    const switchBtn=document.createElement("button");switchBtn.className="mini-action";switchBtn.textContent=profile.id===current.id?"Active":"Switch";switchBtn.disabled=profile.id===current.id||current.guest;
     switchBtn.onclick=async()=>{try{await invoke("switch_profile",{profileId:profile.id});toast("Launching "+profile.name+"…")}catch(e){toast(e)}};
-    row.append(info,switchBtn);list.appendChild(row);
+    row.append(letter,info,switchBtn);
+    if(profile.id!=="default"){
+      const del=document.createElement("button");del.className="mini-action danger";del.textContent="Delete";del.onclick=async()=>{if(!confirm("Delete profile "+profile.name+" and its isolated data?"))return;try{await invoke("delete_profile",{profileId:profile.id});await refresh();showProfiles()}catch(e){toast(e)}};
+      row.appendChild(del);
+    }
+    list.appendChild(row);
   });
   body.appendChild(list);
-  if(!current.guest){
-    const create=document.createElement("button");create.className="panel-action";create.textContent="+ Create profile";create.onclick=async()=>{const name=prompt("Profile name");if(!name)return;try{await invoke("create_profile",{name});toast("Launching new profile…")}catch(e){toast(e)}};body.appendChild(create);
-  }
+  const create=document.createElement("button");create.className="panel-action";create.textContent="+ Create isolated profile";create.onclick=async()=>{const name=prompt("Profile name");if(!name)return;try{await invoke("create_profile",{name});toast("Launching "+name+"…")}catch(e){toast(e)}};body.appendChild(create);
+  const guest=document.createElement("button");guest.className="panel-action";guest.textContent="Start Guest Mode";guest.onclick=async()=>{try{await invoke("switch_profile",{profileId:"guest"});toast("Launching disposable Guest Mode…")}catch(e){toast("Guest Mode is unavailable from this build.")}};body.appendChild(guest);
 }
+
 async function showDownloads(){
   const body=basePanel("Downloads");
   try{
@@ -1346,24 +1351,17 @@ async function showAssist() {
   const body = basePanel("Synth Assist");
   const info = await invoke("ai_status");
   body.innerHTML="";
-  const status=document.createElement("div");status.className="panel-row";status.innerHTML='Status <strong>'+ (info.enabled?"Enabled":"Disabled") +'</strong>';body.appendChild(status);
+  const status=document.createElement("div");status.className="security-hero";status.innerHTML='<div class="security-orb">✦</div><div><div class="panel-title">AI is '+(info.enabled?"enabled":"disabled")+'</div><strong>'+esc(info.provider||"Not configured")+'</strong><div class="reading-url">'+esc(info.model||"Choose a model")+'</div></div>';body.appendChild(status);
+
+  const grid=document.createElement("div");grid.className="assist-mini-grid";
+  [["Privacy","Context is opt-in"],["Credentials",info.keyStored?"OS secure storage":"Not stored"],["Search","Provider-backed AI Search"],["Streaming","OpenAI-compatible providers"]].forEach(([a,b])=>{const x=document.createElement("div");x.innerHTML='<span>'+esc(a)+'</span><b>'+esc(b)+'</b>';grid.appendChild(x)});body.appendChild(grid);
 
   const presets=await invoke("ai_presets");
   const providerLabel=document.createElement("div");providerLabel.className="setting-label";providerLabel.textContent="Provider";body.appendChild(providerLabel);
   const provider=document.createElement("select");provider.className="setting-control";
   presets.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.name;provider.appendChild(o)});
-  provider.value=info.provider==="openai-compatible"?"custom":info.provider;
-  if(![...provider.options].some(o=>o.value===provider.value))provider.value="custom";
-  provider.onchange=async()=>{
-    const selected=presets.find(p=>p.id===provider.value);if(!selected)return;
-    try{
-      await invoke("set_setting",{key:"ai_provider",value:selected.id});
-      await invoke("set_setting",{key:"ai_endpoint",value:selected.endpoint});
-      await invoke("set_setting",{key:"ai_model",value:""});
-      await showAssist();
-    }catch(e){toast(e)}
-  };
-  body.appendChild(provider);
+  provider.value=presets.some(p=>p.id===info.provider)?info.provider:"custom";
+  provider.onchange=async()=>{const selected=presets.find(p=>p.id===provider.value);if(!selected)return;try{await invoke("set_setting",{key:"ai_provider",value:selected.id});await invoke("set_setting",{key:"ai_endpoint",value:selected.endpoint});await invoke("set_setting",{key:"ai_model",value:""});await showAssist()}catch(e){toast(e)}};body.appendChild(provider);
 
   const endpointLabel=document.createElement("div");endpointLabel.className="setting-label";endpointLabel.textContent="Endpoint";body.appendChild(endpointLabel);
   const endpoint=document.createElement("input");endpoint.className="setting-control";endpoint.value=info.endpoint;endpoint.onchange=async()=>{try{await invoke("set_setting",{key:"ai_endpoint",value:endpoint.value});toast("AI endpoint saved")}catch(e){toast(e)}};body.appendChild(endpoint);
@@ -1371,44 +1369,28 @@ async function showAssist() {
   const modelLabel=document.createElement("div");modelLabel.className="setting-label";modelLabel.textContent="Model";body.appendChild(modelLabel);
   const model=document.createElement("input");model.className="setting-control";model.value=info.model;model.placeholder="Model id";model.onchange=async()=>{try{await invoke("set_setting",{key:"ai_model",value:model.value});toast("AI model saved")}catch(e){toast(e)}};body.appendChild(model);
 
-  const enabled=document.createElement("label");enabled.className="setting-toggle";
-  const enabledText=document.createElement("span");enabledText.textContent="Enable Synth Assist";
-  const enabledInput=document.createElement("input");enabledInput.type="checkbox";enabledInput.checked=info.enabled;
-  enabledInput.onchange=async()=>{await invoke("set_setting",{key:"ai_enabled",value:String(enabledInput.checked)});showAssist()};
-  enabled.append(enabledText,enabledInput);body.appendChild(enabled);
+  const modelBox=document.createElement("div");modelBox.className="assist-models";body.appendChild(modelBox);
+  const load=document.createElement("button");load.className="panel-action";load.textContent="Discover models";
+  load.onclick=async()=>{try{const list=await invoke("list_ai_models");modelBox.replaceChildren();list.slice(0,30).forEach(id=>{const b=document.createElement("button");b.className="model-chip";b.textContent=id;b.onclick=async()=>{model.value=id;await invoke("set_setting",{key:"ai_model",value:id});toast("Model selected")};modelBox.appendChild(b)});toast(list.length+" models available")}catch(e){toast(e)}};body.appendChild(load);
 
-  const page=document.createElement("label");page.className="setting-toggle";
-  const pageText=document.createElement("span");pageText.textContent="Allow page context on request";
-  const pageInput=document.createElement("input");pageInput.type="checkbox";pageInput.checked=state.settings.ai_page_context==="true";
-  pageInput.onchange=async()=>{await invoke("set_setting",{key:"ai_page_context",value:String(pageInput.checked)});state.settings.ai_page_context=String(pageInput.checked)};
-  page.append(pageText,pageInput);body.appendChild(page);
+  const enabled=document.createElement("label");enabled.className="setting-toggle";const enabledText=document.createElement("span");enabledText.textContent="Enable Synth Assist";const enabledInput=document.createElement("input");enabledInput.type="checkbox";enabledInput.checked=info.enabled;enabledInput.onchange=async()=>{await invoke("set_setting",{key:"ai_enabled",value:String(enabledInput.checked)});await showAssist()};enabled.append(enabledText,enabledInput);body.appendChild(enabled);
 
-  const selection=document.createElement("label");selection.className="setting-toggle";
-  const selectionText=document.createElement("span");selectionText.textContent="Allow selection context on request";
-  const selectionInput=document.createElement("input");selectionInput.type="checkbox";selectionInput.checked=state.settings.ai_selection_context==="true";
-  selectionInput.onchange=async()=>{await invoke("set_setting",{key:"ai_selection_context",value:String(selectionInput.checked)});state.settings.ai_selection_context=String(selectionInput.checked)};
-  selection.append(selectionText,selectionInput);body.appendChild(selection);
+  const page=document.createElement("label");page.className="setting-toggle";const pageText=document.createElement("span");pageText.textContent="Allow page context on request";const pageInput=document.createElement("input");pageInput.type="checkbox";pageInput.checked=state.settings.ai_page_context==="true";pageInput.onchange=async()=>{await invoke("set_setting",{key:"ai_page_context",value:String(pageInput.checked)});state.settings.ai_page_context=String(pageInput.checked)};page.append(pageText,pageInput);body.appendChild(page);
 
-  const credential=document.createElement("div");credential.className="panel-row";credential.innerHTML='Credential <strong>'+(info.keyStored?"Stored in OS secure storage":"Not stored")+'</strong>';body.appendChild(credential);
+  const selection=document.createElement("label");selection.className="setting-toggle";const selectionText=document.createElement("span");selectionText.textContent="Allow selection context on request";const selectionInput=document.createElement("input");selectionInput.type="checkbox";selectionInput.checked=state.settings.ai_selection_context==="true";selectionInput.onchange=async()=>{await invoke("set_setting",{key:"ai_selection_context",value:String(selectionInput.checked)});state.settings.ai_selection_context=String(selectionInput.checked)};selection.append(selectionText,selectionInput);body.appendChild(selection);
+
   const key=document.createElement("input");key.type="password";key.className="setting-control";key.placeholder=info.keyStored?"Replace secure API key":"Store API key securely";body.appendChild(key);
-  const saveKey=document.createElement("button");saveKey.className="panel-action";saveKey.textContent="Save API key";
-  saveKey.onclick=async()=>{if(!key.value)return;try{await invoke("set_ai_key",{provider:info.provider,key:key.value});key.value="";toast("API key stored securely");await showAssist()}catch(e){toast(e)}};body.appendChild(saveKey);
-  const clearKey=document.createElement("button");clearKey.className="panel-action";clearKey.textContent="Clear API key";
-  clearKey.onclick=async()=>{try{await invoke("clear_ai_key",{provider:info.provider});toast("API key removed");await showAssist()}catch(e){toast(e)}};body.appendChild(clearKey);
-
-  const load=document.createElement("button");load.className="panel-action";load.textContent="Load available models";
-  load.onclick=async()=>{try{const list=await invoke("list_ai_models");if(!list.length){toast("Provider returned no models.");return}model.value=list[0];await invoke("set_setting",{key:"ai_model",value:list[0]});toast("Loaded "+list.length+" models")}catch(e){toast(e)}};body.appendChild(load);
+  const keyActions=document.createElement("div");keyActions.className="feature-actions";
+  const saveKey=document.createElement("button");saveKey.className="feature-action primary";saveKey.textContent="Save credential";saveKey.onclick=async()=>{if(!key.value)return;try{await invoke("set_ai_key",{provider:info.provider,key:key.value});key.value="";toast("API key stored securely");await showAssist()}catch(e){toast(e)}};
+  const clearKey=document.createElement("button");clearKey.className="feature-action";clearKey.textContent="Clear";clearKey.onclick=async()=>{try{await invoke("clear_ai_key",{provider:info.provider});toast("Credential removed");await showAssist()}catch(e){toast(e)}};
+  const test=document.createElement("button");test.className="feature-action";test.textContent="Test provider";test.onclick=async()=>{try{const list=await invoke("list_ai_models");toast("Provider online · "+list.length+" models")}catch(e){toast("Provider test failed: "+e)}};
+  keyActions.append(saveKey,clearKey,test);body.appendChild(keyActions);
 
   const pageAsk=document.createElement("button");pageAsk.className="panel-action";pageAsk.textContent="Ask about current page";pageAsk.onclick=async()=>{try{await invoke("request_page_context");toast("Page context requested…")}catch(e){toast(e)}};body.appendChild(pageAsk);
   const selectionAsk=document.createElement("button");selectionAsk.className="panel-action";selectionAsk.textContent="Explain current selection";selectionAsk.onclick=async()=>{try{await invoke("request_selection_context");toast("Selection context requested…")}catch(e){toast(e)}};body.appendChild(selectionAsk);
-
-  const aiSearch=document.createElement("button");aiSearch.className="panel-action";aiSearch.textContent="AI Search this query";
-  aiSearch.onclick=async()=>{const q=prompt("AI Search query");if(!q)return;try{const answer=await invoke("synth_ai_search",{query:q});showAiAnswer(answer,"AI Search")}catch(e){toast(e)}};body.appendChild(aiSearch);
-
-  const history=document.createElement("button");history.className="panel-action";history.textContent="AI history";
-  history.onclick=showAiHistory;body.appendChild(history);
-
-  const note=document.createElement("div");note.className="panel-row";note.textContent="Page or selection text is sent only after you explicitly request context.";body.appendChild(note);
+  const aiSearch=document.createElement("button");aiSearch.className="panel-action";aiSearch.textContent="AI Search this query";aiSearch.onclick=async()=>{const q=prompt("AI Search query");if(!q)return;try{const answer=await invoke("synth_ai_search",{query:q});showAiAnswer(answer,"AI Search")}catch(e){toast(e)}};body.appendChild(aiSearch);
+  const history=document.createElement("button");history.className="panel-action";history.textContent="AI history";history.onclick=showAiHistory;body.appendChild(history);
+  const note=document.createElement("div");note.className="panel-row";note.textContent="Synth never sends page or selection text unless you explicitly request that context.";body.appendChild(note);
 }
 
 async function showAiHistory(){
