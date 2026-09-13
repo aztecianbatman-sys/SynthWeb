@@ -713,7 +713,8 @@ async function showProfiles(){
   });
   body.appendChild(list);
   const rename=document.createElement("button");rename.className="panel-action";rename.textContent="Rename active profile";rename.onclick=async()=>{const name=prompt("New profile name",current.name);if(!name)return;try{await invoke("rename_profile",{profileId:current.id,name});toast("Profile renamed")}catch(e){toast(e)}};body.appendChild(rename);
-  const exportBtn=document.createElement("button");exportBtn.className="panel-action";exportBtn.textContent="Export active profile";exportBtn.onclick=async()=>{try{const path=await invoke("export_profile");toast("Profile exported to "+path)}catch(e){toast(e)}};body.appendChild(exportBtn);
+  const exportBtn=document.createElement("button");exportBtn.className="panel-action";exportBtn.textContent="Export active profile";exportBtn.onclick=async()=>{try{const path=await invoke("export_profile");toast("Profile exported to "+path)}catch(e){toast(e)}};body.appendChild(exportBtn);  const importBtn=document.createElement("button");importBtn.className="panel-action";importBtn.textContent="Import profile export";importBtn.onclick=async()=>{const path=prompt("Path to exported Synth profile folder");if(!path)return;const name=prompt("Imported profile name","Imported Profile");if(!name)return;try{const p=await invoke("import_profile",{name,source:path});toast("Imported "+p.name);await refresh()}catch(e){toast(e)}};body.appendChild(importBtn);
+
   const create=document.createElement("button");create.className="panel-action";create.textContent="+ Create isolated profile";create.onclick=async()=>{const name=prompt("Profile name");if(!name)return;try{await invoke("create_profile",{name});toast("Launching "+name+"…")}catch(e){toast(e)}};body.appendChild(create);
   const guest=document.createElement("button");guest.className="panel-action";guest.textContent="Start Guest Mode";guest.onclick=async()=>{try{await invoke("switch_profile",{profileId:"guest"});toast("Launching disposable Guest Mode…")}catch(e){toast("Guest Mode is unavailable from this build.")}};body.appendChild(guest);
 }
@@ -734,7 +735,8 @@ async function showDownloads(){
       const open=document.createElement("button");open.className="mini-action";open.textContent="Open";open.onclick=async()=>{try{await invoke("open_download",{id:d.id})}catch(e){toast(e)}};
       const reveal=document.createElement("button");reveal.className="mini-action";reveal.textContent="Reveal";reveal.onclick=async()=>{try{await invoke("reveal_download",{id:d.id})}catch(e){toast(e)}};
       const remove=document.createElement("button");remove.className="mini-action";remove.textContent="Remove";remove.onclick=async()=>{try{await invoke("remove_download_history",{id:d.id});showDownloads()}catch(e){toast(e)}};
-      row.append(info,verify,open,reveal,remove);body.appendChild(row);
+      const retry=document.createElement("button");retry.className="mini-action";retry.textContent="Retry";retry.disabled=!d.url||d.status==="completed";retry.onclick=async()=>{try{await go(d.url);toast("Retrying download source");}catch(e){toast(e)}};
+      row.append(info,verify,open,reveal,retry,remove);body.appendChild(row);
     });
   }catch(e){toast(e)}
 }
@@ -826,7 +828,11 @@ async function showSessions() {
         await refresh();
       } catch (error) { toast(error); }
     };
-    body.appendChild(button);
+    const wrap=document.createElement("div");wrap.className="tool-row";
+    const info=document.createElement("div");info.className="tool-copy";info.innerHTML='<strong>'+esc(session.name)+'</strong><span>Saved session</span>';
+    const open=document.createElement("button");open.className="mini-action";open.textContent="Open";open.onclick=button.onclick;
+    const del=document.createElement("button");del.className="mini-action danger";del.textContent="Delete";del.onclick=async()=>{if(confirm("Delete saved session?")){try{await invoke("delete_session",{id:session.id});showSessions()}catch(e){toast(e)}}};
+    wrap.append(info,open,del);body.appendChild(wrap);
   });
   if (!rows.length) body.innerHTML += '<div class="panel-row">No saved sessions yet.</div>';
 }
