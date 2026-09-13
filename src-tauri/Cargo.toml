@@ -7,10 +7,10 @@ edition = "2021"
 rust-version = "1.88"
 
 [build-dependencies]
-tauri-build = { version = "2.6.3" }
+tauri-build = { version = "=2.6.3" }
 
 [dependencies]
-tauri = { version = "2.11.5", features = ["wry", "unstable", "devtools"] }
+tauri = { version = "=2.11.5", features = ["wry", "unstable", "devtools"] }
 rusqlite = { version = "0.37.0", features = ["bundled"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
@@ -38,5 +38,5 @@ panic = "abort"
 strip = true
 
 [target."cfg(windows)".dependencies]
-windows = { version = "0.61.3", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell", "Win32_System_ProcessStatus", "Win32_System_Threading"] }
-webview2-com = "0.38.2"
+windows = { version = "=0.61.3", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell", "Win32_System_ProcessStatus", "Win32_System_Threading"] }
+webview2-com = "=0.38.2"
