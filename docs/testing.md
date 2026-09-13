@@ -1,24 +1,36 @@
 # Testing status
 
-Automated Windows workflow:
-- cargo fmt --check
-- cargo clippy --all-targets --all-features -- -D warnings
-- cargo test
-- cargo tauri build
+Automated workflows are configured for:
+- frontend JavaScript syntax
+- Azecotron production-boundary checks
+- Rust fmt
+- Rust clippy
+- Rust unit tests
+- Tauri Windows packaging
+- pinned Azecotron Chromium build
+- native host smoke testing
+- build manifest generation
 
-Source-level checks performed in the development environment:
-- frontend JavaScript syntax parse passed
-- required Rust modules and registered commands checked
-- required frontend functions and event listeners checked
-- required architecture/docs layers checked
+Source-level checks currently performed:
+- frontend JavaScript syntax parse
+- native source presence
+- no Content Shell dependency under azecotron/app
+- registered Tauri command audit
+- architecture/source consistency checks
 
-Not verified in this environment:
-- Rust compilation and Cargo tests
-- Windows Tauri packaging and installer launch
-- WebView2 smoke test
-- 10/50/100/200 tab and multi-hour performance workloads
-- profile isolation
-- extension compatibility
-- complete permission behavior
-- true Azecotron Chromium fork build
-- individually verified Cortis providers
+Not verified here:
+- Windows Rust compilation
+- Windows Tauri installer launch
+- pinned Chromium 152 compilation
+- Azecotron HWND/WebContents integration
+- renderer/GPU process startup
+- native permission/download behavior
+- native DevTools
+- native extension runtime
+- WebRTC/device selection
+- 10/50/100/200-tab workloads
+- multi-hour memory/CPU stability
+- profile isolation stress tests
+- tracker/cookie network tests
+- signed binary update transport/rollback
+- manual accessibility certification
