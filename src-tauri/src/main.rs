@@ -23,6 +23,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 use tauri::{
+    path::BaseDirectory,
     menu::{Menu, MenuItem},
     webview::{DownloadEvent, NewWindowResponse, PageLoadEvent, PermissionKind, PermissionResponse, WebviewBuilder, WebviewUrl},
     Emitter, LogicalPosition, LogicalSize, Manager, State, WebviewWindowBuilder, WindowEvent,
@@ -3182,7 +3183,8 @@ async fn launch_azecotron(app: tauri::AppHandle, window: tauri::WebviewWindow, s
     let target_hwnd=native_host::target(window).ok().map(|x|x.hwnd);
     let profile_root=profile_dir(&state.profile.id).join("azecotron");
     let policy_path=Some(azecotron_bridge::write_privacy_policy(&profile_root,&state.db.all_settings()?).map_err(AppError::Message)?);
-    azecotron_bridge::launch(app,profile_root,&target,target_hwnd,&tab_id,policy_path).map_err(AppError::Message)
+    let bundled=app.path().resolve("azecotron/azecotron_host.exe",BaseDirectory::Resource).ok().filter(|p|p.exists());
+    azecotron_bridge::launch(app,profile_root,&target,target_hwnd,&tab_id,policy_path,bundled).map_err(AppError::Message)
 }
 
 #[tauri::command]
