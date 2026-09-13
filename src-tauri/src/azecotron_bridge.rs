@@ -25,13 +25,15 @@ pub fn executable_path() -> PathBuf {
 
 pub fn running() -> bool { RUNNING.load(Ordering::Acquire) }
 
-pub fn status() -> AzecotronStatus {
-    let path=executable_path();
+pub fn status_with_override(override_path: Option<PathBuf>) -> AzecotronStatus {
+    let path=override_path.unwrap_or_else(executable_path);
     let version=if path.exists() {
         Command::new(&path).arg("--version").output().ok().map(|o|String::from_utf8_lossy(&o.stdout).trim().to_string()).filter(|s|!s.is_empty())
     } else { None };
     AzecotronStatus{executable:path.display().to_string(),available:path.exists(),version,runtime:"Azecotron Web / Chromium Content API".into()}
 }
+
+pub fn status() -> AzecotronStatus { status_with_override(None) }
 
 pub fn write_privacy_policy(
     profile_dir: &PathBuf,
@@ -76,8 +78,8 @@ pub fn write_privacy_policy(
     Ok(path)
 }
 
-pub fn launch(app: tauri::AppHandle, profile_dir:PathBuf,url:&str,parent_hwnd:Option<u64>,tab_id:&str,policy_path:Option<PathBuf>)->Result<(),String>{
-    let path=executable_path();
+pub fn launch(app: tauri::AppHandle, profile_dir:PathBuf,url:&str,parent_hwnd:Option<u64>,tab_id:&str,policy_path:Option<PathBuf>,executable:Option<PathBuf>)->Result<(),String>{
+    let path=executable.unwrap_or_else(executable_path);
     if !path.exists(){return Err(format!("Azecotron executable was not found at {}",path.display()))}
     if !(url.starts_with("https://")||url.starts_with("http://")||url=="about:blank"){return Err("Azecotron launch accepts only HTTP(S) URLs or about:blank.".into())}
     if running(){return Err("Azecotron is already running for this Synth session.".into())}
