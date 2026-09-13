@@ -54,6 +54,34 @@ jobs:
           Write-Host "host version=$hostVersion" -ForegroundColor Green
           if ([string]::IsNullOrWhiteSpace($hostVersion)) { throw 'Azecotron host did not report a version.' }
 
+      - name: Stage Azecotron runtime and build installers
+        shell: pwsh
+        run: |
+          Set-Location $env:GITHUB_WORKSPACE
+          & .\scripts\build-installer.ps1 -SkipChromiumBuild -SkipHostBuild
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify installer artifacts
+        shell: pwsh
+        run: |
+          $release = Join-Path $env:GITHUB_WORKSPACE 'release'
+          $exe = Get-ChildItem $release -Filter '*.exe' | Where-Object { $_.Name -match 'Synth|synth' } | Select-Object -First 1
+          $msi = Get-ChildItem $release -Filter '*.msi' | Select-Object -First 1
+          if (-not $exe) { throw 'Synth Browser NSIS installer was not produced.' }
+          if (-not $msi) { throw 'Synth Browser MSI installer was not produced.' }
+          if (-not (Test-Path (Join-Path $release 'installer-manifest.json'))) { throw 'Installer manifest missing.' }
+          Write-Host ('NSIS: ' + $exe.FullName) -ForegroundColor Green
+          Write-Host ('MSI: ' + $msi.FullName) -ForegroundColor Green
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: synth-browser-installers-${{ github.sha }}
+          path: |
+            release/*.exe
+            release/*.msi
+            release/installer-manifest.json
+
       - name: Create build manifest
         shell: pwsh
         run: |
