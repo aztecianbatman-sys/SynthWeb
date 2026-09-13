@@ -1,6 +1,6 @@
-//! Explicit application-service boundaries from the Synth Browser architecture.
-//! These interfaces are intentionally small so implementations can be swapped
-//! without coupling the browser chrome to storage, download, permission, or update logic.
+//! Explicit application-service boundaries used by Synth Browser.
+//! The concrete source-level storage adapter is Db; native Chromium services
+//! can replace individual implementations behind these stable seams.
 
 pub trait DownloadService {}
 pub trait HistoryStore {}
@@ -10,23 +10,23 @@ pub trait PermissionStore {}
 pub trait SettingsStore {}
 pub trait DiagnosticsService {}
 pub trait UpdateService {}
+pub trait PerformanceService {}
+pub trait LocalizationService {}
+pub trait AccessibilityService {}
+pub trait ExtensionStore {}
 
-/// Marker implementations used by the bootstrap's compile-time boundary check.
-/// They contain no browser behavior and are not exposed to the frontend.
-pub(crate) struct NullDownloadService;
-pub(crate) struct NullHistoryStore;
-pub(crate) struct NullBookmarkStore;
-pub(crate) struct NullWorkspaceStore;
-pub(crate) struct NullPermissionStore;
-pub(crate) struct NullSettingsStore;
-pub(crate) struct NullDiagnosticsService;
-pub(crate) struct NullUpdateService;
+impl DownloadService for crate::Db {}
+impl HistoryStore for crate::Db {}
+impl BookmarkStore for crate::Db {}
+impl WorkspaceStore for crate::Db {}
+impl PermissionStore for crate::Db {}
+impl SettingsStore for crate::Db {}
+impl DiagnosticsService for crate::Db {}
+impl UpdateService for crate::Db {}
+impl PerformanceService for crate::Db {}
+impl ExtensionStore for crate::Db {}
 
-impl DownloadService for NullDownloadService {}
-impl HistoryStore for NullHistoryStore {}
-impl BookmarkStore for NullBookmarkStore {}
-impl WorkspaceStore for NullWorkspaceStore {}
-impl PermissionStore for NullPermissionStore {}
-impl SettingsStore for NullSettingsStore {}
-impl DiagnosticsService for NullDiagnosticsService {}
-impl UpdateService for NullUpdateService {}
+pub(crate) struct RuntimeLocalizationService;
+pub(crate) struct RuntimeAccessibilityService;
+impl LocalizationService for RuntimeLocalizationService {}
+impl AccessibilityService for RuntimeAccessibilityService {}
