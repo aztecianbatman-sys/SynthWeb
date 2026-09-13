@@ -799,6 +799,13 @@ impl Db {
         }))?)
     }
 
+    fn session_summary(&self,id:i64)->AppResult<Option<SavedSession>>{
+        let c=self.connect()?;
+        c.query_row("SELECT id,name,created_at,tab_count,data_bytes FROM sessions WHERE id=?1",[id],|r|Ok(SavedSession{
+            id:r.get(0)?,name:r.get(1)?,created_at:r.get(2)?,tab_count:r.get(3)?,data_bytes:r.get(4)?
+        })).optional().map_err(AppError::from)
+    }
+
     fn list_sessions(&self)->AppResult<Vec<SavedSession>>{
         let c=self.connect()?;
         let mut s=c.prepare("SELECT id,name,created_at,tab_count,data_bytes FROM sessions ORDER BY created_at DESC")?;
@@ -2252,6 +2259,10 @@ fn list_sessions(state: State<AppState>) -> AppResult<Vec<SavedSession>> {
 
 #[tauri::command]
 async fn open_session(app: tauri::AppHandle, state: State<AppState>, id: i64, append: bool) -> AppResult<()> {
+    let summary = state.db.session_summary(id)?.ok_or_else(||AppError::Message("Saved session not found.".into()))?;
+    if summary.data_bytes > 10 * 1024 * 1024 {
+        return Err(AppError::Message(format!("This session is {} MB. Open it from a large-session restore workflow instead of loading it automatically.", summary.data_bytes / (1024*1024))));
+    }
     let saved=state.db.load_session(id)?;
     if !append {
         let old_ids:Vec<String>=state.tabs.lock().unwrap().iter().map(|t|t.id.clone()).collect();
