@@ -860,6 +860,9 @@ async function showProfiles(){
   const exportBtn=document.createElement("button");exportBtn.className="panel-action";exportBtn.textContent="Export active profile";exportBtn.onclick=async()=>{try{const path=await invoke("export_profile");toast("Profile exported to "+path)}catch(e){toast(e)}};body.appendChild(exportBtn);  const importBtn=document.createElement("button");importBtn.className="panel-action";importBtn.textContent="Import profile export";importBtn.onclick=async()=>{const path=prompt("Path to exported Synth profile folder");if(!path)return;const name=prompt("Imported profile name","Imported Profile");if(!name)return;try{const p=await invoke("import_profile",{name,source:path});toast("Imported "+p.name);await refresh()}catch(e){toast(e)}};body.appendChild(importBtn);
 
   const create=document.createElement("button");create.className="panel-action";create.textContent="+ Create isolated profile";create.onclick=async()=>{const name=prompt("Profile name");if(!name)return;try{await invoke("create_profile",{name});toast("Launching "+name+"…")}catch(e){toast(e)}};body.appendChild(create);
+  const rename=document.createElement("button");rename.className="panel-action";rename.textContent="Rename active profile";rename.onclick=async()=>{const name=prompt("Profile name",current.name);if(!name)return;try{const profiles=await invoke("rename_profile",{profileId:current.id,name});state.profiles=profiles;toast("Profile renamed")}catch(e){toast(e)}};body.appendChild(rename);
+  const exportBtn=document.createElement("button");exportBtn.className="panel-action";exportBtn.textContent="Export active profile";exportBtn.onclick=async()=>{try{const path=await invoke("export_profile");toast("Profile exported: "+path)}catch(e){toast(e)}};body.appendChild(exportBtn);
+  const integrity=document.createElement("button");integrity.className="panel-action";integrity.textContent="Check profile integrity";integrity.onclick=async()=>{try{const x=await invoke("profile_integrity");toast("Database "+(x.database_present?"present":"missing")+" · "+x.extension_count+" extensions")}catch(e){toast(e)}};body.appendChild(integrity);
   const guest=document.createElement("button");guest.className="panel-action";guest.textContent="Start Guest Mode";guest.onclick=async()=>{try{await invoke("switch_profile",{profileId:"guest"});toast("Launching disposable Guest Mode…")}catch(e){toast("Guest Mode is unavailable from this build.")}};body.appendChild(guest);
 }
 
@@ -1325,12 +1328,15 @@ async function showBrowserTools(){
 
   const body=basePanel("Browser Tools");
   const tools=[
+    ["Save active tab memory","Discard inactive page renderer while preserving its URL/tab metadata",async()=>{try{const count=await invoke("discard_inactive_tabs",{maxLive:3});toast("Discarded "+count+" inactive tab"+(count===1?"":"s"))}catch(e){toast(e)}}, "Available"],
+    ["Restore tab memory","Rehydrate the active discarded tab",async()=>{try{await invoke("restore_tab",{tabId:activeTab()?.id});toast("Tab restored")}catch(e){toast(e)}}, "Available"],
+    ["Lazy-open saved session","Restore session metadata first and hydrate the first page only",async()=>{const rows=await invoke("list_sessions");if(!rows.length)return toast("No saved sessions.");const chosen=rows[0];try{await invoke("open_session_lazy",{id:chosen.id});toast("Session metadata restored; pages load as opened.")}catch(e){toast(e)}}, "Available"],
     ["Print current page","Real Chromium/Tauri print command",async()=>invoke("print_page"),"Available"],
     ["Screenshot","Native Windows WebView2 CapturePreview",async()=>{try{const path=await invoke("capture_screenshot");toast("Screenshot saved to "+path)}catch(e){toast(e)}},"Windows available"],
     ["Save page","Save the current DOM as a standalone HTML snapshot",async()=>{try{const path=await invoke("save_page_html");toast("Page saved to "+path)}catch(e){toast(e)}},"Available"],
     ["Export PDF","Native Windows WebView2 PrintToPdf export",async()=>{try{const path=await invoke("print_page_to_pdf");toast("PDF saved to "+path)}catch(e){toast(e)}},"Windows available"],
-    ["Picture-in-picture","Requires native Chromium media/PiP plumbing",async()=>toast("Picture-in-picture is waiting for Azecotron."),"Pending"],
-    ["Fullscreen","Requires native Chromium fullscreen delegate",async()=>toast("Fullscreen is waiting for Azecotron."),"Pending"],
+    ["Picture-in-picture","Toggle PiP for the first media element",async()=>{try{await invoke("request_pip");toast("PiP request sent")}catch(e){toast(e)}}, "Partial"],
+    ["Fullscreen","Toggle fullscreen for the current page",async()=>{try{await invoke("request_fullscreen");toast("Fullscreen request sent")}catch(e){toast(e)}}, "Partial"],
     ["WebRTC devices","Camera/microphone permission policies are available",async()=>showMedia(),"Partial"],
     ["Media controls","Native media session integration waits for Azecotron",async()=>showMedia(),"Partial"]
   ];
@@ -1380,6 +1386,16 @@ async function showMedia(){
     row.appendChild(manage);body.appendChild(row);
   });
   const runtime=document.createElement("button");runtime.className="panel-action";runtime.textContent="Runtime capability status";runtime.onclick=showRuntime;body.appendChild(runtime);
+}
+
+async function showUpdates(){
+  const body=basePanel("Synth Updates");
+  let status={};try{status=await invoke("update_status")}catch{}
+  body.innerHTML='<div class="security-hero"><div class="security-orb">↻</div><div><div class="panel-title">Signed update pipeline</div><strong>Verified staging</strong><div class="reading-url">Ed25519 manifest + SHA-256 artifact</div></div></div>';
+  [["Transport",status.transport||"—"],["Binary staging",status.binary_download||"—"],["Rollback",status.rollback||"—"],["Signature",status.signature||"—"]].forEach(([a,b])=>{const r=document.createElement("div");r.className="panel-row";r.innerHTML=esc(a)+' <strong>'+esc(b)+'</strong>';body.appendChild(r)});
+  const pending=await invoke("pending_update");if(pending){const r=document.createElement("div");r.className="panel-row";r.innerHTML='Pending <strong>'+esc(pending.version)+'</strong><div class="reading-url">'+esc(pending.staged_path)+'</div>';body.appendChild(r)}
+  const back=document.createElement("button");back.className="panel-action";back.textContent="Create rollback backup";back.onclick=async()=>{try{const path=await invoke("update_rollback_backup");toast("Backup created: "+path)}catch(e){toast(e)}};body.appendChild(back);
+  const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Cancel pending update";clear.onclick=async()=>{try{await invoke("clear_pending_update");toast("Pending update cleared");showUpdates()}catch(e){toast(e)}};body.appendChild(clear);
 }
 
 async function showPerformance(){
