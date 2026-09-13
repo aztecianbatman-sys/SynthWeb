@@ -19,6 +19,7 @@ const SAFE_METHODS: &[&str] = &[
     "Security.enable",
     "Security.disable",
     "Page.getNavigationHistory",
+    "Page.reload",
     "Page.getFrameTree",
     "Performance.getMetrics",
 ];
