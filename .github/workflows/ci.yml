@@ -55,3 +55,17 @@ jobs:
             src-tauri/target/release/bundle/**/*.exe
             src-tauri/target/release/bundle/**/*.msi
             src-tauri/target/release/synth-browser.exe
+
+  package-metadata:
+    needs: [frontend, rust, build]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release metadata
+        shell: pwsh
+        run: |
+          $required = @('README.md','LICENSE','NOTICE','docs/status.md')
+          foreach ($file in $required) {
+            if (-not (Test-Path $file)) { throw "Missing release file: $file" }
+          }
+          if (-not (Select-String -Path README.md -Pattern 'NOT falsely claimed|not falsely claimed' -Quiet)) { throw 'README must disclose runtime truth.' }
