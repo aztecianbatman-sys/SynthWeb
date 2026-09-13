@@ -1280,21 +1280,22 @@ async function showMedia(){
 
 async function showPerformance(){
   const body=basePanel("Performance & Reliability");
-  let az=null,info=null;
-  try{az=await invoke("azecotron_status");info=await invoke("runtime_info")}catch{}
-  const rows=[
-    ["Current runtime",info?.runtime||"Unknown"],
-    ["Azecotron build",az?.available?"Available":"Not built"],
-    ["Startup benchmark","NOT VERIFIED"],
-    ["10 / 50 / 100 / 200 tab tests","NOT VERIFIED"],
-    ["1h / 4h stability","NOT VERIFIED"],
-    ["GPU acceleration","NOT VERIFIED"],
-    ["Crash recovery","Source implemented; runtime test pending"],
-    ["Memory growth","NOT VERIFIED"]
-  ];
-  rows.forEach(([a,b])=>{const row=document.createElement("div");row.className="panel-row";row.innerHTML=esc(a)+' <strong>'+esc(b)+'</strong>';body.appendChild(row)});
-  const diag=document.createElement("button");diag.className="panel-action";diag.textContent="Export diagnostics";diag.onclick=async()=>{try{const x=await invoke("export_diagnostics");toast("Diagnostics exported: "+x.path)}catch(e){toast(e)}};body.appendChild(diag);
+  try{
+    const az=await invoke("azecotron_status");
+    const info=await invoke("runtime_info");
+    const samples=await invoke("list_performance_samples",{limit:40});
+    const latest=samples[0];
+    body.innerHTML='<div class="security-hero"><div class="security-orb">ϟ</div><div><div class="panel-title">Runtime telemetry</div><strong>'+esc(az.running?"Azecotron running":(az.available?"Azecotron available":"Fallback runtime"))+'</strong><div class="reading-url">'+esc(info.runtime)+'</div></div></div>';
+    const current=document.createElement("div");current.className="perf-grid";
+    [["Memory",latest?Math.round(latest.memory_bytes/1048576)+" MB":"—"],["Peak",latest?Math.round(latest.peak_memory_bytes/1048576)+" MB":"—"],["CPU time",latest?Math.round(latest.cpu_time_ms/1000)+" s":"—"],["Handles",latest?.handles??"—"],["Tabs",latest?.tab_count??state.tabs.length],["Workspaces",latest?.workspace_count??state.workspaces.length]].forEach(([k,v])=>{const x=document.createElement("div");x.innerHTML='<span>'+esc(k)+'</span><b>'+esc(String(v))+'</b>';current.appendChild(x)});body.appendChild(current);
+    const capture=document.createElement("button");capture.className="panel-action";capture.textContent="Record performance sample";capture.onclick=async()=>{try{await invoke("record_performance_sample");showPerformance();toast("Performance sample recorded")}catch(e){toast(e)}};body.appendChild(capture);
+    const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear performance samples";clear.onclick=async()=>{if(confirm("Clear recorded performance samples?")){await invoke("clear_performance_samples");showPerformance()}};body.appendChild(clear);
+    const tests=document.createElement("div");tests.className="panel-section compact-test-list";
+    [["Startup","NOT VERIFIED"],["10 tabs","NOT VERIFIED"],["50 tabs","NOT VERIFIED"],["100 tabs","NOT VERIFIED"],["200 tabs","NOT VERIFIED"],["1 hour","NOT VERIFIED"],["4 hours","NOT VERIFIED"],["GPU","NOT VERIFIED"],["Renderer crash recovery","NOT VERIFIED"],["Profile isolation","NOT VERIFIED"],["Tracker performance","NOT VERIFIED"]].forEach(([name,status])=>{const r=document.createElement("div");r.className="panel-row";r.innerHTML='<span>'+name+'</span><strong>'+status+'</strong>';tests.appendChild(r)});body.appendChild(tests);
+    const note=document.createElement("div");note.className="panel-row";note.textContent=(latest?"Samples are real process telemetry from the current process.":"No samples recorded yet.")+" Benchmark certification still requires the Windows acceptance suite.";body.appendChild(note);
+  }catch(e){body.innerHTML='<div class="panel-row">Performance telemetry unavailable: '+esc(e)+'</div>'}
 }
+
 
 async function showDataControls(){
   const body=basePanel("Browser Data");
