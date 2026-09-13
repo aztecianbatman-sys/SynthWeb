@@ -1,3 +1,4 @@
+mod webview_capture;
 mod native_host;
 mod azecotron_bridge;
 mod tracker;
@@ -1651,6 +1652,34 @@ fn stop_or_reload(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()
 }
 
 #[tauri::command]
+fn capture_screenshot(app: tauri::AppHandle, state: State<AppState>)->AppResult<String>{
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let dir=dirs_next::picture_dir().unwrap_or_else(||PathBuf::from(".")).join("Synth Browser").join("screenshots");
+    fs::create_dir_all(&dir)?;
+    let path=dir.join(format!("synth-{}.png",Db::now()));
+    webview_capture::capture_png(&view,path.clone()).map_err(AppError::Message)?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn save_page_html(app: tauri::AppHandle, state: State<AppState>)->AppResult<String>{
+    let id=state.active_id.lock().unwrap().clone();
+    let view=app.get_webview(&format!("page-{id}")).ok_or_else(||AppError::Message("No active web page.".into()))?;
+    let dir=dirs_next::download_dir().unwrap_or_else(||PathBuf::from(".")).join("Synth Browser").join("saved-pages");
+    fs::create_dir_all(&dir)?;
+    let path=dir.join(format!("page-{}.html",Db::now()));
+    let script=r#"document.documentElement.outerHTML"#;
+    let (tx,rx)=std::sync::mpsc::channel();
+    view.eval_with_callback(script,move|raw|{let _=tx.send(raw);}).map_err(|e|AppError::Message(e.to_string()))?;
+    let raw=rx.recv().map_err(|e|AppError::Message(e.to_string()))?;
+    let html: String=serde_json::from_str(&raw).unwrap_or(raw);
+    if html.len()>10_000_000{return Err(AppError::Message("Page HTML is too large to save.".into()))}
+    fs::write(&path,html)?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 fn print_page(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
     let id = state.active_id.lock().unwrap().clone();
     let view = app.get_webview(&format!("page-{id}")).ok_or_else(|| AppError::Message("No active web page.".into()))?;
@@ -2863,7 +2892,7 @@ fn main() {
             list_permission_history, list_current_site_cookies, delete_current_site_cookie, clear_current_site_data,
             list_site_permissions, set_site_permission, reset_site_permissions,
             tracker_status, privacy_audit, set_tracker_policy,
-            clear_data_category, list_extensions, install_extension, set_extension_enabled, remove_extension, extension_runtime_status, rename_profile, export_profile, import_profile, delete_session,
+            capture_screenshot, save_page_html, clear_data_category, list_extensions, install_extension, set_extension_enabled, remove_extension, extension_runtime_status, rename_profile, export_profile, import_profile, delete_session,
             create_command_chain, list_command_chains, delete_command_chain, list_query_history, list_workspaces, create_workspace, switch_workspace,
             rename_workspace, delete_workspace, reorder_tab, move_tab_to_workspace, toggle_pin, close_other_tabs, close_tabs_right, duplicate_workspace, save_session, list_sessions,
             open_session, add_to_shelf, list_shelf, toggle_shelf_read, remove_shelf,
