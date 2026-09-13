@@ -1,92 +1,54 @@
 @echo off
-setlocal EnableExtensions EnableDelayedExpansion
+setlocal EnableExtensions
+
+title Synth Browser - Full Windows Build
 
 set "ROOT=%~dp0"
 cd /d "%ROOT%"
 
 echo ============================================================
-echo SYNTH BROWSER - ONE SHOT WINDOWS BUILD + ACCEPTANCE
+echo                    SYNTH BROWSER
+echo             FULL WINDOWS BUILD + ACCEPTANCE
 echo ============================================================
 echo.
-echo This script performs the complete remaining execution gate:
-echo   1. Windows/depot_tools/MSVC preflight
-echo   2. Source acceptance
-echo   3. Chromium 152 bootstrap + Azecotron patching
-echo   4. Azecotron native browser build
-echo   5. Runtime staging
-echo   6. Rust format/lint/tests
-echo   7. Tauri package
-echo   8. Native smoke/privacy/performance/release gates
+echo This is the canonical final execution entrypoint.
+echo It runs:
+echo   - Windows/MSVC/depot_tools preflight
+echo   - source gates and production-boundary checks
+echo   - pinned Chromium 152 bootstrap
+echo   - Azecotron build + native ContentMain host build
+echo   - Rust fmt/clippy/tests
+echo   - native runtime smoke
+echo   - privacy/cookie/tracker tests
+echo   - profile isolation
+echo   - DevTools
+echo   - media/WebRTC
+echo   - measured performance
+echo   - packaging
+echo   - release gate
 echo.
-echo It does NOT mark anything verified when a gate fails.
+echo No result is promoted to VERIFIED unless the command succeeds.
 echo.
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%scripts\setup-windows-build.ps1"
-if errorlevel 1 exit /b 1
-
-call "%ROOT%scripts\acceptance-source-audit.cmd"
-if errorlevel 1 exit /b 1
-
-call "%ROOT%scripts\bootstrap-azecotron.cmd"
-if errorlevel 1 exit /b 1
-
-call "%ROOT%scripts\verify-azecotron-production-boundary.cmd"
-if errorlevel 1 exit /b 1
-
-call "%ROOT%scripts\build-azecotron.cmd"
-if errorlevel 1 exit /b 1
-
-call "%ROOT%scripts\build-azecotron-host.cmd"
-if errorlevel 1 exit /b 1
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%scripts\stage-azecotron-runtime.ps1"
-if errorlevel 1 exit /b 1
-
-pushd "%ROOT%src-tauri"
-cargo fmt --check
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%scriptsacceptanceun-full-windows.ps1"
 if errorlevel 1 (
-  popd
+  echo.
+  echo ============================================================
+  echo              SYNTH BROWSER BUILD FAILED
+  echo ============================================================
+  echo Check the first failing acceptance step above.
   exit /b 1
 )
-cargo clippy --all-targets --all-features -- -D warnings
-if errorlevel 1 (
-  popd
-  exit /b 1
-)
-cargo test --all-features
-if errorlevel 1 (
-  popd
-  exit /b 1
-)
-cargo tauri build
-if errorlevel 1 (
-  popd
-  exit /b 1
-)
-popd
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%scripts\acceptance\native-runtime-smoke.ps1"
-if errorlevel 1 exit /b 1
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%scripts\acceptance\privacy-runtime.ps1"
-if errorlevel 1 exit /b 1
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%scripts\acceptance\performance-runtime.ps1"
-if errorlevel 1 exit /b 1
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%scripts\acceptance\accessibility-audit.ps1"
-if errorlevel 1 exit /b 1
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%scripts\acceptance\release-gate.ps1"
-if errorlevel 1 exit /b 1
 
 echo.
 echo ============================================================
-echo SYNTH BROWSER EXECUTION GATE: PASS
+echo             SYNTH BROWSER BUILD + ACCEPTANCE PASSED
 echo ============================================================
-echo Package output:
-echo   %ROOT%src-tauri\target\release\bundle
 echo.
-echo Final acceptance report should be generated from the Windows
-echo runtime results before publishing a release.
+echo Installer artifacts:
+echo   %ROOT%release
+echo.
+echo Native Chromium runtime:
+echo   %ROOT%third_partyazecotron-chromiumsrcoutAzecotron
+echo.
 exit /b 0
