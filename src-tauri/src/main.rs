@@ -1,3 +1,4 @@
+mod process_diagnostics;
 mod webview_capture;
 mod native_host;
 mod azecotron_bridge;
@@ -2355,6 +2356,11 @@ fn export_data(state: State<AppState>) -> AppResult<String> {
     let path=dir.join(format!("synth-browser-export-{}.json",Db::now()));
     state.db.export_all(&path)?;
     Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn process_diagnostics()->AppResult<process_diagnostics::ProcessStats>{
+    process_diagnostics::current_process().map_err(AppError::Message)
 }
 
 #[tauri::command]
