@@ -745,7 +745,7 @@ async function showDownloads(){
 
 async function showBookmarks() {
   const body = basePanel("Bookmarks");
-  const rows = await invoke("list_bookmarks");
+  const rows = await invoke("list_bookmarks",{workspace:state.activeWorkspace});
   if (!rows.length) {
     body.innerHTML = '<div class="panel-row">No bookmarks yet.</div>';
     return;
@@ -777,7 +777,7 @@ async function showHistory() {
 
 async function showShelf() {
   const body = basePanel("Reading Shelf");
-  const rows = await invoke("list_shelf");
+  const rows = await invoke("list_shelf",{workspace:state.activeWorkspace});
   if (!rows.length) {
     body.innerHTML = '<div class="panel-row">Your reading shelf is empty.</div><div class="panel-row">Save a page for later.</div>';
     return;
@@ -1268,182 +1268,7 @@ async function showSitePermissions(){
     ["permission_clipboard","Clipboard read"],["permission_local_fonts","Local fonts"],["permission_sensors","Sensors"],
     ["permission_midi","MIDI"],["permission_usb","USB"],["permission_bluetooth","Bluetooth"],
     ["permission_downloads","Downloads"],["permission_popups","Popups"],["permission_autoplay","Autoplay"]
-  ];
-  kinds.forEach(([key,label])=>{
-    const current=rows.find(r=>r.kind===key)?.policy||state.settings[key]||"prompt";
-    const row=document.createElement("div");row.className="permission-row";
-    const copy=document.createElement("div");copy.className="permission-copy";copy.innerHTML='<strong>'+esc(label)+'</strong><span>'+esc(currentOrigin||"Current site")+'</span>';
-    const select=document.createElement("select");select.className="setting-control";
-    [["prompt","Ask"],["deny","Block"],["allow","Allow"]].forEach(([v,t])=>{const o=document.createElement("option");o.value=v;o.textContent=t;select.appendChild(o)});
-    select.value=current;select.onchange=async()=>{try{if(currentOrigin)await invoke("set_site_permission",{origin:currentOrigin,kind:key,policy:select.value});toast(label+" policy updated")}catch(e){toast(e)}};
-    row.append(copy,select);body.appendChild(row);
-  });
-  const reset=document.createElement("button");reset.className="panel-action";reset.textContent="Reset this site's overrides";reset.onclick=async()=>{if(!currentOrigin)return;await invoke("reset_site_permissions",{origin:currentOrigin});showSitePermissions()};body.appendChild(reset);
-  const history=document.createElement("button");history.className="panel-action";history.textContent="Permission history";history.onclick=async()=>{const items=await invoke("list_permission_history",{origin:currentOrigin||null});const b=basePanel("Permission history");items.slice(0,60).forEach(x=>{const r=document.createElement("div");r.className="panel-row";r.textContent=x.origin+" · "+x.kind+" · "+x.decision;b.appendChild(r)})};body.appendChild(history);
-}
-
-
-async function showSiteStorage(){
-  const body=basePanel("Site Storage");
-  try{
-    const data=await invoke("site_storage");
-    const groups=[["localStorage",data.localStorageKeys||[]],["sessionStorage",data.sessionStorageKeys||[]],["indexedDB",data.indexedDbNames||[]]];
-    groups.forEach(([kind,items])=>{
-      const head=document.createElement("div");head.className="panel-section-title";head.textContent=kind+" · "+items.length;body.appendChild(head);
-      if(!items.length){const empty=document.createElement("div");empty.className="panel-row";empty.textContent="No entries";body.appendChild(empty);return}
-      items.slice(0,100).forEach(name=>{
-        const row=document.createElement("div");row.className="reading-row";
-        const info=document.createElement("div");info.className="reading-info";info.innerHTML='<div class="reading-title">'+esc(name)+'</div><div class="reading-url">'+esc(kind)+'</div>';
-        const del=document.createElement("button");del.className="mini-action danger";del.textContent="Delete";del.onclick=async()=>{if(!confirm("Delete "+kind+" entry?"))return;try{await invoke("delete_site_storage_item",{kind,name});showSiteStorage()}catch(e){toast(e)}};
-        row.append(info,del);body.appendChild(row);
-      });
-    });
-    const clear=document.createElement("button");clear.className="panel-action";clear.textContent="Clear all site storage";clear.onclick=async()=>{if(confirm("Clear all cookies and site storage for this site?")){try{await invoke("clear_current_site_data");toast("Site data cleared");showSiteStorage()}catch(e){toast(e)}}};body.appendChild(clear);
-  }catch(e){body.innerHTML='<div class="panel-row">Site storage unavailable: '+esc(e)+'</div>'}
-}
-
-async function showCookies(){
-  const body=basePanel("Current site cookies");
-  try{
-    const cookies=await invoke("list_current_site_cookies");
-    if(!cookies.length){body.innerHTML='<div class="panel-row">No cookies found for this URL.</div>';return}
-    cookies.forEach(cookie=>{
-      const row=document.createElement("div");row.className="reading-row";
-      const info=document.createElement("div");info.className="reading-info";info.innerHTML='<div class="reading-title">'+esc(cookie.name)+'</div><div class="reading-url">'+esc(cookie.domain)+esc(cookie.path)+' · '+(cookie.secure?"Secure":"")+' '+(cookie.http_only?"HttpOnly":"")+'</div>';
-      const del=document.createElement("button");del.className="mini-action";del.textContent="Delete";del.onclick=async()=>{try{await invoke("delete_current_site_cookie",{name:cookie.name,domain:cookie.domain,path:cookie.path});toast("Cookie deleted");showCookies()}catch(e){toast(e)}};
-      row.append(info,del);body.appendChild(row);
-    });
-  }catch(e){toast(e)}
-}
-
-async function showSiteSecurity() {
-  const body = basePanel("Site Capsule");
-  try {
-    const info = await invoke("site_info");
-    body.innerHTML =
-      '<div class="panel-row">Host <strong>' + esc(info.host || "—") + '</strong></div>' +
-      '<div class="panel-row">Connection <strong>' + esc(info.secure ? "HTTPS" : "HTTP") + '</strong></div>' +
-      '<div class="panel-row">Private <strong>' + (info.private ? "Yes" : "No") + '</strong></div>' +
-      '<div class="panel-row">Cookies visible to runtime <strong>' + String(info.cookieCount) + '</strong></div>' +
-      '<div class="panel-row">URL <strong style="word-break:break-all">' + esc(info.url) + '</strong></div>';
-    const clear = document.createElement("button");
-    clear.className = "panel-action";
-    clear.textContent = "Clear Browsing Data";
-    clear.onclick = () => runClear();
-    body.appendChild(clear);
-  } catch (error) {
-    body.innerHTML = '<div class="panel-row">No active web page.</div>';
-  }
-}
-
-async function showRuntime(){
-  const body=basePanel("Runtime Status");
-  try{
-    const info=await invoke("runtime_info");
-    const az=await invoke("azecotron_status");
-    body.innerHTML=
-      '<div class="panel-row">Current shell <strong>'+esc(info.runtime)+'</strong></div>'+
-      '<div class="panel-row">Revision <strong>'+esc(info.revision)+'</strong></div>'+
-      '<div class="panel-row">Azecotron Web <strong>'+esc(az.available?"AVAILABLE":"NOT BUILT")+'</strong></div>'+
-      '<div class="panel-row">Azecotron version <strong>'+esc(az.version||"—")+'</strong></div>'+
-      '<div class="panel-row">Executable <strong style="word-break:break-all">'+esc(az.executable)+'</strong></div>'+
-      '<div class="panel-row">Cortis <strong>'+esc(info.search.status)+'</strong></div>'+
-      '<div class="panel-row">'+esc(info.search.mode)+'</div>';
-    const launch=document.createElement("button");launch.className="panel-action";launch.textContent=az.available?"Open this page in Azecotron":"Azecotron build required";
-    launch.disabled=!az.available;
-    launch.onclick=async()=>{try{await invoke("launch_azecotron",{url:activeTab()?.url||null});toast("Opened in Azecotron Web")}catch(e){toast(e)}};
-    body.appendChild(launch);
-  }catch(e){toast(e)}
-}
-
-
-async function showSettings() {
-  const body = basePanel("Settings");
-  const settings = await invoke("get_settings");
-  state.settings = settings;
-  body.replaceChildren();
-
-  const search = document.createElement("input");
-  search.className = "setting-control";
-  search.placeholder = "Search settings…";
-  body.appendChild(search);
-
-  const grid = document.createElement("div");
-  grid.className = "settings-grid";
-  body.appendChild(grid);
-
-  const select = (key, label, options) => {
-    const wrap = document.createElement("label");
-    const labelEl = document.createElement("div");
-    labelEl.className = "setting-label";
-    labelEl.textContent = label;
-    const el = document.createElement("select");
-    el.className = "setting-control";
-    options.forEach(([value, text]) => {
-      const option = document.createElement("option");
-      option.value = value;
-      option.textContent = text;
-      el.appendChild(option);
-    });
-    el.value = settings[key] || options[0][0];
-    el.onchange = async () => {
-      try {
-        await invoke("set_setting", { key, value: el.value });
-        settings[key] = el.value;
-        state.settings = settings;
-        applySettings();
-      } catch (error) { toast(error); }
-    };
-    wrap.append(labelEl, el);
-    grid.appendChild(wrap);
-  };
-
-  const toggle = (key, label) => {
-    const row = document.createElement("label");
-    row.className = "setting-toggle";
-    const text = document.createElement("span");
-    text.textContent = label;
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.checked = settings[key] === "true";
-    input.onchange = async () => {
-      try {
-        await invoke("set_setting", { key, value: String(input.checked) });
-        settings[key] = String(input.checked);
-        state.settings = settings;
-        applySettings();
-        renderRecent();
-      } catch (error) { toast(error); }
-    };
-    row.append(text, input);
-    grid.appendChild(row);
-  };
-
-  select("theme", "Theme", [["dark","Dark"],["light","Light"],["system","System"]]);
-  select("accent", "Accent", [["cyan","Cyan"],["violet","Violet"],["blue","Blue"],["green","Green"]]);
-  select("density", "Density", [["comfortable","Comfortable"],["compact","Compact"]]);
-  toggle("show_shortcuts", "Show shortcuts");
-  toggle("show_recent", "Show recent activity");
-  toggle("search_history", "Store search history");
-  toggle("quiet_mode", "Quiet Mode");
-  toggle("https_only", "HTTPS-only");
-  toggle("tracker_enabled", "Tracker protection policy");
-  toggle("autofill", "Browser autofill");
-
-  const permissionTitle=document.createElement("div");
-  permissionTitle.className="setting-label";
-  permissionTitle.textContent="Permissions";
-  grid.appendChild(permissionTitle);
-  [
-    ["permission_camera","Camera"],
-    ["permission_microphone","Microphone"],
-    ["permission_geolocation","Location"],
-    ["permission_notifications","Notifications"],
-    ["permission_display_capture","Screen sharing"],
-    ["permission_clipboard","Clipboard read"],
-    ["permission_local_fonts","Local fonts"],
-    ["permission_sensors","Sensors"]
-  ].forEach(([key,label])=>select(key,label,[["prompt","Ask"],["deny","Block"],["allow","Allow"]]));
+  ]  ].forEach(([key,label])=>select(key,label,[["prompt","Ask"],["deny","Block"],["allow","Allow"]]));
   toggle("ai_enabled", "Enable Synth Assist");
   toggle("ai_page_context", "Allow page context when requested");
   toggle("ai_selection_context", "Allow selection context when requested");
@@ -1502,7 +1327,7 @@ async function showAssist() {
 
   const modelBox=document.createElement("div");modelBox.className="assist-models";body.appendChild(modelBox);
   const load=document.createElement("button");load.className="panel-action";load.textContent="Discover models";
-  load.onclick=async()=>{try{const list=await invoke("list_ai_models");modelBox.replaceChildren();list.slice(0,30).forEach(id=>{const b=document.createElement("button");b.className="model-chip";b.textContent=id;b.onclick=async()=>{model.value=id;await invoke("set_setting",{key:"ai_model",value:id});toast("Model selected")};modelBox.appendChild(b)});toast(list.length+" models available")}catch(e){toast(e)}};body.appendChild(load);
+  load.onclick=async()=>{try{const list=await invoke("list_ai_model_info");modelBox.replaceChildren();list.slice(0,30).forEach(info=>{const b=document.createElement("button");b.className="model-chip";b.textContent=info.id+" · "+(info.context_window?Math.round(info.context_window/1024)+"K":"ctx ?")+" · "+(info.vision?"vision":"text");b.title="Tools: "+info.tools+" · Streaming: "+info.streaming;b.onclick=async()=>{model.value=info.id;await invoke("set_setting",{key:"ai_model",value:info.id});toast("Model selected")};modelBox.appendChild(b)});toast(list.length+" models available")}catch(e){toast(e)}};body.appendChild(load);
 
   const enabled=document.createElement("label");enabled.className="setting-toggle";const enabledText=document.createElement("span");enabledText.textContent="Enable Synth Assist";const enabledInput=document.createElement("input");enabledInput.type="checkbox";enabledInput.checked=info.enabled;enabledInput.onchange=async()=>{await invoke("set_setting",{key:"ai_enabled",value:String(enabledInput.checked)});await showAssist()};enabled.append(enabledText,enabledInput);body.appendChild(enabled);
 
