@@ -32,14 +32,16 @@ jobs:
       - name: Build Azecotron
         shell: cmd
         run: call scripts\build-azecotron.cmd
+          call scripts\build-azecotron-host.cmd
 
       - name: Smoke test Chromium runtime
         shell: cmd
         run: |
-          set "CHROME=third_party\azecotron-chromium\src\out\Azecotron\chrome.exe"
-          if not exist "%CHROME%" exit /b 1
-          "%CHROME%" --version
-          "%CHROME%" --headless --disable-gpu --dump-dom about:blank > smoke.html
+          set "AZECOTRON=third_party\azecotron-chromium\src\out\Azecotron\azecotron_host.exe"
+          if not exist "%AZECOTRON%" exit /b 1
+          "%AZECOTRON%" --version > azecotron-version.txt
+          if errorlevel 1 exit /b 1
+          "%AZECOTRON%" --synth-url=about:blank --headless --disable-gpu --dump-dom about:blank > smoke.html
           if errorlevel 1 exit /b 1
           findstr /c:"<html" smoke.html
           if errorlevel 1 exit /b 1
@@ -56,7 +58,8 @@ jobs:
             "base=chromium/src"
             "branding=Synth Browser"
             "sandbox=preserved"
-            "build_target=chrome"
+            "build_target=//azecotron/app:azecotron_host
+            runtime_model=Synth ContentMain + Synth BrowserContext + WebContents"
             "smoke_test=headless about:blank"
           ) | Set-Content azecotron-build-manifest.txt
 
@@ -64,4 +67,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: azecotron-build-manifest
-          path: azecotron-build-manifest.txt
+          path: |
+            azecotron-build-manifest.txt
+            azecotron-version.txt
+            smoke.html
