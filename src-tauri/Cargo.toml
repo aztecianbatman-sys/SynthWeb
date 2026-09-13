@@ -20,6 +20,7 @@ thiserror = "2.0.16"
 reqwest = { version = "0.13.5", default-features = false, features = ["json", "rustls-tls"] }
 keyring = "4.2.0"
 sha2 = "0.10.9"
+ed25519-dalek = { version = "2.1.1", default-features = false, features = ["std"] }
 futures-util = "0.3.31"
 
 [features]
