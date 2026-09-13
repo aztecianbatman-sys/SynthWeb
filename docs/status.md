@@ -86,3 +86,24 @@ Final source-only audit:
 - no remaining source TODO markers in the completion contract: PASS.
 
 Remaining execution work is solely the Windows/Chromium build and runtime verification gates defined in scripts/acceptance/acceptance-matrix.json, followed by final packaging/signing. No binary status is promoted to VERIFIED until those tests actually execute.
+
+
+## Final source handoff
+
+The interrupted source-build pass is complete. Profile rename/export/import/delete, category-specific data clearing, workspace-scoped bookmarks/Reading Shelf, expanded sensitive-permission policies, privacy audit, Synth Assist provider management, Browser Tools, native Azecotron ContentMain/BrowserContext, Chromium network Shield, DevTools/runtime seams, diagnostics, updater/rollback, accessibility/localization foundations, and reference UI/onboarding are present in source.
+
+The canonical execution entrypoint is:
+- BUILD_SYNTH_WINDOWS.cmd
+
+That entrypoint invokes scripts/acceptance/run-full-windows.ps1, which is the final environment-dependent gate.
+
+At this point the remaining work is intentionally limited to:
+- Windows/MSVC/depot_tools setup
+- pinned Chromium checkout/build
+- Rust compile/test
+- native runtime execution and hardware/network verification
+- performance measurement
+- installer/signing/update/rollback execution
+- final acceptance report
+
+No source-only completion claim is being converted into a binary VERIFIED claim without those runtime results.
