@@ -1,4 +1,7 @@
 #include "azecotron/app/synth_browser_context.h"
+
+#include "azecotron/app/synth_download_manager_delegate.h"
+#include "azecotron/app/synth_permission_controller_delegate.h"
 #include "azecotron/app/synth_download_manager_delegate.h"
 #include "azecotron/app/synth_permission_controller_delegate.h"
 
