@@ -44,6 +44,24 @@ pub fn write_privacy_policy(profile_dir:&PathBuf, settings:&std::collections::Ha
     Ok(path)
 }
 
+pub fn write_privacy_policy(
+    profile_dir: &PathBuf,
+    settings: &std::collections::HashMap<String, String>,
+) -> Result<String, String> {
+    std::fs::create_dir_all(profile_dir).map_err(|e|e.to_string())?;
+    let path=profile_dir.join("synth-permissions.json");
+    let mut policy=serde_json::Map::new();
+    for (key,value) in settings {
+        if key.starts_with("permission_") {
+            policy.insert(key.clone(),serde_json::Value::String(value.clone()));
+        }
+    }
+    let text=serde_json::to_vec_pretty(&serde_json::Value::Object(policy))
+        .map_err(|e|e.to_string())?;
+    std::fs::write(&path,text).map_err(|e|e.to_string())?;
+    Ok(path.to_string_lossy().to_string())
+}
+
 pub fn launch(app: tauri::AppHandle, profile_dir:PathBuf,url:&str,parent_hwnd:Option<u64>,tab_id:&str,policy_path:Option<PathBuf>)->Result<(),String>{
     let path=executable_path();
     if !path.exists(){return Err(format!("Azecotron executable was not found at {}",path.display()))}
@@ -58,6 +76,7 @@ pub fn launch(app: tauri::AppHandle, profile_dir:PathBuf,url:&str,parent_hwnd:Op
         .args(parent_hwnd.map(|h|vec![format!("--synth-parent-hwnd={h}")]).unwrap_or_default())
         .arg(format!("--synth-tab-id={tab_id}"))
         .arg(format!("--synth-url={url}"))
+        .args(policy_path.map(|p| vec![format!("--synth-policy-path={p}")]).unwrap_or_default())
         .args(policy_path.map(|p|vec![format!("--synth-policy={}",p.display())]).unwrap_or_default())
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
