@@ -32,7 +32,8 @@ jobs:
       - name: Install Tauri CLI
         shell: pwsh
         run: |
-          cargo install tauri-cli --version 2.11.4 --locked 2>&1 | Tee-Object ci-tauri-install.log
+          New-Item -ItemType Directory -Force ci | Out-Null
+          cargo install tauri-cli --version 2.11.4 --locked 2>&1 | Tee-Object ci/tauri-install.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Runner diagnostics
@@ -106,7 +107,7 @@ jobs:
           $parts += ''
           foreach ($file in @(
             'ci/runner-diagnostics.txt',
-            'ci-tauri-install.log',
+            'ci/tauri-install.log',
             'ci-frontend.log',
             'ci-metadata.log',
             'ci-cargo-check.log',
@@ -148,7 +149,7 @@ jobs:
           if-no-files-found: ignore
           path: |
             ci/*
-            ci-tauri-install.log
+            ci/tauri-install.log
             ci-frontend.log
             ci-metadata.log
             ci-cargo-check.log
