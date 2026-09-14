@@ -32,7 +32,7 @@ jobs:
       - name: Install Tauri CLI
         shell: pwsh
         run: |
-          cargo install tauri-cli --version 2.11.5 --locked 2>&1 | Tee-Object ci-tauri-install.log
+          cargo install tauri-cli --version 2.11.4 --locked 2>&1 | Tee-Object ci-tauri-install.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Runner diagnostics
