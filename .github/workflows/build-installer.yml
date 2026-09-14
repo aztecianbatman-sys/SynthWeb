@@ -2,6 +2,8 @@ name: Synth Browser Windows Installer
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
