@@ -4,13 +4,16 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths-ignore:
+      - 'ci/last-build-report.md'
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   CI: true
   RUST_BACKTRACE: "1"
+  CARGO_TERM_COLOR: always
 
 jobs:
   build-installer:
@@ -28,59 +31,108 @@ jobs:
 
       - name: Install Tauri CLI
         shell: pwsh
-        run: cargo install tauri-cli --version 2.11.5 --locked
+        run: |
+          cargo install tauri-cli --version 2.11.5 --locked 2>&1 | Tee-Object ci-tauri-install.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Runner diagnostics
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
-          Write-Host "OS: $([Environment]::OSVersion.VersionString)"
-          rustc --version
-          cargo --version
-          node --version
-          git --version
-          $free = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
-          Write-Host "Free C: drive space: $free GB"
-          if ($free -lt 10) { throw "Insufficient free disk space." }
+          New-Item -ItemType Directory -Force ci | Out-Null
+          @(
+            "OS: $([Environment]::OSVersion.VersionString)"
+            "PowerShell: $($PSVersionTable.PSVersion)"
+            "Rust: $(rustc --version)"
+            "Cargo: $(cargo --version)"
+            "Node: $(node --version)"
+            "Git: $(git --version)"
+            "Free C: $([math]::Round((Get-PSDrive C).Free / 1GB, 1)) GB"
+          ) | Set-Content ci/runner-diagnostics.txt
 
       - name: Frontend syntax
-        shell: cmd
-        run: node --check frontend\main.js
+        shell: pwsh
+        run: |
+          node --check frontend\main.js 2>&1 | Tee-Object ci-frontend.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Cargo metadata
         shell: pwsh
-        run: cargo metadata --manifest-path src-tauri\Cargo.toml --format-version 1 --no-deps
+        run: |
+          cargo metadata --manifest-path src-tauri\Cargo.toml --format-version 1 --no-deps 2>&1 | Tee-Object ci-metadata.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Compile Rust release binary
+      - name: Rust compiler check
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Continue"
-          cargo build --manifest-path src-tauri\Cargo.toml --release 2>&1 | Tee-Object build-rust.log
-          $code = $LASTEXITCODE
-          Get-Content build-rust.log
-          if ($code -ne 0) { exit $code }
+          cargo check --manifest-path src-tauri\Cargo.toml --all-features 2>&1 | Tee-Object ci-cargo-check.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Rust release build
+        shell: pwsh
+        run: |
+          cargo build --manifest-path src-tauri\Cargo.toml --release 2>&1 | Tee-Object ci-cargo-build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build NSIS installer
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Continue"
-          & "$PWD\scripts\build-installer.ps1" -SkipAzecotronRuntime 2>&1 | Tee-Object build-installer.log
-          $code = $LASTEXITCODE
-          Get-Content build-installer.log
-          if ($code -ne 0) { exit $code }
+          & "$PWD\scripts\build-installer.ps1" -SkipAzecotronRuntime 2>&1 | Tee-Object ci-installer.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Verify installer
         shell: pwsh
         run: |
-          $artifacts = Get-ChildItem release -File -Include *.exe
-          if (-not $artifacts) {
-            throw "No NSIS installer was produced."
-          }
+          $artifacts = Get-ChildItem release -File -Filter *.exe -ErrorAction SilentlyContinue
+          if (-not $artifacts) { throw "No NSIS installer was produced." }
           foreach ($item in $artifacts) {
             Write-Host "$($item.Name) $($item.Length) bytes SHA256=$((Get-FileHash $item.FullName -Algorithm SHA256).Hash)"
           }
 
+      - name: Write failure report to repository
+        if: failure()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          New-Item -ItemType Directory -Force ci | Out-Null
+          $parts = @()
+          $parts += '# Synth Browser Windows build failure'
+          $parts += ''
+          $parts += "- Commit: $env:SHA"
+          $parts += "- Run: $env:RUN_ID"
+          $parts += "- Time (UTC): $((Get-Date).ToUniversalTime().ToString('o'))"
+          $parts += ''
+          foreach ($file in @(
+            'ci/runner-diagnostics.txt',
+            'ci-tauri-install.log',
+            'ci-frontend.log',
+            'ci-metadata.log',
+            'ci-cargo-check.log',
+            'ci-cargo-build.log',
+            'ci-installer.log'
+          )) {
+            if (Test-Path $file) {
+              $parts += "## $file"
+              $parts += '~~~text'
+              $parts += (Get-Content $file -Raw)
+              $parts += '~~~'
+              $parts += ''
+            }
+          }
+          $report = ($parts -join "`n")
+          Set-Content ci/last-build-report.md -Value $report -Encoding UTF8
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ci/last-build-report.md
+          if (-not (git diff --cached --quiet)) {
+            git commit -m "ci: record latest Windows build failure"
+            git push
+          }
+
       - name: Upload installer
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: synth-browser-windows-installer
@@ -88,13 +140,18 @@ jobs:
           path: release/*
           retention-days: 14
 
-      - name: Upload build logs
+      - name: Upload diagnostic logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: synth-browser-build-logs
           if-no-files-found: ignore
           path: |
-            build-rust.log
-            build-installer.log
+            ci/*
+            ci-tauri-install.log
+            ci-frontend.log
+            ci-metadata.log
+            ci-cargo-check.log
+            ci-cargo-build.log
+            ci-installer.log
           retention-days: 14
