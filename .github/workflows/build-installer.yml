@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: synth-browser-installer
+  cancel-in-progress: true
+
 env:
   CI: true
   RUST_BACKTRACE: "1"
