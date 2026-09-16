@@ -60,6 +60,10 @@ jobs:
           node --check frontend\main.js 2>&1 | Tee-Object ci-frontend.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Normalize Rust formatting
+        shell: pwsh
+        run: cargo fmt --all
+
       - name: Cargo metadata
         shell: pwsh
         run: |
