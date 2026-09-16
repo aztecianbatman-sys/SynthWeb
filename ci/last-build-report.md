@@ -1,8 +1,8 @@
 # Synth Browser Windows build failure
 
-- Commit: 456069c1bd5a5378be7ac3b171e1ace496b32a03
-- Run: 34828308771
-- Time (UTC): 2026-09-14T09:41:41.5514654Z
+- Commit: 946e5c5ae84e888694c8fa1dd6d25a399080c7e4
+- Run: 35058505858
+- Time (UTC): 2026-09-16T05:25:22.0861350Z
 
 ## ci/runner-diagnostics.txt
 ~~~text
@@ -29,552 +29,552 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
     Updating crates.io index
  Downloading crates ...
   Downloaded adler2 v2.0.0
-  Downloaded aead v0.5.2
   Downloaded aligned-vec v0.5.0
-  Downloaded anstyle v1.0.10
-  Downloaded anstyle-wincon v3.0.6
-  Downloaded arrayref v0.3.9
-  Downloaded av1-grain v0.2.3
-  Downloaded bit-set v0.8.0
-  Downloaded bitflags v1.3.2
-  Downloaded bitness v0.4.0
-  Downloaded block-padding v0.3.3
-  Downloaded anstyle-parse v0.2.6
   Downloaded anstyle-query v1.1.2
-  Downloaded async-trait v0.1.88
-  Downloaded axum-core v0.5.2
-  Downloaded bit_field v0.10.2
-  Downloaded borrow-or-share v0.2.2
-  Downloaded built v0.7.5
-  Downloaded clap_derive v4.5.24
-  Downloaded colorchoice v1.0.3
-  Downloaded core_maths v0.1.0
-  Downloaded ctrlc v3.4.5
-  Downloaded darling_macro v0.20.10
+  Downloaded assert-unchecked v0.1.2
+  Downloaded aead v0.5.2
+  Downloaded aes v0.8.4
+  Downloaded aes-gcm v0.10.3
+  Downloaded ahash v0.8.11
+  Downloaded aho-corasick v1.1.3
   Downloaded allocator-api2 v0.2.21
   Downloaded anstream v0.6.18
-  Downloaded arg_enum_proc_macro v0.3.4
-  Downloaded arrayvec v0.7.6
-  Downloaded assert-unchecked v0.1.2
-  Downloaded atomic-waker v1.1.2
-  Downloaded autocfg v1.4.0
-  Downloaded avif-serialize v0.8.2
-  Downloaded block-buffer v0.10.4
-  Downloaded byteorder-lite v0.1.0
-  Downloaded bytes v1.11.1
-  Downloaded castaway v0.2.3
-  Downloaded cfg-if v1.0.1
-  Downloaded clap_lex v0.7.4
-  Downloaded color_quant v1.1.0
-  Downloaded common-path v1.0.0
-  Downloaded cow-utils v0.1.3
-  Downloaded cpufeatures v0.2.16
-  Downloaded crc32fast v1.4.2
-  Downloaded crossbeam-deque v0.8.6
-  Downloaded crossbeam-utils v0.8.21
-  Downloaded ctor v0.8.0
-  Downloaded data-encoding v2.6.0
-  Downloaded data-url v0.3.1
-  Downloaded derive_builder_core v0.20.2
-  Downloaded dialoguer v0.11.0
-  Downloaded dirs-sys v0.5.0
-  Downloaded dtoa v1.0.9
-  Downloaded ahash v0.8.11
+  Downloaded anstyle v1.0.10
+  Downloaded anstyle-parse v0.2.6
+  Downloaded anstyle-wincon v3.0.6
   Downloaded anyhow v1.0.95
-  Downloaded base64 v0.22.1
-  Downloaded bit-vec v0.8.0
-  Downloaded bitflags v2.7.0
+  Downloaded arg_enum_proc_macro v0.3.4
+  Downloaded arrayref v0.3.9
+  Downloaded async-trait v0.1.88
+  Downloaded autocfg v1.4.0
+  Downloaded axum-core v0.5.2
+  Downloaded base64 v0.13.1
+  Downloaded bitflags v1.3.2
+  Downloaded bitness v0.4.0
   Downloaded bitstream-io v2.3.0
-  Downloaded bytecount v0.6.8
-  Downloaded bytemuck v1.21.0
-  Downloaded cipher v0.4.4
-  Downloaded clap v4.5.26
-  Downloaded colored v2.2.0
-  Downloaded crypto-common v0.1.6
-  Downloaded cssparser-macros v0.6.1
-  Downloaded ctor-proc-macro v0.0.7
-  Downloaded dashmap v6.1.0
+  Downloaded base64 v0.22.1
+  Downloaded bit_field v0.10.2
+  Downloaded dtor v0.3.0
+  Downloaded env_home v0.1.0
+  Downloaded arrayvec v0.7.6
+  Downloaded clap_lex v0.7.4
+  Downloaded english-numbers v0.3.3
+  Downloaded filetime v0.2.25
+  Downloaded futures-sink v0.3.31
+  Downloaded av1-grain v0.2.3
+  Downloaded axum v0.8.4
+  Downloaded bit-vec v0.8.0
+  Downloaded dunce v1.0.5
+  Downloaded atomic-waker v1.1.2
+  Downloaded cssparser v0.36.0
+  Downloaded darling_macro v0.20.10
+  Downloaded data-encoding v2.6.0
+  Downloaded bitflags v2.7.0
+  Downloaded bit-set v0.8.0
+  Downloaded common-path v1.0.0
+  Downloaded darling v0.20.10
+  Downloaded css-color v0.2.8
+  Downloaded block-padding v0.3.3
+  Downloaded avif-serialize v0.8.2
+  Downloaded cfg-if v1.0.1
+  Downloaded color_quant v1.1.0
+  Downloaded deranged v0.3.11
+  Downloaded dyn-clone v1.0.17
+  Downloaded fastrand v2.3.0
+  Downloaded file-id v0.2.3
+  Downloaded borrow-or-share v0.2.2
+  Downloaded dialoguer v0.11.0
   Downloaded derive_builder_macro v0.20.2
   Downloaded dirs v6.0.0
-  Downloaded displaydoc v0.2.5
-  Downloaded dtoa-short v0.3.5
+  Downloaded bumpalo v3.16.0
+  Downloaded bytes v1.11.1
+  Downloaded clap v4.5.26
+  Downloaded clap_builder v4.5.26
+  Downloaded console v0.15.10
+  Downloaded core_maths v0.1.0
+  Downloaded crc32fast v1.4.2
+  Downloaded dashmap v6.1.0
+  Downloaded derive_builder_core v0.20.2
+  Downloaded deunicode v1.6.0
+  Downloaded dtoa v1.0.9
   Downloaded dtor-proc-macro v0.0.6
-  Downloaded either v1.13.0
-  Downloaded embed-resource v3.0.5
-  Downloaded english-numbers v0.3.3
   Downloaded futures-core v0.3.31
+  Downloaded quick-error v2.0.1
+  Downloaded colorchoice v1.0.3
+  Downloaded env_filter v0.1.3
+  Downloaded equivalent v1.0.1
+  Downloaded float-cmp v0.9.0
+  Downloaded fnv v1.0.7
   Downloaded futures-io v0.3.31
-  Downloaded futures-macro v0.3.31
-  Downloaded futures-task v0.3.31
   Downloaded generic-array v0.14.7
-  Downloaded ghash v0.5.1
-  Downloaded aes v0.8.4
-  Downloaded base64 v0.13.1
-  Downloaded byteorder v1.5.0
-  Downloaded cc v1.2.51
-  Downloaded cfb v0.7.3
-  Downloaded clap_complete v4.5.42
-  Downloaded compact_str v0.8.1
-  Downloaded const-oid v0.9.6
+  Downloaded ref-cast-impl v1.0.23
+  Downloaded roxmltree v0.20.0
+  Downloaded rustls-pki-types v1.13.2
+  Downloaded tendril v0.5.0
+  Downloaded colored v2.2.0
+  Downloaded cssparser-macros v0.6.1
+  Downloaded ctor v0.8.0
+  Downloaded darling_core v0.20.10
+  Downloaded data-url v0.3.1
+  Downloaded regex v1.11.1
+  Downloaded rpassword v7.4.0
+  Downloaded rustls-platform-verifier v0.6.2
+  Downloaded smallvec v1.13.2
+  Downloaded unic-common v0.9.0
+  Downloaded unicode-ccc v0.4.0
+  Downloaded unicode-properties v0.1.3
+  Downloaded byteorder-lite v0.1.0
   Downloaded ctr v0.9.2
-  Downloaded darling v0.20.10
-  Downloaded deranged v0.3.11
-  Downloaded derive_builder v0.20.2
-  Downloaded digest v0.10.7
+  Downloaded ctrlc v3.4.5
   Downloaded duct v1.1.1
-  Downloaded dunce v1.0.5
-  Downloaded dyn-clone v1.0.17
-  Downloaded email_address v0.2.9
   Downloaded futures-executor v0.3.31
-  Downloaded futures-sink v0.3.31
-  Downloaded futures-timer v3.0.3
-  Downloaded getrandom v0.2.15
+  Downloaded futures-task v0.3.31
+  Downloaded ghash v0.5.1
   Downloaded heck v0.5.0
   Downloaded home v0.5.9
   Downloaded http-body v1.0.1
-  Downloaded socks v0.3.4
-  Downloaded stable_deref_trait v1.2.0
-  Downloaded std_prelude v0.2.12
-  Downloaded strict-num v0.1.1
-  Downloaded string_cache_codegen v0.6.1
-  Downloaded strsim v0.11.1
-  Downloaded sublime_fuzzy v0.7.0
-  Downloaded subtle v2.6.1
-  Downloaded sval_dynamic v2.13.2
-  Downloaded sval_fmt v2.13.2
-  Downloaded sval_json v2.13.2
-  Downloaded sval_ref v2.13.2
-  Downloaded sval_serde v2.13.2
-  Downloaded sync_wrapper v1.0.2
-  Downloaded web_atoms v0.2.3
-  Downloaded aes-gcm v0.10.3
-  Downloaded axum v0.8.4
-  Downloaded bumpalo v3.16.0
-  Downloaded console v0.15.10
-  Downloaded crossbeam-epoch v0.9.18
-  Downloaded css-color v0.2.8
-  Downloaded cssparser v0.36.0
-  Downloaded darling_core v0.20.10
-  Downloaded derive_more v2.0.1
-  Downloaded derive_more-impl v2.0.1
-  Downloaded dom_query v0.27.0
-  Downloaded dtor v0.3.0
-  Downloaded elf v0.7.4
-  Downloaded encode_unicode v1.0.0
-  Downloaded getrandom v0.3.3
-  Downloaded http-body-util v0.1.2
   Downloaded httpdate v1.0.3
   Downloaded icu_provider_macros v1.5.0
   Downloaded idna_adapter v1.2.0
+  Downloaded inout v0.1.3
+  Downloaded socks v0.3.4
+  Downloaded terminal_size v0.2.6
+  Downloaded tokio-util v0.7.13
+  Downloaded ureq v3.1.4
+  Downloaded value-bag-serde1 v1.12.0
+  Downloaded vlq v0.5.1
+  Downloaded wasm-bindgen-macro v0.2.125
+  Downloaded built v0.7.5
+  Downloaded byteorder v1.5.0
+  Downloaded chrono v0.4.41
+  Downloaded clap_complete v4.5.42
+  Downloaded const-oid v0.9.6
+  Downloaded crossbeam-deque v0.8.6
+  Downloaded crossbeam-epoch v0.9.18
+  Downloaded ctor-proc-macro v0.0.7
+  Downloaded derive_builder v0.20.2
+  Downloaded digest v0.10.7
+  Downloaded dtoa-short v0.3.5
+  Downloaded email_address v0.2.9
+  Downloaded erased-serde v0.4.9
+  Downloaded find-msvc-tools v0.1.6
+  Downloaded form_urlencoded v1.2.1
+  Downloaded hex v0.4.3
+  Downloaded humantime v2.1.0
+  Downloaded icu_locid_transform v1.5.0
+  Downloaded ident_case v1.0.1
+  Downloaded imagesize v0.13.0
   Downloaded include_dir v0.7.4
   Downloaded include_dir_macros v0.7.4
+  Downloaded infer v0.19.0
   Downloaded is_terminal_polyfill v1.70.1
   Downloaded itoa v1.0.14
   Downloaded java-properties v2.0.0
-  Downloaded json5 v0.4.1
-  Downloaded jsonrpsee v0.24.7
-  Downloaded jsonrpsee-client-transport v0.24.7
-  Downloaded jsonrpsee-types v0.24.7
-  Downloaded jsonrpsee-ws-client v0.24.7
-  Downloaded lebe v0.5.2
-  Downloaded lockfree-object-pool v0.1.6
-  Downloaded loop9 v0.1.5
-  Downloaded magic_string v0.3.4
-  Downloaded maybe-rayon v0.1.1
-  Downloaded mime v0.3.17
-  Downloaded new_debug_unreachable v1.0.6
-  Downloaded noop_proc_macro v0.3.0
-  Downloaded notify-types v2.0.0
-  Downloaded num v0.4.3
-  Downloaded num-cmp v0.1.0
-  Downloaded num-conv v0.1.0
-  Downloaded socket2 v0.5.8
-  Downloaded soketto v0.8.1
-  Downloaded spin v0.9.8
-  Downloaded static_assertions v1.1.0
-  Downloaded stfu8 v0.2.7
-  Downloaded string_cache v0.9.0
-  Downloaded sval v2.13.2
-  Downloaded sval_buffer v2.13.2
-  Downloaded sval_nested v2.13.2
-  Downloaded svgtypes v0.15.3
-  Downloaded synstructure v0.13.1
-  Downloaded tar v0.4.46
-  Downloaded uuid v1.11.0
-  Downloaded uuid-simd v0.8.0
-  Downloaded v_frame v0.3.8
-  Downloaded value-bag v1.12.0
-  Downloaded value-bag-serde1 v1.12.0
-  Downloaded value-bag-sval2 v1.12.0
-  Downloaded version_check v0.9.5
-  Downloaded vlq v0.5.1
-  Downloaded vsimd v0.8.0
-  Downloaded vswhom v0.1.0
-  Downloaded vswhom-sys v0.1.2
-  Downloaded walkdir v2.5.0
-  Downloaded wasm-bindgen-macro v0.2.125
-  Downloaded wasm-bindgen-shared v0.2.125
-  Downloaded which v8.0.0
-  Downloaded winapi-util v0.1.9
-  Downloaded windows-collections v0.2.0
-  Downloaded windows-core v0.61.0
-  Downloaded windows-future v0.2.0
-  Downloaded windows-implement v0.60.0
-  Downloaded windows-interface v0.59.1
-  Downloaded windows-link v0.1.1
-  Downloaded aho-corasick v1.1.3
-  Downloaded bstr v1.11.3
-  Downloaded cargo-mobile2 v0.22.4
-  Downloaded chrono v0.4.41
-  Downloaded clap_builder v4.5.26
-  Downloaded deunicode v1.6.0
-  Downloaded futures-util v0.3.31
-  Downloaded glob v0.3.2
-  Downloaded globset v0.4.15
-  Downloaded hex v0.4.3
-  Downloaded hmac v0.12.1
-  Downloaded httparse v1.9.5
-  Downloaded humantime v2.1.0
-  Downloaded icu_locid_transform v1.5.0
-  Downloaded icu_locid_transform_data v1.5.0
-  Downloaded ident_case v1.0.1
-  Downloaded imagesize v0.13.0
-  Downloaded infer v0.19.0
-  Downloaded inout v0.1.3
   Downloaded jobserver v0.1.32
   Downloaded json-patch v3.0.1
-  Downloaded jsonptr v0.6.3
-  Downloaded lazy_static v1.5.0
-  Downloaded libz-rs-sys v0.5.0
-  Downloaded litemap v0.7.4
-  Downloaded local-ip-address v0.6.3
-  Downloaded lock_api v0.4.12
-  Downloaded markup5ever v0.38.0
-  Downloaded matchit v0.8.4
-  Downloaded memmap2 v0.9.11
-  Downloaded minisign v0.7.3
   Downloaded nonmax v0.5.5
-  Downloaded notify-debouncer-full v0.6.0
-  Downloaded num-complex v0.4.6
-  Downloaded num-order v1.2.0
-  Downloaded num-rational v0.4.2
-  Downloaded syn v2.0.117
-  Downloaded tauri-bundler v2.9.4
+  Downloaded thiserror v1.0.69
   Downloaded wasm-bindgen v0.2.125
-  Downloaded wasm-bindgen-macro-support v0.2.125
-  Downloaded webpki-roots v1.0.5
+  Downloaded wasm-bindgen-shared v0.2.125
+  Downloaded web_atoms v0.2.3
   Downloaded weezl v0.1.8
-  Downloaded env_filter v0.1.3
-  Downloaded env_home v0.1.0
-  Downloaded equivalent v1.0.1
-  Downloaded fastrand v2.3.0
-  Downloaded file-id v0.2.3
-  Downloaded filetime v0.2.25
-  Downloaded fnv v1.0.7
-  Downloaded gif v0.13.1
-  Downloaded half v2.4.1
-  Downloaded html5ever v0.38.0
-  Downloaded icu_collections v1.5.0
-  Downloaded icu_locid v1.5.0
-  Downloaded icu_normalizer v1.5.0
-  Downloaded icu_normalizer_data v1.5.0
-  Downloaded icu_properties v1.5.1
-  Downloaded icu_provider v1.5.0
-  Downloaded ignore v0.4.23
-  Downloaded image-webp v0.2.0
-  Downloaded imgref v1.11.0
-  Downloaded indexmap v1.9.3
-  Downloaded jsonrpsee-core v0.24.7
-  Downloaded jsonrpsee-server v0.24.7
-  Downloaded log v0.4.29
-  Downloaded minimal-lexical v0.2.1
-  Downloaded miniz_oxide v0.8.8
-  Downloaded notify v8.2.0
-  Downloaded num-iter v0.1.45
-  Downloaded num-traits v0.2.19
-  Downloaded tempfile v3.15.0
-  Downloaded encoding_rs v0.8.35
+  Downloaded writeable v0.5.5
+  Downloaded xmlwriter v0.1.0
+  Downloaded block-buffer v0.10.4
+  Downloaded bytecount v0.6.8
+  Downloaded bytemuck v1.21.0
+  Downloaded castaway v0.2.3
+  Downloaded cc v1.2.51
+  Downloaded cfb v0.7.3
+  Downloaded cipher v0.4.4
+  Downloaded clap_derive v4.5.24
+  Downloaded compact_str v0.8.1
+  Downloaded cow-utils v0.1.3
+  Downloaded cpufeatures v0.2.16
+  Downloaded crossbeam-utils v0.8.21
+  Downloaded crypto-common v0.1.6
+  Downloaded derive_more v2.0.1
+  Downloaded dom_query v0.27.0
+  Downloaded either v1.13.0
+  Downloaded embed-resource v3.0.5
+  Downloaded encode_unicode v1.0.0
   Downloaded env_logger v0.11.6
-  Downloaded erased-serde v0.4.9
-  Downloaded exr v1.73.0
-  Downloaded fancy-regex v0.16.1
   Downloaded fdeflate v0.3.7
-  Downloaded find-msvc-tools v0.1.6
-  Downloaded flate2 v1.1.1
-  Downloaded float-cmp v0.9.0
   Downloaded fluent-uri v0.3.2
   Downloaded foldhash v0.2.0
-  Downloaded goblin v0.9.3
-  Downloaded h2 v0.4.7
+  Downloaded futures v0.3.31
+  Downloaded futures-channel v0.3.31
+  Downloaded futures-macro v0.3.31
+  Downloaded futures-timer v3.0.3
+  Downloaded getrandom v0.2.15
+  Downloaded getrandom v0.3.3
+  Downloaded gif v0.13.1
+  Downloaded glob v0.3.2
+  Downloaded globset v0.4.15
+  Downloaded half v2.4.1
+  Downloaded hmac v0.12.1
+  Downloaded http-body-util v0.1.2
+  Downloaded httparse v1.9.5
+  Downloaded icu_locid v1.5.0
+  Downloaded icu_locid_transform_data v1.5.0
+  Downloaded icu_normalizer v1.5.0
+  Downloaded icu_normalizer_data v1.5.0
+  Downloaded ignore v0.4.23
+  Downloaded indexmap v1.9.3
+  Downloaded jsonrpsee v0.24.7
+  Downloaded jsonrpsee-types v0.24.7
+  Downloaded new_debug_unreachable v1.0.6
+  Downloaded noop_proc_macro v0.3.0
+  Downloaded socket2 v0.5.8
+  Downloaded textwrap v0.16.1
+  Downloaded toml v0.9.12+spec-1.1.0
+  Downloaded dirs-sys v0.5.0
+  Downloaded elf v0.7.4
+  Downloaded fancy-regex v0.16.1
+  Downloaded flate2 v1.1.1
+  Downloaded fontdb v0.23.0
+  Downloaded fraction v0.15.3
   Downloaded handlebars v6.3.0
   Downloaded hashbrown v0.12.3
+  Downloaded html5ever v0.38.0
+  Downloaded http v1.3.1
+  Downloaded hyper-util v0.1.19
+  Downloaded icu_collections v1.5.0
+  Downloaded icu_properties v1.5.1
+  Downloaded icu_provider v1.5.0
+  Downloaded image-webp v0.2.0
+  Downloaded imgref v1.11.0
+  Downloaded indexmap v2.11.4
+  Downloaded json5 v0.4.1
+  Downloaded minisign v0.7.3
+  Downloaded miniz_oxide v0.8.8
+  Downloaded mio v1.0.3
+  Downloaded oxc_syntax v0.36.0
+  Downloaded paste v1.0.15
+  Downloaded path_abs v0.5.1
+  Downloaded rand_core v0.6.4
+  Downloaded rayon-core v1.12.1
+  Downloaded ref-cast v1.0.23
+  Downloaded referencing v0.33.0
+  Downloaded rtoolbox v0.0.2
+  Downloaded rustc-hash v2.1.1
+  Downloaded rustc_version v0.4.1
+  Downloaded salsa20 v0.10.2
+  Downloaded same-file v1.0.6
+  Downloaded scopeguard v1.2.0
+  Downloaded scroll_derive v0.12.0
+  Downloaded scrypt v0.11.0
+  Downloaded smawk v0.3.2
+  Downloaded webpki-roots v1.0.5
+  Downloaded bstr v1.11.3
+  Downloaded derive_more-impl v2.0.1
+  Downloaded displaydoc v0.2.5
+  Downloaded exr v1.73.0
+  Downloaded futures-util v0.3.31
+  Downloaded goblin v0.9.3
+  Downloaded h2 v0.4.7
   Downloaded hashbrown v0.14.5
   Downloaded hashbrown v0.16.1
-  Downloaded http v1.3.1
   Downloaded hyper v1.8.1
-  Downloaded hyper-util v0.1.19
   Downloaded icu_properties_data v1.5.0
   Downloaded idna v1.0.3
   Downloaded image v0.25.5
-  Downloaded indexmap v2.11.4
   Downloaded itertools v0.12.1
   Downloaded itertools v0.13.0
-  Downloaded jsonschema v0.33.0
-  Downloaded kurbo v0.11.1
-  Downloaded libm v0.2.11
-  Downloaded memchr v2.7.4
-  Downloaded mio v1.0.3
+  Downloaded lebe v0.5.2
   Downloaded nom v7.1.3
-  Downloaded num-bigint v0.4.6
-  Downloaded num-derive v0.4.2
-  Downloaded num-integer v0.1.46
-  Downloaded num-modular v0.6.1
-  Downloaded shared_thread v0.2.0
-  Downloaded shell-words v1.1.0
-  Downloaded shlex v1.3.0
-  Downloaded simd-adler32 v0.3.7
-  Downloaded simd_helpers v0.1.0
-  Downloaded simplecss v0.2.2
-  Downloaded siphasher v1.0.1
-  Downloaded slab v0.4.9
-  Downloaded smallvec v1.13.2
-  Downloaded smawk v0.3.2
-  Downloaded tauri-icns v0.1.0
-  Downloaded tauri-utils v2.9.3
-  Downloaded tendril v0.5.0
-  Downloaded terminal_size v0.2.6
-  Downloaded textwrap v0.16.1
-  Downloaded thiserror v1.0.69
-  Downloaded thiserror v2.0.12
-  Downloaded thiserror-impl v1.0.69
+  Downloaded oxc_parser v0.36.0
+  Downloaded quick-xml v0.32.0
+  Downloaded quote v1.0.38
+  Downloaded rand v0.8.6
+  Downloaded rand v0.9.4
+  Downloaded rayon v1.10.0
+  Downloaded resvg v0.45.0
+  Downloaded rgb v0.8.50
+  Downloaded route-recognizer v0.3.1
+  Downloaded rustls-webpki v0.103.13
+  Downloaded rustversion v1.0.19
+  Downloaded ryu v1.0.18
+  Downloaded schemars v0.8.21
+  Downloaded schemars_derive v0.8.21
+  Downloaded scroll v0.12.0
+  Downloaded soketto v0.8.1
   Downloaded thiserror-impl v2.0.12
-  Downloaded time v0.3.37
-  Downloaded time-core v0.1.2
-  Downloaded time-macros v0.2.19
-  Downloaded tower-service v0.3.3
-  Downloaded tracing-core v0.1.33
-  Downloaded typeid v1.0.2
-  Downloaded unic-char-property v0.9.0
-  Downloaded unic-char-range v0.9.0
-  Downloaded unic-common v0.9.0
-  Downloaded unic-ucd-ident v0.9.0
-  Downloaded unic-ucd-version v0.9.0
-  Downloaded unicode-bidi v0.3.18
-  Downloaded unicode-bidi-mirroring v0.4.0
-  Downloaded unicode-ccc v0.4.0
-  Downloaded unicode-id-start v1.3.1
-  Downloaded unicode-ident v1.0.14
-  Downloaded unicode-linebreak v0.1.5
-  Downloaded unicode-properties v0.1.3
-  Downloaded unicode-vo v0.1.0
-  Downloaded universal-hash v0.5.1
-  Downloaded untrusted v0.9.0
-  Downloaded ureq-proto v0.5.3
-  Downloaded urlpattern v0.3.0
-  Downloaded utf-8 v0.7.6
-  Downloaded utf16_iter v1.0.5
-  Downloaded utf8_iter v1.0.4
-  Downloaded utf8parse v0.2.2
-  Downloaded winapi v0.3.9
-  Downloaded windows-numerics v0.2.0
-  Downloaded windows-result v0.3.2
-  Downloaded windows-targets v0.52.6
-  Downloaded yoke-derive v0.7.5
-  Downloaded zerocopy-derive v0.7.35
-  Downloaded zerofrom v0.1.5
-  Downloaded outref v0.5.1
-  Downloaded oxc-miette-derive v1.0.2
-  Downloaded paste v1.0.15
-  Downloaded slotmap v1.0.7
-  Downloaded tower v0.4.13
-  Downloaded tower v0.5.2
+  Downloaded tinyvec_macros v0.1.1
+  Downloaded tokio-macros v2.5.0
+  Downloaded tokio-stream v0.1.17
+  Downloaded tokio-tungstenite v0.26.2
+  Downloaded toml v1.0.6+spec-1.1.0
+  Downloaded toml_datetime v0.7.5+spec-1.1.0
+  Downloaded toml_datetime v1.0.0+spec-1.1.0
+  Downloaded toml_edit v0.25.4+spec-1.1.0
+  Downloaded toml_parser v1.0.9+spec-1.1.0
+  Downloaded toml_writer v1.0.6+spec-1.1.0
   Downloaded tower-layer v0.3.3
+  Downloaded tower-service v0.3.3
   Downloaded tracing v0.1.41
   Downloaded tracing-attributes v0.1.28
+  Downloaded tungstenite v0.26.2
+  Downloaded typeid v1.0.2
   Downloaded ucd-trie v0.1.7
-  Downloaded unicode-script v0.5.7
-  Downloaded ureq v3.1.4
-  Downloaded url v2.5.4
-  Downloaded usvg v0.45.0
-  Downloaded windows-registry v0.5.0
-  Downloaded windows-strings v0.3.1
+  Downloaded unic-char-property v0.9.0
+  Downloaded unic-char-range v0.9.0
+  Downloaded unic-ucd-version v0.9.0
+  Downloaded ureq-proto v0.5.3
+  Downloaded wasm-bindgen-macro-support v0.2.125
+  Downloaded winapi-util v0.1.9
   Downloaded windows-strings v0.4.0
-  Downloaded windows-targets v0.48.5
-  Downloaded windows-targets v0.53.2
-  Downloaded winreg v0.55.0
-  Downloaded write16 v1.0.0
-  Downloaded writeable v0.5.5
-  Downloaded xmlwriter v0.1.0
-  Downloaded yoke v0.7.5
-  Downloaded zerocopy v0.7.35
-  Downloaded zerofrom-derive v0.1.5
-  Downloaded form_urlencoded v1.2.1
-  Downloaded futures v0.3.31
-  Downloaded futures-channel v0.3.31
-  Downloaded jpeg-decoder v0.3.1
-  Downloaded libc v0.2.178
-  Downloaded once_cell v1.21.4
+  Downloaded zeroize v1.8.1
+  Downloaded cargo-mobile2 v0.22.4
+  Downloaded jsonrpsee-core v0.24.7
+  Downloaded jsonrpsee-server v0.24.7
+  Downloaded jsonrpsee-ws-client v0.24.7
+  Downloaded lazy_static v1.5.0
+  Downloaded libz-rs-sys v0.5.0
+  Downloaded lock_api v0.4.12
+  Downloaded lockfree-object-pool v0.1.6
+  Downloaded loop9 v0.1.5
+  Downloaded magic_string v0.3.4
+  Downloaded mime v0.3.17
+  Downloaded notify-debouncer-full v0.6.0
+  Downloaded notify-types v2.0.0
+  Downloaded num v0.4.3
+  Downloaded num-cmp v0.1.0
+  Downloaded num-complex v0.4.6
+  Downloaded num-conv v0.1.0
+  Downloaded num-derive v0.4.2
+  Downloaded num-integer v0.1.46
+  Downloaded num-iter v0.1.45
+  Downloaded num-order v1.2.0
   Downloaded opaque-debug v0.3.1
   Downloaded option-ext v0.2.0
   Downloaded ordered-float v2.10.1
-  Downloaded os_info v3.9.2
   Downloaded os_pipe v1.2.3
-  Downloaded owo-colors v4.1.0
+  Downloaded outref v0.5.1
+  Downloaded oxc-miette-derive v1.0.2
   Downloaded oxc_allocator v0.36.0
   Downloaded oxc_ast_macros v0.36.0
   Downloaded oxc_diagnostics v0.36.0
-  Downloaded oxc_estree v0.36.0
-  Downloaded oxc_index v0.36.0
   Downloaded oxc_regular_expression v0.36.0
   Downloaded oxc_span v0.36.0
-  Downloaded oxc_syntax v0.36.0
-  Downloaded parking_lot v0.12.3
-  Downloaded parking_lot_core v0.9.10
-  Downloaded path_abs v0.5.1
   Downloaded pbkdf2 v0.12.2
-  Downloaded percent-encoding v2.3.1
-  Downloaded pest_derive v2.7.15
   Downloaded pest_generator v2.7.15
-  Downloaded pest_meta v2.7.15
-  Downloaded phf v0.11.3
-  Downloaded polyval v0.6.2
-  Downloaded precomputed-hash v0.1.1
-  Downloaded profiling-procmacros v1.0.16
-  Downloaded tiny-skia-path v0.11.4
-  Downloaded ttf-parser v0.25.1
-  Downloaded tungstenite v0.26.2
-  Downloaded typenum v1.20.0
-  Downloaded unicode-width v0.1.14
-  Downloaded unicode-width v0.2.0
-  Downloaded zeroize v1.8.1
-  Downloaded zeroize_derive v1.4.2
-  Downloaded fontdb v0.23.0
-  Downloaded fraction v0.15.3
-  Downloaded oxc-miette v1.0.2
-  Downloaded oxc_ast v0.36.0
-  Downloaded oxc_parser v0.36.0
-  Downloaded pest v2.7.15
-  Downloaded phf v0.13.1
-  Downloaded phf_codegen v0.13.1
   Downloaded phf_generator v0.11.3
   Downloaded phf_shared v0.11.3
-  Downloaded phf_shared v0.13.1
   Downloaded pico-args v0.5.0
-  Downloaded pin-project v1.1.8
-  Downloaded pin-project-internal v1.1.8
-  Downloaded pin-project-lite v0.2.16
   Downloaded pin-utils v0.1.0
   Downloaded plain v0.2.3
-  Downloaded plist v1.7.0
-  Downloaded png v0.17.16
-  Downloaded powerfmt v0.2.0
-  Downloaded ppv-lite86 v0.2.20
-  Downloaded proc-macro2 v1.0.106
-  Downloaded profiling v1.0.16
   Downloaded qoi v0.4.1
-  Downloaded quick-error v2.0.1
-  Downloaded quote v1.0.38
-  Downloaded rand v0.8.6
-  Downloaded rgb v0.8.50
-  Downloaded scopeguard v1.2.0
-  Downloaded winnow v0.7.14
-  Downloaded zerovec v0.10.4
+  Downloaded rand_chacha v0.9.0
+  Downloaded rand_core v0.9.3
+  Downloaded rustybuzz v0.20.1
+  Downloaded tauri-icns v0.1.0
+  Downloaded tempfile v3.15.0
+  Downloaded time-macros v0.2.19
+  Downloaded tiny-skia-path v0.11.4
+  Downloaded tinyvec v1.8.1
+  Downloaded tower v0.4.13
+  Downloaded tower v0.5.2
+  Downloaded tracing-core v0.1.33
+  Downloaded ttf-parser v0.25.1
+  Downloaded typenum v1.20.0
+  Downloaded unic-ucd-ident v0.9.0
+  Downloaded url v2.5.4
+  Downloaded which v8.0.0
+  Downloaded jsonptr v0.6.3
+  Downloaded jsonrpsee-client-transport v0.24.7
+  Downloaded jsonschema v0.33.0
+  Downloaded local-ip-address v0.6.3
+  Downloaded markup5ever v0.38.0
+  Downloaded maybe-rayon v0.1.1
+  Downloaded num-bigint v0.4.6
+  Downloaded num-modular v0.6.1
+  Downloaded num-rational v0.4.2
+  Downloaded num-traits v0.2.19
+  Downloaded once_cell v1.21.4
+  Downloaded os_info v3.9.2
+  Downloaded owo-colors v4.1.0
+  Downloaded oxc-miette v1.0.2
+  Downloaded oxc_ast v0.36.0
+  Downloaded oxc_estree v0.36.0
+  Downloaded parking_lot_core v0.9.10
+  Downloaded pest_meta v2.7.15
+  Downloaded phf v0.11.3
+  Downloaded phf v0.13.1
+  Downloaded phf_codegen v0.13.1
   Downloaded phf_generator v0.13.1
   Downloaded phf_macros v0.11.3
   Downloaded phf_macros v0.13.1
-  Downloaded quick-xml v0.32.0
-  Downloaded route-recognizer v0.3.1
-  Downloaded roxmltree v0.20.0
-  Downloaded rustc-hash v2.1.1
-  Downloaded rustc_version v0.4.1
-  Downloaded rustls-pki-types v1.13.2
-  Downloaded rustls-webpki v0.103.13
-  Downloaded salsa20 v0.10.2
-  Downloaded same-file v1.0.6
-  Downloaded tiny-skia v0.11.4
-  Downloaded tinystr v0.7.6
+  Downloaded phf_shared v0.13.1
+  Downloaded pin-project v1.1.8
+  Downloaded pin-project-lite v0.2.16
   Downloaded rand_chacha v0.3.1
-  Downloaded rand_core v0.9.3
   Downloaded ravif v0.11.11
-  Downloaded ref-cast v1.0.23
-  Downloaded ref-cast-impl v1.0.23
-  Downloaded rtoolbox v0.0.2
-  Downloaded rustls-platform-verifier v0.6.2
-  Downloaded rustversion v1.0.19
-  Downloaded ryu v1.0.18
-  Downloaded schemars_derive v0.8.21
-  Downloaded serde_fmt v1.0.3
-  Downloaded serde_spanned v1.0.4
-  Downloaded tinyvec_macros v0.1.1
-  Downloaded toml_datetime v0.7.5+spec-1.1.0
-  Downloaded zerovec-derive v0.10.3
-  Downloaded rand_chacha v0.9.0
-  Downloaded rand_core v0.6.4
-  Downloaded referencing v0.33.0
-  Downloaded resvg v0.45.0
-  Downloaded rustybuzz v0.20.1
-  Downloaded schemars v0.8.21
-  Downloaded serde_with_macros v3.12.0
-  Downloaded shared_child v1.1.1
-  Downloaded tokio-macros v2.5.0
-  Downloaded tokio-tungstenite v0.26.2
-  Downloaded toml v0.9.12+spec-1.1.0
-  Downloaded toml_datetime v1.0.0+spec-1.1.0
-  Downloaded toml_parser v1.0.9+spec-1.1.0
-  Downloaded toml_writer v1.0.6+spec-1.1.0
-  Downloaded zune-core v0.4.12
-  Downloaded zune-inflate v0.2.54
-  Downloaded rayon-core v1.12.1
-  Downloaded rpassword v7.4.0
-  Downloaded scroll_derive v0.12.0
-  Downloaded scrypt v0.11.0
-  Downloaded seq-macro v0.3.5
-  Downloaded serde-untagged v0.1.6
-  Downloaded serde-value v0.7.0
-  Downloaded serde_derive_internals v0.29.1
-  Downloaded sha1 v0.10.6
-  Downloaded tinyvec v1.8.1
-  Downloaded tokio-stream v0.1.17
-  Downloaded zopfli v0.8.1
-  Downloaded zune-jpeg v0.4.14
-  Downloaded rand v0.9.4
-  Downloaded scroll v0.12.0
-  Downloaded semver v1.0.24
-  Downloaded toml v1.0.6+spec-1.1.0
-  Downloaded toml_edit v0.25.4+spec-1.1.0
-  Downloaded serde_core v1.0.228
-  Downloaded serde_derive v1.0.228
   Downloaded regex-syntax v0.8.5
-  Downloaded selectors v0.36.1
-  Downloaded serde_urlencoded v0.7.1
-  Downloaded serde_with v3.12.0
-  Downloaded serialize-to-javascript-impl v0.1.2
-  Downloaded zip v4.0.0
-  Downloaded serde v1.0.228
-  Downloaded serde_path_to_error v0.1.16
-  Downloaded tokio-util v0.7.13
-  Downloaded rustls v0.23.35
-  Downloaded rayon v1.10.0
+  Downloaded serde-value v0.7.0
+  Downloaded serde_derive v1.0.228
+  Downloaded serde_derive_internals v0.29.1
+  Downloaded serde_fmt v1.0.3
+  Downloaded spin v0.9.8
+  Downloaded thiserror-impl v1.0.69
+  Downloaded windows-collections v0.2.0
+  Downloaded jpeg-decoder v0.3.1
+  Downloaded libc v0.2.178
+  Downloaded matchit v0.8.4
+  Downloaded notify v8.2.0
+  Downloaded parking_lot v0.12.3
+  Downloaded pin-project-internal v1.1.8
+  Downloaded plist v1.7.0
+  Downloaded png v0.17.16
+  Downloaded profiling v1.0.16
+  Downloaded profiling-procmacros v1.0.16
+  Downloaded serde-untagged v0.1.6
   Downloaded serde_json v1.0.145
-  Downloaded winsafe v0.0.19
-  Downloaded zlib-rs v0.5.0
-  Downloaded regex v1.11.1
-  Downloaded serialize-to-javascript v0.1.2
-  Downloaded servo_arc v0.4.3
-  Downloaded sha1_smol v1.0.1
+  Downloaded serde_path_to_error v0.1.16
+  Downloaded time-core v0.1.2
   Downloaded sha2 v0.10.8
+  Downloaded shared_child v1.1.1
+  Downloaded shared_thread v0.2.0
+  Downloaded shell-words v1.1.0
+  Downloaded simd-adler32 v0.3.7
+  Downloaded simd_helpers v0.1.0
+  Downloaded slab v0.4.9
+  Downloaded static_assertions v1.1.0
+  Downloaded std_prelude v0.2.12
+  Downloaded strict-num v0.1.1
+  Downloaded string_cache_codegen v0.6.1
+  Downloaded encoding_rs v0.8.35
+  Downloaded memmap2 v0.9.11
+  Downloaded precomputed-hash v0.1.1
+  Downloaded seq-macro v0.3.5
+  Downloaded simplecss v0.2.2
+  Downloaded slotmap v1.0.7
+  Downloaded stfu8 v0.2.7
+  Downloaded string_cache v0.9.0
+  Downloaded tinystr v0.7.6
+  Downloaded unicode-script v0.5.7
+  Downloaded universal-hash v0.5.1
+  Downloaded utf16_iter v1.0.5
+  Downloaded utf8_iter v1.0.4
+  Downloaded uuid-simd v0.8.0
+  Downloaded value-bag v1.12.0
+  Downloaded value-bag-sval2 v1.12.0
+  Downloaded oxc_index v0.36.0
+  Downloaded polyval v0.6.2
+  Downloaded powerfmt v0.2.0
+  Downloaded serialize-to-javascript-impl v0.1.2
+  Downloaded sha1 v0.10.6
+  Downloaded shlex v1.3.0
+  Downloaded time v0.3.37
+  Downloaded unicode-vo v0.1.0
+  Downloaded unicode-width v0.1.14
+  Downloaded utf8parse v0.2.2
+  Downloaded windows-future v0.2.0
+  Downloaded yoke v0.7.5
+  Downloaded tauri-bundler v2.9.4
+  Downloaded unicode-bidi-mirroring v0.4.0
+  Downloaded unicode-linebreak v0.1.5
+  Downloaded unicode-width v0.2.0
+  Downloaded untrusted v0.9.0
+  Downloaded usvg v0.45.0
+  Downloaded utf-8 v0.7.6
+  Downloaded uuid v1.11.0
+  Downloaded version_check v0.9.5
+  Downloaded percent-encoding v2.3.1
+  Downloaded ppv-lite86 v0.2.20
+  Downloaded v_frame v0.3.8
+  Downloaded yoke-derive v0.7.5
+  Downloaded litemap v0.7.4
+  Downloaded siphasher v1.0.1
+  Downloaded windows-targets v0.53.2
+  Downloaded serde v1.0.228
+  Downloaded sval_dynamic v2.13.2
+  Downloaded windows-targets v0.52.6
+  Downloaded winreg v0.55.0
+  Downloaded write16 v1.0.0
+  Downloaded zerofrom v0.1.5
+  Downloaded zerovec-derive v0.10.3
+  Downloaded tiny-skia v0.11.4
+  Downloaded zerofrom-derive v0.1.5
+  Downloaded zune-jpeg v0.4.14
+  Downloaded thiserror v2.0.12
+  Downloaded windows-interface v0.59.1
+  Downloaded windows-targets v0.48.5
+  Downloaded zune-core v0.4.12
+  Downloaded serde_core v1.0.228
+  Downloaded serde_with_macros v3.12.0
+  Downloaded serialize-to-javascript v0.1.2
+  Downloaded sval_buffer v2.13.2
+  Downloaded windows-core v0.61.0
+  Downloaded zerocopy-derive v0.7.35
+  Downloaded zopfli v0.8.1
+  Downloaded windows-implement v0.60.0
+  Downloaded kurbo v0.11.1
+  Downloaded zerocopy v0.7.35
+  Downloaded zune-inflate v0.2.54
+  Downloaded windows-strings v0.3.1
+  Downloaded vswhom-sys v0.1.2
+  Downloaded windows-result v0.3.2
+  Downloaded zeroize_derive v1.4.2
+  Downloaded memchr v2.7.4
+  Downloaded selectors v0.36.1
+  Downloaded stable_deref_trait v1.2.0
+  Downloaded sval_ref v2.13.2
+  Downloaded sval_serde v2.13.2
+  Downloaded svgtypes v0.15.3
+  Downloaded synstructure v0.13.1
+  Downloaded urlpattern v0.3.0
+  Downloaded zerovec v0.10.4
+  Downloaded zip v4.0.0
+  Downloaded libm v0.2.11
+  Downloaded log v0.4.29
+  Downloaded minimal-lexical v0.2.1
+  Downloaded semver v1.0.24
+  Downloaded serde_urlencoded v0.7.1
+  Downloaded sha1_smol v1.0.1
+  Downloaded sublime_fuzzy v0.7.0
+  Downloaded unicode-id-start v1.3.1
+  Downloaded vswhom v0.1.0
+  Downloaded windows-numerics v0.2.0
+  Downloaded strsim v0.11.1
+  Downloaded sval v2.13.2
+  Downloaded sval_fmt v2.13.2
+  Downloaded tauri-utils v2.9.3
+  Downloaded zlib-rs v0.5.0
+  Downloaded pest v2.7.15
+  Downloaded pest_derive v2.7.15
+  Downloaded proc-macro2 v1.0.106
+  Downloaded serde_spanned v1.0.4
+  Downloaded servo_arc v0.4.3
+  Downloaded sval_nested v2.13.2
+  Downloaded tar v0.4.46
+  Downloaded unicode-bidi v0.3.18
+  Downloaded winnow v0.7.14
+  Downloaded rustls v0.23.35
+  Downloaded regex-automata v0.4.9
+  Downloaded serde_with v3.12.0
+  Downloaded unicode-ident v1.0.14
+  Downloaded windows-link v0.1.1
+  Downloaded windows-registry v0.5.0
+  Downloaded sval_json v2.13.2
+  Downloaded sync_wrapper v1.0.2
+  Downloaded subtle v2.6.1
+  Downloaded vsimd v0.8.0
+  Downloaded walkdir v2.5.0
+  Downloaded winsafe v0.0.19
+  Downloaded windows_x86_64_msvc v0.52.6
+  Downloaded syn v2.0.117
   Downloaded windows_x86_64_msvc v0.48.5
   Downloaded windows_x86_64_msvc v0.53.0
-  Downloaded windows_x86_64_msvc v0.52.6
-  Downloaded regex-automata v0.4.9
   Downloaded tokio v1.45.1
+  Downloaded winapi v0.3.9
   Downloaded ring v0.17.14
   Downloaded tiff v0.9.1
   Downloaded rav1e v0.7.1
-  Downloaded windows-sys v0.59.0
-  Downloaded windows-sys v0.60.2
   Downloaded windows-sys v0.48.0
+  Downloaded windows-sys v0.59.0
   Downloaded windows-sys v0.52.0
+  Downloaded windows-sys v0.60.2
   Downloaded windows v0.61.1
    Compiling proc-macro2 v1.0.106
    Compiling unicode-ident v1.0.14
@@ -589,22 +589,22 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling serde_core v1.0.228
    Compiling itoa v1.0.14
    Compiling version_check v0.9.5
-   Compiling smallvec v1.13.2
    Compiling serde v1.0.228
+   Compiling smallvec v1.13.2
    Compiling once_cell v1.21.4
    Compiling generic-array v0.14.7
-   Compiling quote v1.0.38
    Compiling rand_core v0.6.4
+   Compiling quote v1.0.38
    Compiling syn v2.0.117
    Compiling typenum v1.20.0
    Compiling windows_x86_64_msvc v0.48.5
-   Compiling hashbrown v0.16.1
    Compiling equivalent v1.0.1
+   Compiling hashbrown v0.16.1
    Compiling indexmap v2.11.4
    Compiling crypto-common v0.1.6
    Compiling bytes v1.11.1
-   Compiling siphasher v1.0.1
    Compiling ryu v1.0.18
+   Compiling siphasher v1.0.1
    Compiling byteorder v1.5.0
    Compiling windows-targets v0.48.5
    Compiling subtle v2.6.1
@@ -626,54 +626,54 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling serde_derive v1.0.228
    Compiling thiserror-impl v1.0.69
    Compiling zerofrom-derive v0.1.5
-   Compiling yoke-derive v0.7.5
    Compiling zerofrom v0.1.5
+   Compiling yoke-derive v0.7.5
    Compiling windows-sys v0.52.0
    Compiling slab v0.4.9
    Compiling futures-io v0.3.31
    Compiling yoke v0.7.5
-   Compiling zerovec-derive v0.10.3
    Compiling zerocopy-derive v0.7.35
+   Compiling zerovec-derive v0.10.3
+   Compiling find-msvc-tools v0.1.6
+   Compiling shlex v1.3.0
    Compiling libc v0.2.178
    Compiling crossbeam-utils v0.8.21
-   Compiling find-msvc-tools v0.1.6
    Compiling cpufeatures v0.2.16
-   Compiling shlex v1.3.0
-   Compiling zerocopy v0.7.35
    Compiling cc v1.2.51
    Compiling zerovec v0.10.4
+   Compiling zerocopy v0.7.35
    Compiling displaydoc v0.2.5
    Compiling phf_shared v0.13.1
    Compiling fastrand v2.3.0
-   Compiling thiserror v2.0.12
    Compiling simd-adler32 v0.3.7
+   Compiling thiserror v2.0.12
    Compiling phf_generator v0.13.1
    Compiling futures-channel v0.3.31
    Compiling block-buffer v0.10.4
-   Compiling pin-utils v0.1.0
    Compiling httparse v1.9.5
+   Compiling pin-utils v0.1.0
    Compiling digest v0.10.7
    Compiling tinystr v0.7.6
    Compiling thiserror-impl v2.0.12
    Compiling writeable v0.5.5
-   Compiling litemap v0.7.4
    Compiling base64 v0.22.1
+   Compiling litemap v0.7.4
    Compiling icu_locid v1.5.0
-   Compiling socket2 v0.5.8
    Compiling mio v1.0.3
+   Compiling socket2 v0.5.8
    Compiling parking_lot v0.12.3
    Compiling icu_provider_macros v1.5.0
    Compiling tokio-macros v2.5.0
    Compiling futures-macro v0.3.31
    Compiling aho-corasick v1.1.3
    Compiling futures-task v0.3.31
-   Compiling regex-syntax v0.8.5
-   Compiling percent-encoding v2.3.1
    Compiling rustc-hash v2.1.1
    Compiling adler2 v2.0.0
+   Compiling percent-encoding v2.3.1
+   Compiling regex-syntax v0.8.5
    Compiling miniz_oxide v0.8.8
-   Compiling regex-automata v0.4.9
    Compiling futures-util v0.3.31
+   Compiling regex-automata v0.4.9
    Compiling tokio v1.45.1
    Compiling icu_provider v1.5.0
    Compiling ppv-lite86 v0.2.20
@@ -681,44 +681,44 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling tracing-attributes v0.1.28
    Compiling tracing-core v0.1.33
    Compiling crc32fast v1.4.2
-   Compiling zlib-rs v0.5.0
    Compiling icu_locid_transform_data v1.5.0
+   Compiling zlib-rs v0.5.0
+   Compiling tracing v0.1.41
    Compiling icu_locid_transform v1.5.0
    Compiling libz-rs-sys v0.5.0
-   Compiling tracing v0.1.41
    Compiling icu_collections v1.5.0
+   Compiling new_debug_unreachable v1.0.6
+   Compiling icu_properties_data v1.5.0
    Compiling ident_case v1.0.1
    Compiling strsim v0.11.1
-   Compiling icu_properties_data v1.5.0
-   Compiling new_debug_unreachable v1.0.6
-   Compiling icu_properties v1.5.1
    Compiling darling_core v0.20.10
+   Compiling icu_properties v1.5.1
    Compiling flate2 v1.1.1
    Compiling num-bigint v0.4.6
    Compiling crossbeam-epoch v0.9.18
    Compiling phf_codegen v0.13.1
-   Compiling windows_x86_64_msvc v0.53.0
-   Compiling utf8_iter v1.0.4
-   Compiling arrayvec v0.7.6
-   Compiling utf16_iter v1.0.5
+   Compiling semver v1.0.24
    Compiling rustversion v1.0.19
    Compiling icu_normalizer_data v1.5.0
+   Compiling windows_x86_64_msvc v0.53.0
+   Compiling utf16_iter v1.0.5
+   Compiling arrayvec v0.7.6
    Compiling write16 v1.0.0
-   Compiling semver v1.0.24
-   Compiling windows-link v0.1.1
+   Compiling utf8_iter v1.0.4
    Compiling utf-8 v0.7.6
+   Compiling windows-link v0.1.1
    Compiling icu_normalizer v1.5.0
    Compiling crossbeam-deque v0.8.6
    Compiling darling_macro v0.20.10
    Compiling tokio-util v0.7.13
    Compiling http-body v1.0.1
-   Compiling bytemuck v1.21.0
-   Compiling getrandom v0.3.3
    Compiling bitflags v2.7.0
+   Compiling bytemuck v1.21.0
    Compiling allocator-api2 v0.2.21
+   Compiling getrandom v0.3.3
+   Compiling bumpalo v3.16.0
    Compiling darling v0.20.10
    Compiling idna_adapter v1.2.0
-   Compiling bumpalo v3.16.0
    Compiling regex v1.11.1
    Compiling form_urlencoded v1.2.1
    Compiling sha1 v0.10.6
@@ -726,32 +726,32 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling ring v0.17.14
    Compiling terminal_size v0.2.6
    Compiling inout v0.1.3
-   Compiling ucd-trie v0.1.7
+   Compiling unicode-linebreak v0.1.5
    Compiling rayon-core v1.12.1
    Compiling unicode-width v0.2.0
-   Compiling unicode-linebreak v0.1.5
+   Compiling ucd-trie v0.1.7
    Compiling unicode-width v0.1.14
    Compiling owo-colors v4.1.0
    Compiling smawk v0.3.2
    Compiling zeroize v1.8.1
    Compiling textwrap v0.16.1
+   Compiling cipher v0.4.4
    Compiling pest v2.7.15
    Compiling phf v0.13.1
-   Compiling cipher v0.4.4
-   Compiling idna v1.0.3
    Compiling windows-targets v0.53.2
+   Compiling idna v1.0.3
    Compiling windows-result v0.3.2
    Compiling num-rational v0.4.2
    Compiling string_cache_codegen v0.6.1
    Compiling winapi-util v0.1.9
-   Compiling precomputed-hash v0.1.1
-   Compiling libm v0.2.11
-   Compiling either v1.13.0
    Compiling sha1_smol v1.0.1
+   Compiling libm v0.2.11
+   Compiling precomputed-hash v0.1.1
    Compiling anyhow v1.0.95
+   Compiling either v1.13.0
+   Compiling pest_meta v2.7.15
    Compiling uuid v1.11.0
    Compiling rand v0.8.6
-   Compiling pest_meta v2.7.15
    Compiling same-file v1.0.6
    Compiling web_atoms v0.2.3
    Compiling windows-sys v0.60.2
@@ -762,16 +762,16 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling pin-project-internal v1.1.8
    Compiling oxc-miette-derive v1.0.2
    Compiling phf_shared v0.11.3
-   Compiling winapi v0.3.9
    Compiling tower-service v0.3.3
-   Compiling winnow v0.7.14
+   Compiling winapi v0.3.9
    Compiling untrusted v0.9.0
+   Compiling winnow v0.7.14
    Compiling pin-project v1.1.8
-   Compiling phf_generator v0.11.3
    Compiling oxc-miette v1.0.2
    Compiling toml_parser v1.0.9+spec-1.1.0
-   Compiling pest_generator v2.7.15
+   Compiling phf_generator v0.11.3
    Compiling walkdir v2.5.0
+   Compiling pest_generator v2.7.15
    Compiling string_cache v0.9.0
    Compiling url v2.5.4
    Compiling castaway v0.2.3
@@ -780,36 +780,36 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling windows-implement v0.60.0
    Compiling windows-interface v0.59.1
    Compiling serde_spanned v1.0.4
-   Compiling toml_writer v1.0.6+spec-1.1.0
-   Compiling static_assertions v1.1.0
-   Compiling utf8parse v0.2.2
-   Compiling aligned-vec v0.5.0
-   Compiling typeid v1.0.2
-   Compiling anstyle v1.0.10
+   Compiling atomic-waker v1.1.2
    Compiling dtoa v1.0.9
-   Compiling bit-vec v0.8.0
+   Compiling utf8parse v0.2.2
    Compiling built v0.7.5
    Compiling minimal-lexical v0.2.1
+   Compiling aligned-vec v0.5.0
    Compiling paste v1.0.15
-   Compiling atomic-waker v1.1.2
-   Compiling bitflags v1.3.2
-   Compiling rustls v0.23.35
+   Compiling typeid v1.0.2
+   Compiling anstyle v1.0.10
+   Compiling toml_writer v1.0.6+spec-1.1.0
+   Compiling static_assertions v1.1.0
    Compiling tower-layer v0.3.3
-   Compiling png v0.17.16
-   Compiling h2 v0.4.7
-   Compiling nom v7.1.3
-   Compiling rav1e v0.7.1
+   Compiling bitflags v1.3.2
+   Compiling bit-vec v0.8.0
+   Compiling rustls v0.23.35
    Compiling bit-set v0.8.0
-   Compiling dtoa-short v0.3.5
+   Compiling png v0.17.16
+   Compiling compact_str v0.8.1
    Compiling anstyle-wincon v3.0.6
    Compiling v_frame v0.3.8
+   Compiling rav1e v0.7.1
+   Compiling nom v7.1.3
    Compiling anstyle-parse v0.2.6
+   Compiling dtoa-short v0.3.5
    Compiling windows-core v0.61.0
-   Compiling compact_str v0.8.1
-   Compiling core_maths v0.1.0
+   Compiling h2 v0.4.7
    Compiling pest_derive v2.7.15
-   Compiling rustls-webpki v0.103.13
+   Compiling core_maths v0.1.0
    Compiling phf_macros v0.11.3
+   Compiling rustls-webpki v0.103.13
    Compiling toml_datetime v0.7.5+spec-1.1.0
    Compiling rayon v1.10.0
    Compiling rand_core v0.9.3
@@ -821,43 +821,43 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling futures v0.3.31
    Compiling jsonrpsee-types v0.24.7
    Compiling anstyle-query v1.1.2
+   Compiling oxc_ast_macros v0.36.0
+   Compiling cssparser-macros v0.6.1
    Compiling profiling-procmacros v1.0.16
    Compiling derive_more-impl v2.0.1
-   Compiling cssparser-macros v0.6.1
-   Compiling oxc_ast_macros v0.36.0
    Compiling async-trait v0.1.88
    Compiling universal-hash v0.5.1
    Compiling slotmap v1.0.7
-   Compiling oxc_estree v0.36.0
-   Compiling colorchoice v1.0.3
-   Compiling erased-serde v0.4.9
-   Compiling unic-char-range v0.9.0
-   Compiling futures-timer v3.0.3
-   Compiling lazy_static v1.5.0
-   Compiling float-cmp v0.9.0
-   Compiling is_terminal_polyfill v1.70.1
-   Compiling unic-common v0.9.0
-   Compiling opaque-debug v0.3.1
-   Compiling weezl v0.1.8
    Compiling ref-cast v1.0.23
    Compiling httpdate v1.0.3
-   Compiling quick-error v2.0.1
+   Compiling is_terminal_polyfill v1.70.1
+   Compiling unic-char-range v0.9.0
+   Compiling unic-common v0.9.0
+   Compiling opaque-debug v0.3.1
+   Compiling erased-serde v0.4.9
+   Compiling weezl v0.1.8
    Compiling powerfmt v0.2.0
-   Compiling hyper v1.8.1
-   Compiling deranged v0.3.11
-   Compiling toml v0.9.12+spec-1.1.0
-   Compiling winreg v0.55.0
-   Compiling polyval v0.6.2
-   Compiling jsonrpsee-core v0.24.7
-   Compiling unic-ucd-version v0.9.0
-   Compiling anstream v0.6.18
+   Compiling oxc_estree v0.36.0
+   Compiling futures-timer v3.0.3
+   Compiling colorchoice v1.0.3
+   Compiling lazy_static v1.5.0
+   Compiling quick-error v2.0.1
+   Compiling float-cmp v0.9.0
    Compiling strict-num v0.1.1
-   Compiling unic-char-property v0.9.0
+   Compiling jsonrpsee-core v0.24.7
+   Compiling anstream v0.6.18
    Compiling oxc_span v0.36.0
-   Compiling phf v0.11.3
+   Compiling deranged v0.3.11
+   Compiling polyval v0.6.2
+   Compiling unic-ucd-version v0.9.0
+   Compiling toml v0.9.12+spec-1.1.0
+   Compiling unic-char-property v0.9.0
+   Compiling hyper v1.8.1
+   Compiling winreg v0.55.0
    Compiling derive_more v2.0.1
-   Compiling cssparser v0.36.0
+   Compiling phf v0.11.3
    Compiling profiling v1.0.16
+   Compiling cssparser v0.36.0
    Compiling maybe-rayon v0.1.1
    Compiling soketto v0.8.1
    Compiling derive_builder_macro v0.20.2
@@ -865,8 +865,8 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling rand_chacha v0.9.0
    Compiling vswhom v0.1.0
    Compiling ttf-parser v0.25.1
-   Compiling rustc_version v0.4.1
    Compiling av1-grain v0.2.3
+   Compiling rustc_version v0.4.1
    Compiling itertools v0.12.1
    Compiling rgb v0.8.50
    Compiling ref-cast-impl v1.0.23
@@ -876,47 +876,47 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling servo_arc v0.4.3
    Compiling simd_helpers v0.1.0
    Compiling ahash v0.8.11
-   Compiling schemars v0.8.21
-   Compiling noop_proc_macro v0.3.0
    Compiling bitstream-io v2.3.0
-   Compiling time-core v0.1.2
-   Compiling num-modular v0.6.1
+   Compiling noop_proc_macro v0.3.0
+   Compiling tinyvec_macros v0.1.1
+   Compiling schemars v0.8.21
+   Compiling unicode-id-start v1.3.1
    Compiling hashbrown v0.14.5
-   Compiling arrayref v0.3.9
    Compiling color_quant v1.1.0
    Compiling imgref v1.11.0
-   Compiling unicode-id-start v1.3.1
-   Compiling byteorder-lite v0.1.0
-   Compiling tinyvec_macros v0.1.1
+   Compiling arrayref v0.3.9
    Compiling num-conv v0.1.0
    Compiling zune-core v0.4.12
+   Compiling byteorder-lite v0.1.0
+   Compiling num-modular v0.6.1
+   Compiling time-core v0.1.2
    Compiling time v0.3.37
    Compiling image-webp v0.2.0
-   Compiling zune-jpeg v0.4.14
-   Compiling tinyvec v1.8.1
-   Compiling loop9 v0.1.5
-   Compiling gif v0.13.1
-   Compiling tiny-skia-path v0.11.4
-   Compiling dashmap v6.1.0
    Compiling num-order v1.2.0
+   Compiling zune-jpeg v0.4.14
+   Compiling dashmap v6.1.0
+   Compiling loop9 v0.1.5
+   Compiling tiny-skia-path v0.11.4
+   Compiling gif v0.13.1
+   Compiling tinyvec v1.8.1
    Compiling schemars_derive v0.8.21
-   Compiling rustls-platform-verifier v0.6.2
    Compiling embed-resource v3.0.5
+   Compiling rustls-platform-verifier v0.6.2
    Compiling rand v0.9.4
    Compiling html5ever v0.38.0
    Compiling derive_builder v0.20.2
-   Compiling unic-ucd-ident v0.9.0
    Compiling hyper-util v0.1.19
+   Compiling unic-ucd-ident v0.9.0
    Compiling ghash v0.5.1
    Compiling socks v0.3.4
    Compiling oxc_diagnostics v0.36.0
    Compiling webpki-roots v1.0.5
    Compiling cfb v0.7.3
-   Compiling ctr v0.9.2
    Compiling aes v0.8.4
+   Compiling ctr v0.9.2
    Compiling serde_with_macros v3.12.0
-   Compiling kurbo v0.11.1
    Compiling avif-serialize v0.8.2
+   Compiling kurbo v0.11.1
    Compiling num-iter v0.1.45
    Compiling ureq-proto v0.5.3
    Compiling sha2 v0.10.8
@@ -924,62 +924,62 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling zune-inflate v0.2.54
    Compiling jsonptr v0.6.3
    Compiling num-complex v0.4.6
-   Compiling scroll_derive v0.12.0
    Compiling serialize-to-javascript-impl v0.1.2
+   Compiling scroll_derive v0.12.0
    Compiling os_pipe v1.2.3
-   Compiling toml_datetime v1.0.0+spec-1.1.0
    Compiling aead v0.5.2
+   Compiling toml_datetime v1.0.0+spec-1.1.0
    Compiling quick-xml v0.32.0
    Compiling bstr v1.11.3
    Compiling half v2.4.1
-   Compiling dyn-clone v1.0.17
+   Compiling assert-unchecked v0.1.2
+   Compiling clap_lex v0.7.4
+   Compiling sync_wrapper v1.0.2
+   Compiling borrow-or-share v0.2.2
    Compiling unicode-ccc v0.4.0
-   Compiling lockfree-object-pool v0.1.6
+   Compiling bit_field v0.10.2
+   Compiling unicode-bidi-mirroring v0.4.0
+   Compiling memmap2 v0.9.11
+   Compiling option-ext v0.2.0
+   Compiling dyn-clone v1.0.17
+   Compiling jpeg-decoder v0.3.1
+   Compiling data-encoding v2.6.0
    Compiling foldhash v0.2.0
    Compiling heck v0.5.0
-   Compiling data-encoding v2.6.0
-   Compiling bit_field v0.10.2
-   Compiling assert-unchecked v0.1.2
-   Compiling ctor-proc-macro v0.0.7
-   Compiling lebe v0.5.2
-   Compiling unicode-properties v0.1.3
-   Compiling unicode-bidi-mirroring v0.4.0
-   Compiling oxc_index v0.36.0
-   Compiling memmap2 v0.9.11
-   Compiling borrow-or-share v0.2.2
-   Compiling nonmax v0.5.5
    Compiling dunce v1.0.5
-   Compiling sync_wrapper v1.0.2
-   Compiling option-ext v0.2.0
    Compiling unicode-script v0.5.7
-   Compiling jpeg-decoder v0.3.1
-   Compiling clap_lex v0.7.4
-   Compiling tempfile v3.15.0
-   Compiling clap_builder v4.5.26
-   Compiling tiff v0.9.1
-   Compiling rustybuzz v0.20.1
-   Compiling dirs-sys v0.5.0
-   Compiling oxc_syntax v0.36.0
-   Compiling fluent-uri v0.3.2
-   Compiling fontdb v0.23.0
-   Compiling ctor v0.8.0
-   Compiling exr v1.73.0
-   Compiling tungstenite v0.26.2
-   Compiling clap_derive v4.5.24
-   Compiling dom_query v0.27.0
+   Compiling unicode-properties v0.1.3
+   Compiling ctor-proc-macro v0.0.7
+   Compiling nonmax v0.5.5
+   Compiling oxc_index v0.36.0
+   Compiling lebe v0.5.2
+   Compiling lockfree-object-pool v0.1.6
    Compiling zopfli v0.8.1
-   Compiling globset v0.4.15
+   Compiling tempfile v3.15.0
+   Compiling exr v1.73.0
+   Compiling oxc_syntax v0.36.0
+   Compiling ctor v0.8.0
+   Compiling rustybuzz v0.20.1
+   Compiling tiff v0.9.1
+   Compiling clap_derive v4.5.24
+   Compiling tungstenite v0.26.2
+   Compiling dom_query v0.27.0
+   Compiling fontdb v0.23.0
+   Compiling dirs-sys v0.5.0
+   Compiling fluent-uri v0.3.2
    Compiling plist v1.7.0
-   Compiling aes-gcm v0.10.3
+   Compiling globset v0.4.15
+   Compiling clap_builder v4.5.26
    Compiling scroll v0.12.0
-   Compiling serialize-to-javascript v0.1.2
+   Compiling aes-gcm v0.10.3
    Compiling num v0.4.3
+   Compiling serialize-to-javascript v0.1.2
    Compiling json-patch v3.0.1
    Compiling pbkdf2 v0.12.2
-   Compiling ureq v3.1.4
-   Compiling ravif v0.11.11
-   Compiling serde_with v3.12.0
    Compiling svgtypes v0.15.3
+   Compiling ureq v3.1.4
+   Compiling serde_with v3.12.0
+   Compiling ravif v0.11.11
    Compiling infer v0.19.0
    Compiling oxc_regular_expression v0.36.0
    Compiling urlpattern v0.3.0
@@ -987,8 +987,8 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling cargo-mobile2 v0.22.4
    Compiling serde-untagged v0.1.6
    Compiling json5 v0.4.1
-   Compiling windows-collections v0.2.0
    Compiling windows-numerics v0.2.0
+   Compiling windows-collections v0.2.0
    Compiling windows-future v0.2.0
    Compiling tower v0.4.13
    Compiling shared_child v1.1.1
@@ -999,39 +999,39 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling rtoolbox v0.0.2
    Compiling simplecss v0.2.2
    Compiling encoding_rs v0.8.35
-   Compiling stfu8 v0.2.7
-   Compiling winsafe v0.0.19
-   Compiling roxmltree v0.20.0
+   Compiling cow-utils v0.1.3
    Compiling env_home v0.1.0
-   Compiling glob v0.3.2
+   Compiling notify-types v2.0.0
    Compiling outref v0.5.1
-   Compiling unicode-bidi v0.3.18
-   Compiling unicode-vo v0.1.0
    Compiling route-recognizer v0.3.1
-   Compiling shared_thread v0.2.0
-   Compiling imagesize v0.13.0
    Compiling data-url v0.3.1
+   Compiling roxmltree v0.20.0
+   Compiling winsafe v0.0.19
+   Compiling shared_thread v0.2.0
    Compiling encode_unicode v1.0.0
    Compiling std_prelude v0.2.12
+   Compiling xmlwriter v0.1.0
+   Compiling mime v0.3.17
+   Compiling glob v0.3.2
+   Compiling pico-args v0.5.0
+   Compiling imagesize v0.13.0
+   Compiling unicode-vo v0.1.0
+   Compiling unicode-bidi v0.3.18
    Compiling vsimd v0.8.0
    Compiling plain v0.2.3
-   Compiling mime v0.3.17
-   Compiling xmlwriter v0.1.0
-   Compiling notify-types v2.0.0
-   Compiling cow-utils v0.1.3
-   Compiling pico-args v0.5.0
-   Compiling oxc_ast v0.36.0
-   Compiling usvg v0.45.0
-   Compiling notify v8.2.0
-   Compiling axum-core v0.5.2
-   Compiling uuid-simd v0.8.0
-   Compiling goblin v0.9.3
+   Compiling stfu8 v0.2.7
    Compiling path_abs v0.5.1
-   Compiling console v0.15.10
-   Compiling jsonrpsee-server v0.24.7
-   Compiling duct v1.1.1
-   Compiling tauri-utils v2.9.3
+   Compiling goblin v0.9.3
+   Compiling uuid-simd v0.8.0
+   Compiling usvg v0.45.0
    Compiling which v8.0.0
+   Compiling tauri-utils v2.9.3
+   Compiling axum-core v0.5.2
+   Compiling console v0.15.10
+   Compiling duct v1.1.1
+   Compiling jsonrpsee-server v0.24.7
+   Compiling notify v8.2.0
+   Compiling oxc_ast v0.36.0
    Compiling java-properties v2.0.0
    Compiling rpassword v7.4.0
    Compiling tar v0.4.46
@@ -1040,12 +1040,12 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling scrypt v0.11.0
    Compiling windows v0.61.1
    Compiling referencing v0.33.0
+   Compiling clap v4.5.26
    Compiling fraction v0.15.3
    Compiling ignore v0.4.23
-   Compiling zip v4.0.0
-   Compiling clap v4.5.26
-   Compiling tokio-tungstenite v0.26.2
    Compiling dirs v6.0.0
+   Compiling tokio-tungstenite v0.26.2
+   Compiling zip v4.0.0
    Compiling tower v0.5.2
    Compiling toml v1.0.6+spec-1.1.0
    Compiling tiny-skia v0.11.4
@@ -1054,32 +1054,32 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling bitness v0.4.0
    Compiling fancy-regex v0.16.1
    Compiling file-id v0.2.3
-   Compiling env_filter v0.1.3
    Compiling serde_urlencoded v0.7.1
+   Compiling env_filter v0.1.3
    Compiling home v0.5.9
-   Compiling email_address v0.2.9
    Compiling serde_path_to_error v0.1.16
+   Compiling email_address v0.2.9
    Compiling ordered-float v2.10.1
    Compiling include_dir_macros v0.7.4
-   Compiling seq-macro v0.3.5
-   Compiling hex v0.4.3
-   Compiling bytecount v0.6.8
    Compiling matchit v0.8.4
-   Compiling vlq v0.5.1
-   Compiling humantime v2.1.0
    Compiling english-numbers v0.3.3
-   Compiling shell-words v1.1.0
+   Compiling seq-macro v0.3.5
+   Compiling vlq v0.5.1
    Compiling num-cmp v0.1.0
    Compiling deunicode v1.6.0
+   Compiling hex v0.4.3
+   Compiling humantime v2.1.0
    Compiling tauri-cli v2.11.4
    Compiling base64 v0.13.1
-   Compiling magic_string v0.3.4
+   Compiling shell-words v1.1.0
+   Compiling bytecount v0.6.8
    Compiling jsonschema v0.33.0
    Compiling dialoguer v0.11.0
+   Compiling magic_string v0.3.4
    Compiling env_logger v0.11.6
-   Compiling axum v0.8.4
    Compiling tauri-bundler v2.9.4
    Compiling oxc_parser v0.36.0
+   Compiling axum v0.8.4
    Compiling include_dir v0.7.4
    Compiling serde-value v0.7.0
    Compiling notify-debouncer-full v0.6.0
@@ -1095,10 +1095,10 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
    Compiling local-ip-address v0.6.3
    Compiling ctrlc v3.4.5
    Compiling css-color v0.2.8
-   Compiling common-path v1.0.0
    Compiling sublime_fuzzy v0.7.0
    Compiling elf v0.7.4
-    Finished `release` profile [optimized] target(s) in 10m 51s
+   Compiling common-path v1.0.0
+    Finished `release` profile [optimized] target(s) in 10m 39s
   Installing C:\Users\runneradmin\.cargo\bin\cargo-tauri.exe
    Installed package `tauri-cli v2.11.4` (executable `cargo-tauri.exe`)
 
@@ -1106,22 +1106,581 @@ warning: package `spin v0.9.8` in Cargo.lock is yanked in registry `crates-io`
 
 ## ci-metadata.log
 ~~~text
-{"packages":[{"name":"synth-browser","version":"0.1.0","id":"path+file:///D:/a/SynthWeb/SynthWeb/src-tauri#synth-browser@0.1.0","license":null,"license_file":null,"description":"Synth Browser desktop browser","source":null,"dependencies":[{"name":"base64","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^0.22.1","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"dirs-next","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^2.0.0","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"ed25519-dalek","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^2.1.1","kind":null,"rename":null,"optional":false,"uses_default_features":false,"features":["std"],"target":null,"registry":null},{"name":"futures-util","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^0.3.31","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"keyring","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^4.2.0","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"reqwest","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^0.13.5","kind":null,"rename":null,"optional":false,"uses_default_features":false,"features":["json","rustls-tls"],"target":null,"registry":null},{"name":"rusqlite","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^0.37.0","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":["bundled"],"target":null,"registry":null},{"name":"serde","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^1.0.228","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":["derive"],"target":null,"registry":null},{"name":"serde_json","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^1.0.145","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"sha2","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^0.10.9","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"tauri","source":"registry+https://github.com/rust-lang/crates.io-index","req":"=2.11.5","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":["wry","unstable","devtools"],"target":null,"registry":null},{"name":"thiserror","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^2.0.16","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"tokio","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^1.47.1","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":["fs","io-util"],"target":null,"registry":null},{"name":"url","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^2.5.7","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"urlencoding","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^2.1.3","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"tauri-build","source":"registry+https://github.com/rust-lang/crates.io-index","req":"=2.6.3","kind":"build","rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"webview2-com","source":"registry+https://github.com/rust-lang/crates.io-index","req":"=0.38.2","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":"cfg(windows)","registry":null},{"name":"windows","source":"registry+https://github.com/rust-lang/crates.io-index","req":"=0.61.3","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":["Win32_Foundation","Win32_UI_WindowsAndMessaging","Win32_UI_Shell","Win32_System_ProcessStatus","Win32_System_Threading"],"target":"cfg(windows)","registry":null}],"targets":[{"kind":["bin"],"crate_types":["bin"],"name":"synth-browser","src_path":"D:\\a\\SynthWeb\\SynthWeb\\src-tauri\\src\\main.rs","edition":"2021","doc":true,"doctest":false,"test":true},{"kind":["custom-build"],"crate_types":["bin"],"name":"build-script-build","src_path":"D:\\a\\SynthWeb\\SynthWeb\\src-tauri\\build.rs","edition":"2021","doc":false,"doctest":false,"test":false}],"features":{"custom-protocol":["tauri/custom-protocol"],"default":[]},"manifest_path":"D:\\a\\SynthWeb\\SynthWeb\\src-tauri\\Cargo.toml","metadata":null,"publish":null,"authors":["Synth Browser Contributors"],"categories":[],"keywords":[],"readme":null,"repository":null,"homepage":null,"documentation":null,"edition":"2021","links":null,"default_run":null,"rust_version":"1.88"}],"workspace_members":["path+file:///D:/a/SynthWeb/SynthWeb/src-tauri#synth-browser@0.1.0"],"workspace_default_members":["path+file:///D:/a/SynthWeb/SynthWeb/src-tauri#synth-browser@0.1.0"],"resolve":null,"target_directory":"D:\\a\\SynthWeb\\SynthWeb\\src-tauri\\target","build_directory":"D:\\a\\SynthWeb\\SynthWeb\\src-tauri\\target","version":1,"workspace_root":"D:\\a\\SynthWeb\\SynthWeb\\src-tauri","metadata":null}
+{"packages":[{"name":"synth-browser","version":"0.1.0","id":"path+file:///D:/a/SynthWeb/SynthWeb/src-tauri#synth-browser@0.1.0","license":null,"license_file":null,"description":"Synth Browser desktop browser","source":null,"dependencies":[{"name":"base64","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^0.22.1","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"dirs-next","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^2.0.0","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"ed25519-dalek","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^2.1.1","kind":null,"rename":null,"optional":false,"uses_default_features":false,"features":["std"],"target":null,"registry":null},{"name":"futures-util","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^0.3.31","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"keyring","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^4.2.0","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"reqwest","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^0.13.5","kind":null,"rename":null,"optional":false,"uses_default_features":false,"features":["json","rustls"],"target":null,"registry":null},{"name":"rusqlite","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^0.37.0","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":["bundled"],"target":null,"registry":null},{"name":"serde","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^1.0.228","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":["derive"],"target":null,"registry":null},{"name":"serde_json","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^1.0.145","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"sha2","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^0.10.9","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"tauri","source":"registry+https://github.com/rust-lang/crates.io-index","req":"=2.11.5","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":["wry","unstable","devtools"],"target":null,"registry":null},{"name":"thiserror","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^2.0.16","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"tokio","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^1.47.1","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":["fs","io-util"],"target":null,"registry":null},{"name":"url","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^2.5.7","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"urlencoding","source":"registry+https://github.com/rust-lang/crates.io-index","req":"^2.1.3","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"tauri-build","source":"registry+https://github.com/rust-lang/crates.io-index","req":"=2.6.3","kind":"build","rename":null,"optional":false,"uses_default_features":true,"features":[],"target":null,"registry":null},{"name":"webview2-com","source":"registry+https://github.com/rust-lang/crates.io-index","req":"=0.38.2","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":[],"target":"cfg(windows)","registry":null},{"name":"windows","source":"registry+https://github.com/rust-lang/crates.io-index","req":"=0.61.3","kind":null,"rename":null,"optional":false,"uses_default_features":true,"features":["Win32_Foundation","Win32_UI_WindowsAndMessaging","Win32_UI_Shell","Win32_System_ProcessStatus","Win32_System_Threading"],"target":"cfg(windows)","registry":null}],"targets":[{"kind":["bin"],"crate_types":["bin"],"name":"synth-browser","src_path":"D:\\a\\SynthWeb\\SynthWeb\\src-tauri\\src\\main.rs","edition":"2021","doc":true,"doctest":false,"test":true},{"kind":["custom-build"],"crate_types":["bin"],"name":"build-script-build","src_path":"D:\\a\\SynthWeb\\SynthWeb\\src-tauri\\build.rs","edition":"2021","doc":false,"doctest":false,"test":false}],"features":{"custom-protocol":["tauri/custom-protocol"],"default":[]},"manifest_path":"D:\\a\\SynthWeb\\SynthWeb\\src-tauri\\Cargo.toml","metadata":null,"publish":null,"authors":["Synth Browser Contributors"],"categories":[],"keywords":[],"readme":null,"repository":null,"homepage":null,"documentation":null,"edition":"2021","links":null,"default_run":null,"rust_version":"1.88"}],"workspace_members":["path+file:///D:/a/SynthWeb/SynthWeb/src-tauri#synth-browser@0.1.0"],"workspace_default_members":["path+file:///D:/a/SynthWeb/SynthWeb/src-tauri#synth-browser@0.1.0"],"resolve":null,"target_directory":"D:\\a\\SynthWeb\\SynthWeb\\src-tauri\\target","build_directory":"D:\\a\\SynthWeb\\SynthWeb\\src-tauri\\target","version":1,"workspace_root":"D:\\a\\SynthWeb\\SynthWeb\\src-tauri","metadata":null}
 
 ~~~
 
 ## ci-cargo-check.log
 ~~~text
     Updating crates.io index
-error: failed to select a version for `reqwest`.
-    ... required by package `synth-browser v0.1.0 (D:\a\SynthWeb\SynthWeb\src-tauri)`
-versions that meet the requirements `^0.13.5` are: 0.13.5
+     Locking 557 packages to latest compatible versions
+      Adding base64 v0.22.1 (available: v0.23.1)
+      Adding ed25519-dalek v2.2.0 (available: v3.0.0)
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding rusqlite v0.37.0 (available: v0.40.2)
+      Adding sha2 v0.10.9 (available: v0.11.0)
+      Adding toml v0.8.2 (available: v0.8.23)
+      Adding toml_datetime v0.6.3 (available: v0.6.11)
+      Adding toml_edit v0.20.2 (available: v0.20.7)
+      Adding webview2-com v0.38.2 (available: v0.39.1)
+      Adding windows v0.61.3 (available: v0.62.2)
+ Downloading crates ...
+  Downloaded cargo-platform v0.1.9
+  Downloaded mio v1.2.3
+  Downloaded cfg_aliases v0.2.2
+  Downloaded cpufeatures v0.2.17
+  Downloaded crypto-common v0.1.7
+  Downloaded defmt-parser v1.0.0
+  Downloaded fallible-streaming-iterator v0.1.9
+  Downloaded adler2 v2.0.1
+  Downloaded dirs-sys-next v0.1.2
+  Downloaded idna_adapter v1.2.2
+  Downloaded percent-encoding v2.3.2
+  Downloaded potential_utf v0.1.6
+  Downloaded ref-cast-impl v1.0.27
+  Downloaded cfg-if v1.0.4
+  Downloaded curve25519-dalek-derive v0.1.1
+  Downloaded darling_macro v0.24.1
+  Downloaded equivalent v1.0.2
+  Downloaded futures-io v0.3.34
+  Downloaded dtoa v1.0.11
+  Downloaded hashlink v0.10.0
+  Downloaded http-body-util v0.1.5
+  Downloaded hyper-rustls v0.27.9
+  Downloaded glob v0.3.4
+  Downloaded base64ct v1.8.3
+  Downloaded bs58 v0.5.1
+  Downloaded chacha20 v0.10.2
+  Downloaded cookie v0.18.2
+  Downloaded fs_extra v1.3.0
+  Downloaded jobserver v0.1.35
+  Downloaded keyring-core v1.0.0
+  Downloaded crc32fast v1.5.2
+  Downloaded base64 v0.23.1
+  Downloaded bytes v1.12.1
+  Downloaded getrandom v0.3.4
+  Downloaded icu_provider v2.3.1
+  Downloaded lru-slab v0.1.3
+  Downloaded cargo_toml v0.22.3
+  Downloaded flate2 v1.1.10
+  Downloaded cc v1.4.6
+  Downloaded cpufeatures v0.3.1
+  Downloaded derive_more v2.1.1
+  Downloaded ed25519-dalek v2.2.0
+  Downloaded icu_collections v2.3.0
+  Downloaded pkcs8 v0.10.2
+  Downloaded quote v1.0.47
+  Downloaded rustls-pki-types v1.15.1
+  Downloaded siphasher v1.0.3
+  Downloaded camino v1.2.6
+  Downloaded try-lock v0.2.5
+  Downloaded chrono v0.4.45
+  Downloaded lock_api v0.4.14
+  Downloaded serde-untagged v0.1.9
+  Downloaded stable_deref_trait v1.2.1
+  Downloaded thiserror v2.0.20
+  Downloaded unicode-ident v1.0.24
+  Downloaded winapi-util v0.1.11
+  Downloaded shlex v2.0.1
+  Downloaded vswhom-sys v0.1.3
+  Downloaded webview2-com v0.38.2
+  Downloaded brotli v8.0.4
+  Downloaded cmake v0.1.58
+  Downloaded litemap v0.8.3
+  Downloaded socket2 v0.6.5
+  Downloaded windows-core v0.61.2
+  Downloaded windows-link v0.1.3
+  Downloaded windows-implement v0.60.2
+  Downloaded schemars v0.9.0
+  Downloaded thiserror-impl v2.0.20
+  Downloaded windows-version v0.1.7
+  Downloaded zerofrom v0.1.8
+  Downloaded alloc-no-stdlib v2.0.4
+  Downloaded pin-project-lite v0.2.17
+  Downloaded windows-result v0.3.4
+  Downloaded yoke v0.8.3
+  Downloaded parking_lot_core v0.9.12
+  Downloaded toml_parser v1.1.3+spec-1.1.0
+  Downloaded zerotrie v0.2.5
+  Downloaded rustc-hash v2.1.3
+  Downloaded memchr v2.8.3
+  Downloaded miniz_oxide v0.9.1
+  Downloaded muda v0.19.3
+  Downloaded quinn-udp v0.5.15
+  Downloaded log v0.4.34
+  Downloaded num-conv v0.2.2
+  Downloaded pkg-config v0.3.34
+  Downloaded rand_core v0.10.1
+  Downloaded raw-window-handle v0.6.2
+  Downloaded ref-cast v1.0.27
+  Downloaded rustls-platform-verifier v0.7.0
+  Downloaded miniz_oxide v0.8.9
+  Downloaded parking_lot v0.12.5
+  Downloaded rand v0.10.2
+  Downloaded tokio-util v0.7.19
+  Downloaded aho-corasick v1.1.5
+  Downloaded plist v1.10.1
+  Downloaded proc-macro2 v1.0.107
+  Downloaded quinn v0.11.12
+  Downloaded rand_pcg v0.10.2
+  Downloaded regex v1.13.1
+  Downloaded reqwest v0.13.5
+  Downloaded rusqlite v0.37.0
+  Downloaded rustls-webpki v0.103.15
+  Downloaded serde_json v1.0.151
+  Downloaded time-core v0.1.9
+  Downloaded tower-http v0.6.11
+  Downloaded vcpkg v0.2.15
+  Downloaded zlib-rs v0.6.8
+  Downloaded alloc-stdlib v0.2.4
+  Downloaded defmt-macros v1.1.1
+  Downloaded futures-sink v0.3.34
+  Downloaded keyboard-types v0.7.0
+  Downloaded quinn-proto v0.11.18
+  Downloaded serde_repr v0.1.21
+  Downloaded tauri v2.11.5
+  Downloaded tauri-build v2.6.3
+  Downloaded tinystr v0.8.4
+  Downloaded tokio-rustls v0.26.5
+  Downloaded toml v1.1.6+spec-1.1.0
+  Downloaded autocfg v1.5.1
+  Downloaded aws-lc-rs v1.18.1
+  Downloaded dirs-next v2.0.0
+  Downloaded find-msvc-tools v0.1.12
+  Downloaded futures-channel v0.3.34
+  Downloaded getrandom v0.2.17
+  Downloaded itoa v1.0.18
+  Downloaded quick-xml v0.42.0
+  Downloaded serde v1.0.229
+  Downloaded serde_spanned v1.1.1
+  Downloaded sha2 v0.10.9
+  Downloaded tauri-macros v2.6.3
+  Downloaded toml_datetime v1.1.1+spec-1.1.0
+  Downloaded anyhow v1.0.104
+  Downloaded erased-serde v0.4.10
+  Downloaded regex-syntax v0.8.11
+  Downloaded schemars_derive v0.8.22
+  Downloaded signature v2.2.0
+  Downloaded simd-adler32 v0.3.10
+  Downloaded tauri-codegen v2.6.3
+  Downloaded uuid v1.26.1
+  Downloaded rustls v0.23.45
+  Downloaded tinyvec v1.13.3
+  Downloaded dyn-clone v1.0.20
+  Downloaded icu_properties v2.3.0
+  Downloaded schemars v1.2.2
+  Downloaded syn v3.0.5
+  Downloaded synstructure v0.14.0
+  Downloaded tauri-runtime-wry v2.11.4
+  Downloaded webview2-com-macros v0.8.1
+  Downloaded windows-link v0.2.1
+  Downloaded yoke-derive v0.8.3
+  Downloaded futures-task v0.3.34
+  Downloaded hashbrown v0.17.1
+  Downloaded httparse v1.10.1
+  Downloaded serde_core v1.0.229
+  Downloaded serde_with v3.23.0
+  Downloaded zerovec-derive v0.11.6
+  Downloaded darling_core v0.24.1
+  Downloaded ed25519 v2.2.3
+  Downloaded hyper v1.11.1
+  Downloaded icu_locale_core v2.3.0
+  Downloaded regex-automata v0.4.18
+  Downloaded syn v2.0.119
+  Downloaded tao v0.35.3
+  Downloaded url v2.5.8
+  Downloaded getrandom v0.4.3
+  Downloaded ico v0.5.0
+  Downloaded semver v1.0.28
+  Downloaded slab v0.4.12
+  Downloaded time v0.3.55
+  Downloaded winnow v1.0.4
+  Downloaded bitflags v2.13.2
+  Downloaded brotli-decompressor v5.0.3
+  Downloaded curve25519-dalek v4.1.3
+  Downloaded displaydoc v0.2.7
+  Downloaded form_urlencoded v1.2.2
+  Downloaded tauri-runtime v2.11.3
+  Downloaded tokio v1.53.1
+  Downloaded tracing v0.1.44
+  Downloaded fastrand v2.5.0
+  Downloaded ipnet v2.12.2
+  Downloaded jiff v0.2.37
+  Downloaded smallvec v1.16.1
+  Downloaded tauri-winres v0.3.6
+  Downloaded typenum v1.20.1
+  Downloaded http-body v1.1.0
+  Downloaded hyper-util v0.1.20
+  Downloaded serde_with_macros v3.23.0
+  Downloaded spki v0.7.3
+  Downloaded serde_derive v1.0.229
+  Downloaded zerovec v0.11.8
+  Downloaded crossbeam-utils v0.8.23
+  Downloaded derive_more-impl v2.1.1
+  Downloaded icu_properties_data v2.3.0
+  Downloaded indexmap v2.14.2
+  Downloaded keyring v4.2.0
+  Downloaded schemars v0.8.22
+  Downloaded tower v0.5.3
+  Downloaded windows-sys v0.61.2
+  Downloaded toml_writer v1.1.2+spec-1.1.0
+  Downloaded crossbeam-channel v0.5.17
+  Downloaded softbuffer v0.4.8
+  Downloaded time-macros v0.2.32
+  Downloaded tracing-attributes v0.1.31
+  Downloaded tendril v0.5.1
+  Downloaded urlencoding v2.1.3
+  Downloaded zmij v1.0.23
+  Downloaded dpi v0.1.2
+  Downloaded jiff-core v0.1.1
+  Downloaded darling v0.24.1
+  Downloaded windows-interface v0.59.3
+  Downloaded windows-native-keyring-store v1.1.0
+  Downloaded defmt v1.1.1
+  Downloaded cargo_metadata v0.19.2
+  Downloaded zerofrom-derive v0.1.8
+  Downloaded icu_normalizer_data v2.3.0
+  Downloaded jiff-tzdb v0.1.8
+  Downloaded windows-future v0.2.1
+  Downloaded windows-threading v0.1.0
+  Downloaded tray-icon v0.24.2
+  Downloaded want v0.3.1
+  Downloaded windows-strings v0.4.2
+  Downloaded writeable v0.6.4
+  Downloaded wry v0.55.1
+  Downloaded deranged v0.5.8
+  Downloaded futures-core v0.3.34
+  Downloaded der v0.7.10
+  Downloaded fallible-iterator v0.3.0
+  Downloaded unicode-segmentation v1.13.3
+  Downloaded futures-macro v0.3.34
+  Downloaded jiff-tzdb-platform v0.1.3
+  Downloaded winnow v0.7.15
+  Downloaded embed-resource v3.0.11
+  Downloaded foldhash v0.1.5
+  Downloaded idna v1.1.0
+  Downloaded hashbrown v0.15.5
+  Downloaded web_atoms v0.2.6
+  Downloaded futures-util v0.3.34
+  Downloaded tracing-core v0.1.36
+  Downloaded http v1.5.0
+  Downloaded zeroize v1.9.0
+  Downloaded icu_normalizer v2.3.0
+  Downloaded typeid v1.0.3
+  Downloaded aws-lc-sys v0.45.0
+  Downloaded libc v0.2.189
+  Downloaded window-vibrancy v0.6.0
+  Downloaded libsqlite3-sys v0.35.0
+  Downloaded webview2-com-sys v0.38.2
+  Downloaded windows v0.61.3
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling cfg-if v1.0.4
+   Compiling serde_core v1.0.229
+   Compiling getrandom v0.4.3
+    Checking windows-link v0.2.1
+   Compiling jobserver v0.1.35
+   Compiling find-msvc-tools v0.1.12
+   Compiling syn v3.0.5
+   Compiling syn v2.0.119
+   Compiling siphasher v1.0.3
+   Compiling shlex v2.0.1
+   Compiling phf_shared v0.13.1
+   Compiling cc v1.4.6
+   Compiling icu_properties_data v2.3.0
+   Compiling icu_normalizer_data v2.3.0
+   Compiling fastrand v2.5.0
+   Compiling phf_generator v0.13.1
+   Compiling stable_deref_trait v1.2.1
+   Compiling zmij v1.0.23
+    Checking windows-sys v0.61.2
+   Compiling smallvec v1.16.1
+   Compiling synstructure v0.14.0
+   Compiling version_check v0.9.5
+   Compiling dunce v1.0.5
+   Compiling thiserror v2.0.20
+   Compiling parking_lot_core v0.9.12
+   Compiling serde v1.0.229
+   Compiling phf_macros v0.13.1
+   Compiling memchr v2.8.3
+   Compiling zerofrom-derive v0.1.8
+   Compiling yoke-derive v0.8.3
+   Compiling zerovec-derive v0.11.6
+   Compiling displaydoc v0.2.7
+   Compiling serde_derive v1.0.229
+   Compiling zerofrom v0.1.8
+   Compiling yoke v0.8.3
+   Compiling zerovec v0.11.8
+   Compiling thiserror-impl v2.0.20
+   Compiling typeid v1.0.3
+   Compiling num-conv v0.2.2
+   Compiling time-core v0.1.9
+   Compiling tinystr v0.8.4
+   Compiling phf_codegen v0.13.1
+   Compiling libc v0.2.189
+   Compiling writeable v0.6.4
+   Compiling litemap v0.8.3
+   Compiling itoa v1.0.18
+   Compiling strsim v0.11.1
+   Compiling ident_case v1.0.1
+   Compiling icu_locale_core v2.3.0
+   Compiling darling_core v0.24.1
+   Compiling potential_utf v0.1.6
+   Compiling zerotrie v0.2.5
+   Compiling semver v1.0.28
+   Compiling thiserror v1.0.69
+   Compiling erased-serde v0.4.10
+   Compiling utf8_iter v1.0.4
+   Compiling windows_x86_64_msvc v0.52.6
+   Compiling icu_collections v2.3.0
+   Compiling icu_provider v2.3.1
+   Compiling thiserror-impl v1.0.69
+   Compiling generic-array v0.14.7
+    Checking bytes v1.12.1
+   Compiling new_debug_unreachable v1.0.6
+   Compiling scopeguard v1.2.0
+   Compiling lock_api v0.4.14
+   Compiling phf v0.13.1
+   Compiling string_cache_codegen v0.6.1
+   Compiling serde_json v1.0.151
+   Compiling precomputed-hash v0.1.1
+   Compiling winnow v1.0.4
+    Checking windows-link v0.1.3
+   Compiling anyhow v1.0.104
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling web_atoms v0.2.6
+   Compiling darling_macro v0.24.1
+   Compiling icu_normalizer v2.3.0
+   Compiling icu_properties v2.3.0
+   Compiling darling v0.24.1
+   Compiling serde_with_macros v3.23.0
+   Compiling parking_lot v0.12.5
+   Compiling serde_spanned v1.1.1
+   Compiling toml_writer v1.1.2+spec-1.1.0
+    Checking pin-project-lite v0.2.17
+   Compiling ctor-proc-macro v0.0.7
+    Checking once_cell v1.21.4
+   Compiling idna_adapter v1.2.2
+   Compiling string_cache v0.9.0
+   Compiling log v0.4.34
+   Compiling autocfg v1.5.1
+   Compiling dtoa v1.0.11
+   Compiling percent-encoding v2.3.2
+   Compiling form_urlencoded v1.2.2
+   Compiling indexmap v1.9.3
+   Compiling dtoa-short v0.3.5
+   Compiling idna v1.1.0
+    Checking windows-strings v0.4.2
+    Checking windows-result v0.3.4
+    Checking http v1.5.0
+   Compiling tendril v0.5.1
+   Compiling rustc_version v0.4.1
+   Compiling selectors v0.36.1
+   Compiling aho-corasick v1.1.5
+   Compiling windows-interface v0.59.3
+   Compiling derive_more-impl v2.1.1
+   Compiling windows-implement v0.60.2
+   Compiling cssparser-macros v0.6.1
+   Compiling cmake v0.1.58
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling uuid v1.26.1
+   Compiling alloc-no-stdlib v2.0.4
+   Compiling regex-syntax v0.8.11
+    Checking zeroize v1.9.0
+   Compiling fs_extra v1.3.0
+   Compiling unic-common v0.9.0
+   Compiling camino v1.2.6
+   Compiling unic-char-range v0.9.0
+   Compiling byteorder v1.5.0
+   Compiling unic-char-property v0.9.0
+   Compiling aws-lc-sys v0.45.0
+   Compiling unic-ucd-version v0.9.0
+   Compiling alloc-stdlib v0.2.4
+   Compiling toml v1.1.6+spec-1.1.0
+   Compiling cssparser v0.36.0
+   Compiling derive_more v2.1.1
+   Compiling regex-automata v0.4.18
+    Checking windows-core v0.61.2
+   Compiling markup5ever v0.38.0
+   Compiling url v2.5.8
+   Compiling winapi-util v0.1.11
+   Compiling vswhom-sys v0.1.3
+   Compiling serde_derive_internals v0.29.1
+   Compiling servo_arc v0.4.3
+   Compiling schemars v0.8.22
+   Compiling hashbrown v0.17.1
+   Compiling bit-vec v0.8.0
+   Compiling powerfmt v0.2.0
+   Compiling equivalent v1.0.2
+   Compiling rustc-hash v2.1.3
+   Compiling bitflags v2.13.2
+   Compiling hashbrown v0.12.3
+   Compiling fnv v1.0.7
+   Compiling deranged v0.5.8
+   Compiling cfb v0.7.3
+   Compiling schemars_derive v0.8.22
+   Compiling time v0.3.55
+   Compiling indexmap v2.14.2
+   Compiling regex v1.13.1
+   Compiling bit-set v0.8.0
+   Compiling windows-targets v0.52.6
+   Compiling same-file v1.0.6
+   Compiling html5ever v0.38.0
+   Compiling brotli-decompressor v5.0.3
+   Compiling unic-ucd-ident v0.9.0
+   Compiling jsonptr v0.6.3
+   Compiling cargo-platform v0.1.9
+   Compiling quick-xml v0.42.0
+   Compiling dyn-clone v1.0.20
+    Checking futures-core v0.3.34
+   Compiling base64 v0.23.1
+   Compiling foldhash v0.2.0
+   Compiling dom_query v0.27.0
+   Compiling plist v1.10.1
+   Compiling cargo_metadata v0.19.2
+   Compiling json-patch v3.0.1
+   Compiling urlpattern v0.3.0
+   Compiling brotli v8.0.4
+   Compiling serde-untagged v0.1.9
+   Compiling walkdir v2.5.0
+   Compiling windows-sys v0.59.0
+   Compiling infer v0.19.0
+   Compiling ctor v0.8.0
+   Compiling serde_with v3.23.0
+    Checking windows-threading v0.1.0
+    Checking socket2 v0.6.5
+    Checking mio v1.2.3
+   Compiling aws-lc-rs v1.18.1
+   Compiling simd-adler32 v0.3.10
+   Compiling glob v0.3.4
+   Compiling tauri-utils v2.9.3
+    Checking tokio v1.53.1
+   Compiling winreg v0.55.0
+    Checking windows-future v0.2.1
+   Compiling vswhom v0.1.0
+    Checking windows-collections v0.2.0
+    Checking windows-numerics v0.2.0
+   Compiling time-macros v0.2.32
+   Compiling toml_datetime v0.7.5+spec-1.1.0
+   Compiling option-ext v0.2.0
+   Compiling typenum v1.20.1
+   Compiling winnow v0.7.15
+   Compiling crc32fast v1.5.2
+   Compiling adler2 v2.0.1
+   Compiling toml v0.9.12+spec-1.1.0
+   Compiling dirs-sys v0.5.0
+    Checking windows v0.61.3
+   Compiling embed-resource v3.0.11
+    Checking tracing-core v0.1.36
+   Compiling webview2-com-sys v0.38.2
+    Checking raw-window-handle v0.6.2
+   Compiling crossbeam-utils v0.8.23
+    Checking subtle v2.6.1
+   Compiling heck v0.5.0
+    Checking tracing v0.1.44
+   Compiling tauri-winres v0.3.6
+   Compiling dirs v6.0.0
+   Compiling cargo_toml v0.22.3
+   Compiling miniz_oxide v0.9.1
+    Checking rustls-pki-types v1.15.1
+    Checking http-body v1.1.0
+    Checking dpi v0.1.2
+   Compiling futures-macro v0.3.34
+   Compiling cookie v0.18.2
+    Checking slab v0.4.12
+   Compiling httparse v1.10.1
+    Checking untrusted v0.9.0
+    Checking futures-task v0.3.34
+   Compiling rustls v0.23.45
+    Checking futures-util v0.3.34
+   Compiling flate2 v1.1.10
+   Compiling tauri-build v2.6.3
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling miniz_oxide v0.8.9
+   Compiling fdeflate v0.3.7
+   Compiling webview2-com-macros v0.8.1
+    Checking windows-version v0.1.7
+    Checking unicode-segmentation v1.13.3
+   Compiling bitflags v1.3.2
+    Checking try-lock v0.2.5
+    Checking tower-service v0.3.3
+    Checking want v0.3.1
+   Compiling png v0.17.16
+   Compiling digest v0.10.7
+    Checking crossbeam-channel v0.5.17
+    Checking futures-channel v0.3.34
+   Compiling tauri-runtime v2.11.3
+   Compiling wry v0.55.1
+   Compiling pkg-config v0.3.34
+    Checking atomic-waker v1.1.2
+   Compiling vcpkg v0.2.15
+   Compiling cpufeatures v0.2.17
+   Compiling winapi v0.3.9
+   Compiling libsqlite3-sys v0.35.0
+   Compiling sha2 v0.10.9
+    Checking hyper v1.11.1
+   Compiling ico v0.5.0
+   Compiling tauri v2.11.5
+    Checking sync_wrapper v1.0.2
+   Compiling curve25519-dalek v4.1.3
+    Checking tower-layer v0.3.3
+    Checking foldhash v0.1.5
+    Checking base64 v0.22.1
+    Checking ipnet v2.12.2
+   Compiling tauri-runtime-wry v2.11.4
+   Compiling getrandom v0.3.4
+    Checking hyper-util v0.1.20
+   Compiling tauri-codegen v2.6.3
+    Checking hashbrown v0.15.5
+    Checking tower v0.5.3
+    Checking tao v0.35.3
+    Checking webview2-com v0.38.2
+    Checking keyboard-types v0.7.0
+    Checking softbuffer v0.4.8
+    Checking keyring-core v1.0.0
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling serialize-to-javascript-impl v0.1.2
+    Checking signature v2.2.0
+    Checking ed25519 v2.2.3
+    Checking serialize-to-javascript v0.1.2
+    Checking muda v0.19.3
+    Checking windows-native-keyring-store v1.1.0
+    Checking dirs-sys-next v0.1.2
+    Checking window-vibrancy v0.6.0
+   Compiling tauri-macros v2.6.3
+    Checking tower-http v0.6.11
+    Checking hashlink v0.10.0
+   Compiling synth-browser v0.1.0 (D:\a\SynthWeb\SynthWeb\src-tauri)
+    Checking http-body-util v0.1.5
+   Compiling serde_repr v0.1.21
+    Checking fallible-iterator v0.3.0
+    Checking mime v0.3.17
+    Checking fallible-streaming-iterator v0.1.9
+    Checking rusqlite v0.37.0
+error: failed to run custom build command for `synth-browser v0.1.0 (D:\a\SynthWeb\SynthWeb\src-tauri)`
+note: To improve backtraces for build dependencies, set the CARGO_PROFILE_DEV_BUILD_OVERRIDE_DEBUG=true environment variable to enable debug information generation.
 
-package `synth-browser` depends on `reqwest` with feature `rustls-tls` but `reqwest` does not have that feature.
-help: available features: __native-tls, __native-tls-alpn, __rustls, __rustls-aws-lc-rs, __tls, blocking, brotli, charset, cookies, default, default-tls, deflate, form, gzip, hickory-dns, http2, http3, json, multipart, native-tls, native-tls-no-alpn, native-tls-vendored, native-tls-vendored-no-alpn, query, rustls, rustls-no-provider, socks, stream, system-proxy, zstd
-
-
-failed to select a version for `reqwest` which could resolve this conflict
+Caused by:
+  process didn't exit successfully: `D:\a\SynthWeb\SynthWeb\src-tauri\target\debug\build\synth-browser-507f0591a8970248\build-script-build` (exit code: 1)
+  --- stdout
+  cargo:rerun-if-env-changed=TAURI_CONFIG
+  cargo:rustc-check-cfg=cfg(desktop)
+  cargo:rustc-cfg=desktop
+  cargo:rustc-check-cfg=cfg(mobile)
+  cargo:rerun-if-changed=D:\a\SynthWeb\SynthWeb\src-tauri\tauri.conf.json
+  cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_APP_NAME=browser
+  cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_PREFIX=space_synth
+  cargo:rustc-check-cfg=cfg(dev)
+  cargo:PERMISSION_FILES_PATH=D:\a\SynthWeb\SynthWeb\src-tauri\target\debug\build\synth-browser-113fb88cddfcca96\out\app-manifest\__app__-permission-files
+  cargo:rerun-if-changed=capabilities
+  cargo:rerun-if-env-changed=REMOVE_UNUSED_COMMANDS
+  cargo:rustc-env=TAURI_ENV_TARGET_TRIPLE=x86_64-pc-windows-msvc
+  cargo:rerun-if-changed=resources\azecotron\.gitkeep
+  package.metadata does not exist
+  `icons/icon.ico` not found; required for generating a Windows Resource file during tauri-build
+warning: build failed, waiting for other jobs to finish...
 
 ~~~
 
