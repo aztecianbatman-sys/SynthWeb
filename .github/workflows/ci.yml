@@ -10,7 +10,7 @@ jobs:
   frontend:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Check frontend syntax
         shell: cmd
         run: node --check frontend\main.js
@@ -21,7 +21,7 @@ jobs:
   rust:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable-x86_64-pc-windows-msvc
@@ -37,13 +37,13 @@ jobs:
     needs: rust
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable-x86_64-pc-windows-msvc
       - name: Install Tauri CLI
         shell: pwsh
-        run: cargo install tauri-cli --version 2.11.5 --locked
+        run: cargo install tauri-cli --version 2.11.4 --locked
       - name: Build
         shell: pwsh
         working-directory: src-tauri
@@ -60,7 +60,7 @@ jobs:
     needs: [frontend, rust, build]
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Validate release metadata
         shell: pwsh
         run: |
