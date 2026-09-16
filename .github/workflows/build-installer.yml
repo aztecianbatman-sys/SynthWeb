@@ -62,6 +62,7 @@ jobs:
 
       - name: Normalize Rust formatting
         shell: pwsh
+        working-directory: src-tauri
         run: cargo fmt --all
 
       - name: Cargo metadata
