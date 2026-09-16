@@ -22,13 +22,14 @@ jobs:
           toolchain: stable-x86_64-pc-windows-msvc
       - name: Format
         shell: pwsh
+        working-directory: src-tauri
         run: cargo fmt --all
       - name: Commit formatting fixes
         shell: pwsh
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src-tauri/**/*.rs
+          git add -- src-tauri
           if (-not (git diff --cached --quiet)) {
             git commit -m "style: format Rust sources with rustfmt"
             git push
